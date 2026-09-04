@@ -68,7 +68,7 @@ export function formatDualDisplay(args: {
     };
   }
   const eur = isPresent(args.valueEur ?? null)
-    ? formatMoney(args.valueEur, "unit", "EUR")
+    ? formatMoney(args.valueEur ?? null, "unit", "EUR")
     : "—";
   const fxNote = `${eur} @ ${args.fxRate} on ${args.fxDate} (${args.fxSource})`;
   return { ...base, converted: eur, conversionRefused: false, fxNote };
