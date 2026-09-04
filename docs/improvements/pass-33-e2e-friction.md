@@ -28,7 +28,7 @@
 
 **Wrong:** Wizard waited on queued jobs.
 
-**Should:** After upload, `POST /api/parse/:id` (inline). Timeout copy if extract never finishes.
+**Should:** After upload, `POST /api/parse/:id` (inline). Timeout copy if extract never finishes. `enqueueParse` / `enqueueFlags` use the same 1.5s Redis timeout as reports so upload does not hang when Redis is down.
 
 ### 5. P1 — No `data-testid`
 
