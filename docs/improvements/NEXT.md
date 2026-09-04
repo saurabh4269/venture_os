@@ -29,7 +29,7 @@ Queued P0s **and** the remaining P1 sweep in those files are implemented on this
 2. **Firm flag-policy persistence** — Settings shows catalog defaults only; writing thresholds needs `org_settings` jsonb + migration.
 3. **Reports monthly pack + worker artifacts** — on-demand draft is real; scheduled pack is not.
 4. **Ask eval harness** — citation fidelity beyond unit tests.
-5. **INR Cr canonical compare column** — cells still show native unit; dual EUR only with an FX triple.
+5. **INR Cr canonical compare column** — native unit stays primary; INR Cr is shown on the cell note when `toInrCrore` can convert (pass 22). Dual EUR still needs an FX triple.
 6. **Growth / burn-multiple derived compare columns** — not in the metric enum; do not invent.
 
 ## Explicitly deferred (need OAuth or Phase 2)
