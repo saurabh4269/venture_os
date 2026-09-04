@@ -1,0 +1,29 @@
+{
+  "name": "@venture-os/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "lint": "echo ok"
+  },
+  "dependencies": {
+    "@venture-os/core": "workspace:*",
+    "@venture-os/schema": "workspace:*",
+    "@venture-os/ui": "workspace:*",
+    "better-auth": "^1.3.7",
+    "next": "^15.5.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

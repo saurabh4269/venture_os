@@ -1,0 +1,22 @@
+# Render — alternative to Fly for api + worker. Free/hobby friendly.
+# Secrets (DATABASE_URL, REDIS_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, S3_*)
+# are set in the Render dashboard — never committed.
+
+services:
+  - type: web
+    name: venture-os-api
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm i && pnpm --filter @venture-os/db migrate
+    startCommand: pnpm --filter @venture-os/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: worker
+    name: venture-os-worker
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm i
+    startCommand: pnpm --filter @venture-os/worker start

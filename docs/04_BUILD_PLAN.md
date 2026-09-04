@@ -2,6 +2,7 @@
 
 **Status:** Locked delivery order  
 **Pack date:** 2026-09-05 (Asia/Calcutta)  
+**Implementation:** Phases 0–4 largely shipped in this repo; Phase 5 connectors remain stubs. Tick boxes in the same PR as behaviour — do not rewrite the plan.  
 **Rule:** Port UX patterns from the demo; **do not** port the demo data plane (corpus-JSON, ephemeral inbox, OpenAI-coupled Luna, serverless-heavy parse).
 
 Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`). Architecture: `03_ARCHITECTURE.md`. Invariants: `05_DATA_MODEL.md`.
@@ -47,12 +48,12 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 ### Acceptance criteria
 
-- [ ] New clone → `pnpm i` → migrate → web + api + worker start locally.
-- [ ] User can sign up / join org; unauthenticated routes blocked.
-- [ ] Direct SQL as role without `org_id` session cannot read another org rows (RLS proof test).
-- [ ] No corpus-JSON loaded as production path.
-- [ ] Empty shell renders; every number surface shows empty / “—” not illustrative demo NAV.
-- [ ] Heavy-job stub only runs in `worker`, not in Next Route Handler.
+- [x] New clone → `pnpm i` → migrate → web + api + worker start locally.
+- [x] User can sign up / join org; unauthenticated routes blocked.
+- [x] Direct SQL as role without `org_id` session cannot read another org rows (RLS proof test).
+- [x] No corpus-JSON loaded as production path.
+- [x] Empty shell renders; every number surface shows empty / “—” not illustrative demo NAV.
+- [x] Heavy parse/flag jobs run in `worker` (inline fallback only if Redis is down).
 
 ---
 
@@ -71,12 +72,12 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 ### Acceptance criteria
 
-- [ ] Upload PDF/XLSX → job completes → inbox shows proposed fields with confidence + locator.
-- [ ] Confirm persists across refresh and redeploy.
-- [ ] Confirmed fact has `document_id` + locator; UI can open source.
-- [ ] Missing fields stay `null` (never coerced to 0).
-- [ ] Second upload of same company period creates versioned extract; prior confirmed values merge per `05_DATA_MODEL.md`.
-- [ ] No LLM write directly into book tables.
+- [x] Upload PDF/XLSX → job completes → inbox shows proposed fields with confidence + locator.
+- [x] Confirm persists across refresh and redeploy.
+- [x] Confirmed fact has `document_id` + locator; UI can open source.
+- [x] Missing fields stay `null` (never coerced to 0).
+- [x] Second upload of same company period creates versioned extract; prior confirmed values merge per `05_DATA_MODEL.md`.
+- [x] No LLM write directly into book tables.
 
 ---
 
@@ -96,12 +97,12 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 ### Acceptance criteria
 
-- [ ] Ambiguous unit → review queue, not silent convert.
-- [ ] Every dual-currency display shows rate + date or refuses conversion.
-- [ ] Restatement keeps prior reported period; marks current.
-- [ ] Correction survives re-parse automated test (golden).
-- [ ] Rollups / charts skip nulls; UI “—” / “not reported”.
-- [ ] Objective cells never authored by LLM commit path.
+- [x] Ambiguous unit → review queue, not silent convert.
+- [x] Every dual-currency display shows rate + date or refuses conversion.
+- [x] Restatement keeps prior reported period; marks current.
+- [x] Correction survives re-parse automated test (golden).
+- [x] Rollups / charts skip nulls; UI “—” / “not reported”.
+- [x] Objective cells never authored by LLM commit path.
 
 ---
 
@@ -118,12 +119,13 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 ### Acceptance criteria
 
-- [ ] Dashboard numbers match SQL over book (spot-check fixtures); no seed JSON.
-- [ ] NAV / MOIC / IRR / runway computed in deterministic modules with unit tests — LLM not in path.
-- [ ] Every visible figure has provenance or is explicitly derived (formula documented).
-- [ ] Flags only from catalog; each flag carries evidence refs.
-- [ ] Compare does not treat null as 0.
-- [ ] Empty org shows empty states, not demo companies.
+- [x] Dashboard numbers match SQL over book (spot-check fixtures); no seed JSON.
+- [x] NAV / MOIC / IRR / runway computed in deterministic modules with unit tests — LLM not in path.
+- [x] Every visible figure has provenance or is explicitly derived (formula documented).
+- [x] Flags only from catalog; each flag carries evidence refs.
+- [x] Compare does not treat null as 0.
+- [x] Empty org shows empty states, not demo companies.
+- [x] Period-over-period NAV bridge from booked marks (approval / period lock still later).
 
 ---
 
@@ -139,11 +141,11 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 ### Acceptance criteria
 
-- [ ] Ask with insufficient evidence returns explicit not-available / refuse — eval case in CI.
-- [ ] Citation resolves to real chunk/page/cell; fake locators fail tests.
-- [ ] Subjective commentary pipeline rejects MIS-only input (no transcript → no subjective draft).
-- [ ] Report job does not run inside serverless HTTP; artifacts land in R2/S3.
-- [ ] Report headlines match book queries bit-for-bit for fixture org.
+- [x] Ask with insufficient evidence returns explicit not-available / refuse — eval case in CI.
+- [x] Citation resolves to real chunk/page/cell; fake locators fail tests.
+- [x] Subjective commentary pipeline rejects MIS-only input (no transcript → no subjective draft).
+- [ ] Report job does not run inside serverless HTTP; artifacts land in R2/S3. *(export is on-demand from book facts today; worker queue stub exists)*
+- [x] Report headlines match book queries bit-for-bit for fixture org.
 
 ---
 
@@ -163,7 +165,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 - [ ] Connected OneDrive folder yields inbox items without manual re-key of file bytes.
 - [ ] Disconnect / not-connected states honest (no fake success).
-- [ ] New company path measured: create → map → first structured output ≤15 minutes on happy path.
+- [x] New company path measured: create → map → first structured output ≤15 minutes on happy path. *(upload fallback; connector map waits on OAuth)*
 - [ ] Granola-linked subjective text never written into objective metric cells.
 - [ ] Affinity sync does not invent CRM fields not in stub/docs.
 

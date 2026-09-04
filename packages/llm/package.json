@@ -1,0 +1,22 @@
+{
+  "name": "@venture-os/llm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "lint": "echo ok"
+  },
+  "dependencies": {
+    "@venture-os/config": "workspace:*",
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

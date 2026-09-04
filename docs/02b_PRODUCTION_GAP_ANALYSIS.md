@@ -6,6 +6,8 @@
 
 **LLM decision (locked):** Production default is **OpenAI** (DECISION D5). Brief Claude wording superseded for vendor choice; functional brief still wins on behavior. Keep pluggable provider interface.
 
+**This-repo status:** live checkboxes are in `02_GAP_MATRIX.md` (This repo column). Do not duplicate a third matrix here.
+
 ---
 
 ## A) Capability matrix

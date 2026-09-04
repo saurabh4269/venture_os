@@ -1,0 +1,27 @@
+# Fly.io — api + worker (early live). Web stays on Vercel.
+# Domain code does not import Fly APIs.
+
+app = "venture-os-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "docker/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  API_PORT = "4000"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# Deploy a second process group or app for the worker:
+# fly scale count worker=1  (configure in fly dashboard / process groups)

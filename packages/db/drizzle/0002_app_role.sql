@@ -1,0 +1,18 @@
+-- App role must not be SUPERUSER / BYPASSRLS or FORCE RLS is a no-op.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'venture_os_app') THEN
+    CREATE ROLE venture_os_app LOGIN PASSWORD 'venture' NOSUPERUSER NOBYPASSRLS;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO venture_os_app', current_database());
+END $$;
+
+GRANT USAGE ON SCHEMA public TO venture_os_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO venture_os_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO venture_os_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO venture_os_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO venture_os_app;

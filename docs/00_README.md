@@ -88,3 +88,22 @@ Full detail: `03_ARCHITECTURE.md`.
 18. **Greenfield mandatory.** No corpus-JSON as SoR. No heavy jobs in serverless HTTP.
 19. **Migrations required** for any schema change.
 20. **Instrument success metrics** before claiming 90% auto-ingest or near-zero headline error.
+
+---
+
+## Implementation map (this repo — extend, do not fork)
+
+The numbered files above remain the contract. Status of the greenfield build lives in:
+
+- [`02_GAP_MATRIX.md`](02_GAP_MATRIX.md) — **This repo** column
+- [`04_BUILD_PLAN.md`](04_BUILD_PLAN.md) — acceptance checkboxes
+
+Do **not** add a second kebab-case product/architecture/brief tree. Extra notes that are not SoT:
+
+| File | Role |
+| --- | --- |
+| [`cost-hosting.md`](cost-hosting.md) | Free-tier then Azure bands (no secrets) |
+| [`research/notes.md`](research/notes.md) | Parser / Better Auth / FTS research |
+| [`improvements/`](improvements/) | Dated QA notes |
+
+`packages/core` holds deterministic runway / MOIC / XIRR / units / FY / flags / Ask / extract. Headlines never come from the LLM.

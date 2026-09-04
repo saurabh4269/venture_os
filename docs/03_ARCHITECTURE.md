@@ -18,8 +18,9 @@ apps/
   api/          # Hono HTTP API for durable reads/writes (org-scoped)
   worker/       # BullMQ workers — long-running / heavy jobs (parse, extract, reports, connector sync)
 packages/
-  db/           # Drizzle/Prisma (pick one) + migrations + RLS helpers
+  db/           # Drizzle + migrations + RLS helpers
   schema/       # Shared Zod / types for firm metric dictionary, jobs, provenance
+  core/         # Deterministic runway / MOIC / XIRR / units / FY / flags / Ask / extract
   llm/          # Pluggable provider interface (default OpenAI)
   ui/           # Shared components / design tokens (optional V3 theme pack)
   config/       # ESLint, TSConfig, Tailwind presets

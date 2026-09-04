@@ -24,27 +24,100 @@ Greenfield only. Do **not** extend `saurabh4269/v3_agentic_os` as production SoR
 3. `docs/01_PRODUCT_SPEC.md`
 4. `docs/02_GAP_MATRIX.md` + `docs/02b_PRODUCTION_GAP_ANALYSIS.md`
 5. `docs/03_ARCHITECTURE.md` + `docs/DECISION.md` — **LOCKED stack**
-6. `docs/04_BUILD_PLAN.md` — Phase 0 now
+6. `docs/04_BUILD_PLAN.md` — phased delivery (extend checkboxes; do not rewrite)
 7. `docs/05_DATA_MODEL.md` — hard invariants
-8. `docs/06_AGENT_PROMPT.md` — kickoff checklist
+8. `docs/06_AGENT_PROMPT.md` — original Phase 0 kickoff (historical)
 
-Historical brief only: `docs/brief/V3_Requirement_Brief_v1_Adishree_2026-08-26.md` (Gargi supersedes).
+Historical brief only: `docs/brief/V3_Requirement_Brief_v1_Adishree_2026-08-26.md` (Gargi supersedes).  
 PDFs: `docs/brief/raw/`.
+
+Do **not** recreate a parallel kebab-case docs tree. Tick or annotate the official numbered files as slices land.
 
 ---
 
 ## LOCKED stack (do not reopen casually)
 
-Auth: Better Auth.
-LLM: OpenAI via packages/llm.
-Jobs: BullMQ + Redis.
-HTTP API: Hono.
-Web: Next.js 15 App Router.
-SoR: Postgres + RLS with org_id on every tenant row.
-Objects: S3-compatible storage.
-UI: first-principles — do not clone demo site.
-Hosting: free-tier first, then Azure.
-Tooling: workspace monorepo.
+Auth: Better Auth.  
+LLM: OpenAI via `packages/llm`.  
+Jobs: BullMQ + Redis.  
+HTTP API: Hono.  
+Web: Next.js 15 App Router.  
+SoR: Postgres + Drizzle + RLS with `org_id` on every tenant row.  
+Objects: S3-compatible storage (`ObjectStore`; MinIO in Compose; `S3_ENDPOINT=fs` local/CI).  
+UI: first-principles — do not clone the demo site.  
+Hosting: free-tier first, then Azure.  
+Tooling: pnpm + Turborepo. Extra package: `packages/core` (metrics, flags, units, FY, Ask, extract).
+
+Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
+
+---
+
+## Implementation status
+
+| Phase | Status |
+| --- | --- |
+| 0 Platform | Shipped (auth, RLS, CI, empty shell) |
+| 1 Book | Shipped (upload → parse → inbox → book) |
+| 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements) |
+| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge, Compare); NAV **approval** later |
+| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX from the book) |
+| 5 Live connectors | Stub only — UI says **not connected** |
+| 6 LP room + billing | Out of scope |
+
+Resume from `docs/02_GAP_MATRIX.md` (This-repo column) and unchecked boxes in `docs/04_BUILD_PLAN.md`.
+
+---
+
+## How to run
+
+```bash
+pnpm i
+cp .env.example .env          # set OPENAI_API_KEY to enable Ask completions; optional
+docker compose up --build     # Postgres, Redis, MinIO, api, web, worker
+# open http://localhost:3000
+```
+
+Without Docker (native services + filesystem objects):
+
+```bash
+cp .env.example .env
+# MIGRATE_DATABASE_URL = Postgres superuser (migrations + GRANT)
+# DATABASE_URL         = venture_os_app (no BYPASSRLS — required for RLS tests)
+# REDIS_URL            = local Redis
+# S3_ENDPOINT=fs
+pnpm db:migrate
+pnpm dev                       # turbo: web :3000, api :4000, worker
+```
+
+If Redis is up and the worker is down, parse jobs sit queued — start the worker or `POST /api/parse/:documentId`.
+
+### OpenAI
+
+- `OPENAI_API_KEY` in `.env` (never commit it).
+- If unset: parse still runs heuristically; Ask still searches the book/FTS and **refuses** to invent a completion.
+- Model via `OPENAI_MODEL` (default `gpt-4o-mini`).
+
+### Demo for a VC
+
+1. Sign up → create org (you are Org Admin).
+2. Companies → Add company → upload an MIS `.xlsx` / `.csv` (or run opt-in seed).
+3. Inbox → confirm rows (edit units if needed). Nothing auto-posts to the book.
+4. Command / Flags / NAV / Compare / Ask / Reports now read the **book**.
+5. Optional labelled fixture: `SEED_DEMO=1 pnpm seed:demo`. Banner: **FIXTURE_ONLY**. Never use as production data.
+
+---
+
+## Commands
+
+| Command | What |
+| --- | --- |
+| `pnpm dev` | web :3000, api :4000, worker |
+| `pnpm test` | Vitest across packages |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm db:migrate` | Drizzle migrate (`MIGRATE_DATABASE_URL` preferred) |
+| `pnpm db:generate` | Drizzle generate |
+| `pnpm seed:demo` | FIXTURE_ONLY opt-in |
+| `pnpm --filter @venture-os/api start` | API only |
 
 ---
 
@@ -63,14 +136,41 @@ Tooling: workspace monorepo.
 11. Connectors: never fake success. Label not connected until real OAuth + sync.
 12. Never invent Affinity / Graph / Granola / ILPA field names — stub + TODO(source-of-truth).
 13. Migrations required for schema changes. Instrument success metrics before claiming targets.
+14. No secrets in git. `.env.example` only.
+15. Fixtures are `FIXTURE_ONLY` and opt-in.
+16. Subjective commentary never from MIS-only input.
 
 ---
 
-## Current focus: Phase 0
+## Never invent connector fields
 
-Scaffold monorepo: web (Next.js), api (Hono), worker (BullMQ). Better Auth org stub. Postgres migrations + RLS proof. S3-compatible + BullMQ hello-world. packages/llm OpenAI stub. Empty OS shell with IA labels — no seed portfolio numbers. CI: lint, typecheck, migrate-on-test.
+OneDrive / Affinity / Granola live APIs are out of scope until vendor docs are in this repo. Do not add request bodies, webhook shapes, or sync tokens you have not verified. Settings UI is a stub.
 
-Details: docs/04_BUILD_PLAN.md
+---
+
+## Where code lives
+
+| Concern | Path |
+| --- | --- |
+| Tables, RLS, migrations | `packages/db` |
+| Zod / DTO | `packages/schema` |
+| Runway, MOIC, XIRR, units, FY, flags, Ask, extract | `packages/core` |
+| LLM port | `packages/llm` |
+| HTTP | `apps/api` |
+| Jobs | `apps/worker` |
+| UI | `apps/web` |
+
+---
+
+## Tests you must not break
+
+- Null semantics (runway/MOIC/XIRR with null inputs)
+- Flag detectors (no evidence → no flag)
+- Ask refuse (empty retrieval → `refused: true`, LLM not required)
+- RLS isolation (org A cannot read org B) — must use `venture_os_app`, not a superuser
+- FX conversion without a complete triple → null / refused display
+- Subjective lane rejects MIS-only source
+- Correction ledger reapplies on extract
 
 ---
 
@@ -85,9 +185,14 @@ Details: docs/04_BUILD_PLAN.md
 
 ---
 
+## UI
+
+First principles. Do not copy `v3.heisenbug.in`. Dense calm desktop, provenance chips, objective/subjective split, ritual nav.
+
+---
+
 ## Demo reference (never production data plane)
 
 - Repo: https://github.com/saurabh4269/v3_agentic_os
 - Live: https://v3.heisenbug.in (narrative only — do not copy UI)
-- Functional SoT: docs/brief Gargi v3
-
+- Functional SoT: `docs/brief` Gargi v3
