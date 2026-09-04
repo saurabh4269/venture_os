@@ -255,6 +255,8 @@ export const flagEvents = pgTable(
     evidence: jsonb("evidence").notNull(),
     sourceRefIds: jsonb("source_ref_ids").notNull().default(sql`'[]'::jsonb`),
     status: text("status").notNull().default("open"),
+    snoozedUntil: timestamp("snoozed_until"),
+    note: text("note"),
     detectedAt: timestamp("detected_at").notNull().defaultNow(),
   },
   (t) => [index("flag_events_org_idx").on(t.orgId, t.status)],
