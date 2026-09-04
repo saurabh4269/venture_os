@@ -1109,7 +1109,10 @@ routes.get("/api/compare", async (c) => {
     const metrics = await tx.select().from(metricValues);
     const refs = await tx.select().from(sourceRefs);
     const matrix = cos.map((co) => {
-      const cells: Record<string, ReturnType<typeof factOrDash> & { periodEnd?: string | null; sourceRefId?: string | null }> = {};
+      const cells: Record<
+        string,
+        ReturnType<typeof factOrDash> & { periodEnd?: string | null; sourceRefId?: string | null; inrCrore?: number | null }
+      > = {};
       const cm = objectiveBook(metrics.filter((m) => m.companyId === co.id));
       for (const key of keys) {
         if (key === "runway_months") {
@@ -1144,6 +1147,7 @@ routes.get("/api/compare", async (c) => {
             fxSource: m?.fxSource ?? null,
           }),
           periodEnd: m?.periodEnd,
+          inrCrore: toInrCrore(m?.valueNumeric ?? null, (m?.unit ?? "unknown") as never, (m?.currency ?? "unknown") as never),
         };
       }
       return { company: co, cells };

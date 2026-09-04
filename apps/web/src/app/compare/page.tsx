@@ -12,6 +12,7 @@ type Cell = {
   periodEnd?: string | null;
   fxNote?: string | null;
   sourceRefId?: string | null;
+  inrCrore?: number | null;
 };
 type Data = {
   metrics: string[];
@@ -245,7 +246,13 @@ export default function ComparePage() {
                     <Fact
                       {...row.cells[m]!}
                       note={
-                        [row.cells[m]?.fxNote, row.cells[m]?.periodEnd].filter(Boolean).join(" · ") || null
+                        [
+                          row.cells[m]?.inrCrore != null ? `INR Cr ${row.cells[m]!.inrCrore}` : null,
+                          row.cells[m]?.fxNote,
+                          row.cells[m]?.periodEnd,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || null
                       }
                       sourcePath={sourcePathFor(data.sourceRefs, row.cells[m]?.sourceRefId)}
                     />
