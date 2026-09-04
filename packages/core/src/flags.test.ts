@@ -6,6 +6,7 @@ import {
   detectMisLate,
   detectPlanVariance,
   detectRunwayShort,
+  detectSpendWithoutRevenue,
 } from "./flags.js";
 
 describe("flag detectors", () => {
@@ -62,5 +63,11 @@ describe("flag detectors", () => {
     expect(hit?.evidence.currentCash).toBeNull();
     expect(detectCashUnreported(4.2, 0)).toBeNull(); // 0 is a reported number
     expect(detectCashUnreported(null, null)).toBeNull();
+  });
+
+  it("spend_without_revenue needs both burn up and flat/down revenue — missing is not 0 growth", () => {
+    expect(detectSpendWithoutRevenue(3, 2, null, 10)).toBeNull();
+    expect(detectSpendWithoutRevenue(3, 2, 12, 10)).toBeNull();
+    expect(detectSpendWithoutRevenue(3, 2, 10, 10)?.flagKey).toBe("spend_without_revenue");
   });
 });

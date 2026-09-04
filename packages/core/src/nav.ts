@@ -7,6 +7,7 @@ export type PositionMark = {
   cost: Num;
   mark: Num;
   markAsOf: string | null;
+  sourceRefId?: string | null;
 };
 
 export type NavRollup = {
@@ -15,7 +16,12 @@ export type NavRollup = {
   nav: { total: Num; complete: boolean; missing: number };
   moic: Num;
   unmarked: { positionId: string; companyName: string }[];
+  unprovenanced: { positionId: string; companyName: string }[];
 };
+
+function isProvenanced(r: PositionMark): boolean {
+  return isPresent(r.mark) && Boolean(r.sourceRefId);
+}
 
 /** Default prior period: three calendar months before as-of. */
 export function defaultPriorAsOf(asOf: string): string {
@@ -30,24 +36,22 @@ export function rollupNav(asOf: string, rows: PositionMark[]): NavRollup {
     positionId: r.positionId,
     companyName: r.companyName,
   }));
+  const unprovenanced = rows
+    .filter((r) => isPresent(r.mark) && !r.sourceRefId)
+    .map((r) => ({ positionId: r.positionId, companyName: r.companyName }));
   const cost = sumPresent(rows.map((r) => r.cost));
-  const nav = sumPresent(rows.map((r) => r.mark));
-  const moic =
-    isPresent(nav.total) && isPresent(cost.total) && cost.total !== 0 && cost.complete && nav.complete
-      ? nav.total / cost.total
-      : isPresent(nav.total) && isPresent(cost.total) && cost.total !== 0 && !unmarked.length
-        ? nav.total / cost.total
-        : null;
-  // MOIC as a headline only if every position that has cost also has a mark
+  /** Headline NAV excludes unprovenanced marks. Incomplete until every position has a sourced mark. */
+  const nav = sumPresent(rows.map((r) => (isProvenanced(r) ? r.mark : null)));
   const headlineMoic =
-    rows.every((r) => !isPresent(r.cost) || isPresent(r.mark)) &&
+    rows.length > 0 &&
+    rows.every(isProvenanced) &&
+    cost.complete &&
     isPresent(nav.total) &&
     isPresent(cost.total) &&
     cost.total !== 0
       ? nav.total / cost.total
       : null;
-  void moic;
-  return { asOf, cost, nav, moic: headlineMoic, unmarked };
+  return { asOf, cost, nav, moic: headlineMoic, unmarked, unprovenanced };
 }
 
 export type BridgeLine = {

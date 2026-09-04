@@ -3,6 +3,8 @@
 **Generated:** 2026-09-05 (IST)  
 **Source:** `saurabh4269/venture_os` @ `main` via `gh api` (no clone)  
 **Scope:** QA workflows the parallel fix agent is **not** yet fixing — Flags, NAV, Compare, Reports, Company detail, Connectors/settings stubs  
+**Status:** P0s in these queue files are implemented on `cursor/qa-fix-pass-batch-1-851c` (passes 06–20). Remaining work: `docs/improvements/NEXT.md`.
+
 **Rule:** Box files only; do **not** push to GitHub from this queue work
 
 ---

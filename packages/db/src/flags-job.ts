@@ -26,13 +26,10 @@ export async function runFlagJob(orgId: string, companyId?: string) {
       const lastMis = latestByPeriod(metrics.filter((m) => m.lane === "objective"))[0];
       const pos = await tx.select().from(positions).where(eq(positions.companyId, co.id));
       let lastMark: string | null = null;
-      if (pos[0]) {
-        const mk = await tx
-          .select()
-          .from(marks)
-          .where(eq(marks.positionId, pos[0].id))
-          .orderBy(desc(marks.asOf));
-        lastMark = mk[0]?.asOf ?? null;
+      for (const p of pos) {
+        const mk = await tx.select().from(marks).where(eq(marks.positionId, p.id)).orderBy(desc(marks.asOf));
+        const asOf = mk[0]?.asOf ?? null;
+        if (asOf && (!lastMark || asOf > lastMark)) lastMark = asOf;
       }
 
       const burnAvg =
@@ -93,8 +90,26 @@ export async function runFlagJob(orgId: string, companyId?: string) {
 
       for (const hit of hits) {
         if (skip.has(hit.flagKey)) continue;
-        const refs = [...cashS, ...burnS, ...revS]
-          .slice(0, 3)
+        const metricKeys: Record<string, string[]> = {
+          runway_short: ["cash", "burn"],
+          burn_up: ["burn"],
+          spend_without_revenue: ["burn", "net_revenue"],
+          gm_compression: ["gross_margin_pct"],
+          plan_variance: ["net_revenue", "plan_revenue"],
+          revenue_down: ["net_revenue"],
+          headcount_drop: ["headcount"],
+          cash_unreported: ["cash"],
+        };
+        const byKey: Record<string, typeof cashS> = {
+          cash: cashS,
+          burn: burnS,
+          net_revenue: revS,
+          plan_revenue: planS,
+          gross_margin_pct: gmS,
+          headcount: hcS,
+        };
+        const refs = (metricKeys[hit.flagKey] ?? [])
+          .flatMap((k) => byKey[k]?.slice(0, 1) ?? [])
           .map((m) => m.sourceRefId)
           .filter(Boolean);
         await tx.insert(flagEvents).values({

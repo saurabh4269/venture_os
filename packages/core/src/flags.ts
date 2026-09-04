@@ -19,6 +19,10 @@ export const FLAG_CATALOG: { key: FlagKey; label: string; defaultThreshold: numb
   { key: "revenue_down", label: "Revenue down", defaultThreshold: 0.15 },
   { key: "headcount_drop", label: "Headcount drop", defaultThreshold: 0.1 },
   { key: "call_concern", label: "Concern on a call", defaultThreshold: 0 },
+  { key: "spend_without_revenue", label: "Spend rising without revenue", defaultThreshold: 0.2 },
+  { key: "customer_concentration", label: "Customer concentration shift", defaultThreshold: 0 },
+  { key: "ownership_change", label: "Ownership / governance change", defaultThreshold: 0 },
+  { key: "key_person", label: "Key person departure", defaultThreshold: 0 },
 ];
 
 export function detectRunwayShort(cash: Num, burn: Num, threshold = 6): FlagHit | null {
@@ -136,6 +140,26 @@ export function detectRevenueDown(current: Num, prior: Num, threshold = 0.15): F
   };
 }
 
+/** Brief: spend rising without matching revenue growth. Missing revenue is not treated as 0 growth. */
+export function detectSpendWithoutRevenue(
+  burn: Num,
+  priorBurn: Num,
+  revenue: Num,
+  priorRevenue: Num,
+  threshold = 0.2,
+): FlagHit | null {
+  if (!isPresent(burn) || !isPresent(priorBurn) || priorBurn === 0) return null;
+  if (!isPresent(revenue) || !isPresent(priorRevenue) || priorRevenue === 0) return null;
+  const burnChange = (burn - priorBurn) / priorBurn;
+  const revChange = (revenue - priorRevenue) / priorRevenue;
+  if (burnChange <= threshold || revChange > 0) return null;
+  return {
+    flagKey: "spend_without_revenue",
+    severity: burnChange > 0.4 ? "high" : "med",
+    evidence: { burn, priorBurn, burnChange, revenue, priorRevenue, revChange, threshold },
+  };
+}
+
 export function detectHeadcountDrop(current: Num, prior: Num, threshold = 0.1): FlagHit | null {
   if (!isPresent(current) || !isPresent(prior) || prior === 0) return null;
   const drop = (prior - current) / prior;
@@ -172,6 +196,7 @@ export function detectAll(input: {
     detectGmCompression(input.gm, input.priorGm),
     detectPlanVariance(input.revenue, input.planRevenue),
     detectRevenueDown(input.revenue, input.priorRevenue),
+    detectSpendWithoutRevenue(input.burn, input.priorBurn, input.revenue, input.priorRevenue),
     detectHeadcountDrop(input.headcount, input.priorHeadcount),
     detectMisLate(input.lastMisPeriodEnd, asOf, 45, { companyCreatedAt: input.companyCreatedAt }),
     detectMarkStale(input.lastMarkAsOf, asOf),

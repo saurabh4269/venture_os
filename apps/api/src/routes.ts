@@ -750,6 +750,7 @@ routes.get("/api/command", async (c) => {
         cost: p.costBasis ?? null,
         mark: mark?.value ?? null,
         markAsOf: mark?.asOf ?? null,
+        sourceRefId: mark?.sourceRefId ?? null,
       };
     });
     const asOf = new Date().toISOString().slice(0, 10);
@@ -896,6 +897,7 @@ routes.get("/api/nav", async (c) => {
       cost: r.cost,
       mark: r.mark,
       markAsOf: r.markAsOf,
+      sourceRefId: r.sourceRefId,
     }));
     const priorMarks = rows.map((r) => ({
       positionId: r.position.id,
@@ -904,6 +906,7 @@ routes.get("/api/nav", async (c) => {
       cost: r.cost,
       mark: r.priorMark,
       markAsOf: r.priorMarkAsOf,
+      sourceRefId: r.sourceRefId,
     }));
     const rollup = rollupNav(asOf, currentMarks);
     const bridge = navBridge(asOf, currentMarks, priorMarks);

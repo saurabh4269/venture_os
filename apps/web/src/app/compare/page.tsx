@@ -130,7 +130,9 @@ export default function ComparePage() {
                   <td key={m}>
                     <Fact
                       {...row.cells[m]!}
-                      note={row.cells[m]?.fxNote}
+                      note={
+                        [row.cells[m]?.fxNote, row.cells[m]?.periodEnd].filter(Boolean).join(" · ") || null
+                      }
                       sourcePath={sourcePathFor(data.sourceRefs, row.cells[m]?.sourceRefId)}
                     />
                   </td>

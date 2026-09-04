@@ -4,12 +4,23 @@ import { navBridge, rollupNav } from "./nav.js";
 describe("NAV rollup", () => {
   it("keeps MOIC blank when a position is unmarked", () => {
     const r = rollupNav("2026-09-01", [
-      { positionId: "1", companyId: "a", companyName: "Alpha", cost: 10, mark: 12, markAsOf: "2026-09-01" },
+      { positionId: "1", companyId: "a", companyName: "Alpha", cost: 10, mark: 12, markAsOf: "2026-09-01", sourceRefId: "r1" },
       { positionId: "2", companyId: "b", companyName: "Beta", cost: 4, mark: null, markAsOf: null },
     ]);
     expect(r.moic).toBeNull();
     expect(r.nav.complete).toBe(false);
     expect(r.unmarked.map((u) => u.companyName)).toEqual(["Beta"]);
+  });
+
+  it("excludes unprovenanced marks from the headline NAV total", () => {
+    const r = rollupNav("2026-09-01", [
+      { positionId: "1", companyId: "a", companyName: "Alpha", cost: 10, mark: 12, markAsOf: "2026-09-01", sourceRefId: "r1" },
+      { positionId: "2", companyId: "b", companyName: "Beta", cost: 4, mark: 99, markAsOf: "2026-09-01" },
+    ]);
+    expect(r.nav.total).toBe(12);
+    expect(r.nav.complete).toBe(false);
+    expect(r.moic).toBeNull();
+    expect(r.unprovenanced.map((u) => u.companyName)).toEqual(["Beta"]);
   });
 });
 

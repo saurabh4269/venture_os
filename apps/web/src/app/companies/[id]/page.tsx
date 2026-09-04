@@ -1,12 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
 
 type Data = {
-  company: { id: string; name: string; stage: string | null; sector: string | null; country: string | null };
+  company: {
+    id: string;
+    name: string;
+    stage: string | null;
+    sector: string | null;
+    country: string | null;
+    fyStartMonth?: number | null;
+  };
   metrics: {
     id: string;
     metricKey: string;
@@ -39,7 +47,8 @@ export default function CompanyPage() {
   const { canWrite } = useBookSession();
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState("");
-  const [lane, setLane] = useState<"objective" | "subjective">("subjective");
+  const [lane, setLane] = useState<"objective" | "subjective">("objective");
+  const [currentOnly, setCurrentOnly] = useState(true);
   const [body, setBody] = useState("");
   const last = data?.metrics[0];
   const [periodStart, setPeriodStart] = useState("");
@@ -86,6 +95,18 @@ export default function CompanyPage() {
     return sourcePathFor(data?.sourceRefs, refId);
   }
 
+  const bookRows = useMemo(() => {
+    if (!data) return [];
+    if (!currentOnly) return data.metrics;
+    const map = new Map<string, (typeof data.metrics)[number]>();
+    for (const m of data.metrics) {
+      const k = `${m.metricKey}|${m.periodEnd}`;
+      const cur = map.get(k);
+      if (!cur || m.version > cur.version) map.set(k, m);
+    }
+    return [...map.values()];
+  }, [data, currentOnly]);
+
   if (err) {
     return (
       <Shell>
@@ -105,8 +126,12 @@ export default function CompanyPage() {
     <Shell>
       <h1>{data.company.name}</h1>
       <p className="lede">
-        {data.company.sector ?? "—"} · {data.company.stage ?? "—"} · {data.company.country ?? "—"} · FY Apr–Mar unless
-        overridden
+        {data.company.sector ?? "—"} · {data.company.stage ?? "—"} · {data.company.country ?? "—"} · FY start month{" "}
+        {data.company.fyStartMonth ?? 4} ({data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
+      </p>
+      <p className="lede">
+        <Link href="/compare">Compare</Link> · <Link href="/ask">Ask</Link> · <Link href="/inbox">Inbox</Link> ·{" "}
+        <Link href="/flags">Flags</Link>
       </p>
 
       {data.kpi && (
@@ -133,6 +158,10 @@ export default function CompanyPage() {
       )}
 
       <h2>Book</h2>
+      <label className="lede">
+        <input type="checkbox" checked={currentOnly} onChange={(e) => setCurrentOnly(e.target.checked)} /> Current
+        version only (highest version per metric+period)
+      </label>
       {data.metrics.length === 0 ? (
         <div className="empty">No confirmed facts. Upload MIS and confirm Inbox.</div>
       ) : (
@@ -148,7 +177,7 @@ export default function CompanyPage() {
             </tr>
           </thead>
           <tbody>
-            {data.metrics.map((m) => {
+            {bookRows.map((m) => {
               const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
               const loc = ref?.locator;
               return (
@@ -186,14 +215,22 @@ export default function CompanyPage() {
         <div className="lane-obj">
           <h3>Objective (MIS)</h3>
           {data.commentary.filter((n) => n.lane === "objective").map((n) => (
-            <p key={n.id}>{n.body}</p>
+            <p key={n.id}>
+              <span className="lede">{n.periodEnd} · objective</span>
+              <br />
+              {n.body}
+            </p>
           ))}
           {data.commentary.filter((n) => n.lane === "objective").length === 0 && <p className="lede">—</p>}
         </div>
         <div className="lane-sub">
           <h3>Subjective (calls / judgement)</h3>
           {data.commentary.filter((n) => n.lane === "subjective").map((n) => (
-            <p key={n.id}>{n.body}</p>
+            <p key={n.id}>
+              <span className="lede">{n.periodEnd} · subjective</span>
+              <br />
+              {n.body}
+            </p>
           ))}
           {data.commentary.filter((n) => n.lane === "subjective").length === 0 && <p className="lede">—</p>}
         </div>
@@ -230,7 +267,7 @@ export default function CompanyPage() {
       <ul>
         {data.flags.map((f) => (
           <li key={f.id} className={`sev-${f.severity}`}>
-            {f.flagKey.replaceAll("_", " ")} · {f.severity}
+            <Link href="/flags">{f.flagKey.replaceAll("_", " ")}</Link> · {f.severity}
           </li>
         ))}
         {data.flags.length === 0 && <li className="lede">No open flags.</li>}

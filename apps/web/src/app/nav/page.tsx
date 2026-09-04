@@ -12,6 +12,7 @@ type Nav = {
     cost: { total: number | null; complete: boolean };
     moic: number | null;
     unmarked: { companyName: string }[];
+    unprovenanced?: { companyName: string }[];
   };
   bridge: {
     deltaNav: number | null;
@@ -122,6 +123,12 @@ export default function NavPage() {
           </div>
           {data.rollup.unmarked.length > 0 && (
             <p className="lede">Unmarked: {data.rollup.unmarked.map((u) => u.companyName).join(", ")}</p>
+          )}
+          {(data.rollup.unprovenanced ?? []).length > 0 && (
+            <p className="lede">
+              Unprovenanced marks (excluded from headline NAV):{" "}
+              {data.rollup.unprovenanced!.map((u) => u.companyName).join(", ")}. Attach a memo to include them.
+            </p>
           )}
           {data.bridge.unexplained.length > 0 && (
             <p className="lede">

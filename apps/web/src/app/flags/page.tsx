@@ -1,13 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { FLAG_CATALOG } from "@venture-os/core";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
+
+function flagLabel(key: string) {
+  return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
+}
 
 type Flag = {
   id: string;
   flagKey: string;
   severity: string;
+  companyId?: string;
   companyName?: string;
   evidence: Record<string, unknown>;
   status?: string;
@@ -87,8 +94,10 @@ export default function FlagsPage() {
           <tbody>
             {data.flags.map((f) => (
               <tr key={f.id}>
-                <td>{f.companyName ?? "—"}</td>
-                <td>{f.flagKey.replaceAll("_", " ")}</td>
+                <td>
+                  {f.companyId ? <Link href={`/companies/${f.companyId}`}>{f.companyName ?? "—"}</Link> : (f.companyName ?? "—")}
+                </td>
+                <td>{flagLabel(f.flagKey)}</td>
                 <td className={`sev-${f.severity}`}>{f.severity}</td>
                 <td className="lede">
                   {evidenceLine(f.evidence ?? {})}
