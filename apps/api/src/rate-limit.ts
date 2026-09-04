@@ -82,6 +82,12 @@ export async function allowRequestShared(
   windowMs: number,
   now = Date.now(),
 ): Promise<boolean> {
+  // Vitest HTTP files share one Redis IP key with each other and with Playwright
+  // if we count in Redis. Keep the in-process window during `vitest`; the Redis
+  // path is covered by the dedicated unit test (`RATE_LIMIT_REDIS=1`).
+  if (process.env.VITEST && process.env.RATE_LIMIT_REDIS !== "1") {
+    return allowRequest(key, limit, windowMs, now);
+  }
   const client = getRateLimitRedis();
   if (client) {
     try {

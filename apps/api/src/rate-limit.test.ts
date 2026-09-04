@@ -30,9 +30,11 @@ describe("auth rate-limit Redis window", () => {
     } catch {
       return;
     }
+    process.env.RATE_LIMIT_REDIS = "1";
     const key = `test:${Date.now()}:${Math.random()}`;
     expect(await allowRequestShared(key, 2, 60_000)).toBe(true);
     expect(await allowRequestShared(key, 2, 60_000)).toBe(true);
     expect(await allowRequestShared(key, 2, 60_000)).toBe(false);
+    delete process.env.RATE_LIMIT_REDIS;
   });
 });
