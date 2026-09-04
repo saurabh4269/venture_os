@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "cursor/**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: venture
+          POSTGRES_PASSWORD: venture
+          POSTGRES_DB: venture_os
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U venture -d venture_os"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      MIGRATE_DATABASE_URL: postgres://venture:venture@localhost:5432/venture_os
+      DATABASE_URL: postgres://venture_os_app:venture@localhost:5432/venture_os
+      BETTER_AUTH_SECRET: ci-secret-not-for-production-use-32ch
+      S3_ENDPOINT: fs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @venture-os/db migrate
+      - run: pnpm test
+      - run: pnpm typecheck

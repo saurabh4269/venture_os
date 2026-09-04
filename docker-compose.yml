@@ -1,0 +1,121 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: venture
+      POSTGRES_PASSWORD: venture
+      POSTGRES_DB: venture_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U venture -d venture_os"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: venture
+      MINIO_ROOT_PASSWORD: venturesecret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      mc alias set local http://minio:9000 venture venturesecret;
+      mc mb -p local/venture-os || true;
+      exit 0;
+      "
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: sh -c "pnpm db:migrate && pnpm --filter @venture-os/api dev"
+    env_file: .env
+    environment:
+      MIGRATE_DATABASE_URL: postgres://venture:venture@postgres:5432/venture_os
+      DATABASE_URL: postgres://venture_os_app:venture@postgres:5432/venture_os
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      API_URL: http://localhost:4000
+      WEB_URL: http://localhost:3000
+      BETTER_AUTH_URL: http://localhost:4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: sh -c "pnpm --filter @venture-os/worker dev"
+    env_file: .env
+    environment:
+      MIGRATE_DATABASE_URL: postgres://venture:venture@postgres:5432/venture_os
+      DATABASE_URL: postgres://venture_os_app:venture@postgres:5432/venture_os
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: sh -c "pnpm --filter @venture-os/web dev"
+    env_file: .env
+    environment:
+      API_URL: http://api:4000
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_WEB_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  postgres-data:
+  minio-data:

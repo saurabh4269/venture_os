@@ -1,0 +1,20 @@
+{
+  "name": "venture-os",
+  "private": true,
+  "packageManager": "pnpm@10.33.3",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "db:migrate": "pnpm --filter @venture-os/db migrate",
+    "db:generate": "pnpm --filter @venture-os/db generate",
+    "seed:demo": "pnpm --filter @venture-os/db seed:demo",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.8",
+    "typescript": "^5.9.2"
+  }
+}
