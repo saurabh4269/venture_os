@@ -106,6 +106,7 @@ export default function InboxPage() {
             key={s}
             type="button"
             className={s === status ? "btn sm" : "btn ghost sm"}
+            data-testid={`inbox-tab-${s}`}
             onClick={() => setStatus(s)}
           >
             {s}
@@ -234,7 +235,12 @@ export default function InboxPage() {
                       >
                         Confirm
                       </button>
-                      <button className="btn ghost sm" disabled={busy === i.id} onClick={() => reject(i.id)}>
+                      <button
+                        className="btn ghost sm"
+                        disabled={busy === i.id}
+                        onClick={() => reject(i.id)}
+                        data-testid="inbox-reject"
+                      >
                         Reject
                       </button>
                     </>

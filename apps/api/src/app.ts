@@ -4,7 +4,7 @@ import { cookieSecure, isTrustedOrigin, loadEnv } from "@venture-os/config";
 import { auth } from "./auth.js";
 import { HttpError, sessionMiddleware } from "./context.js";
 import { log } from "./log.js";
-import { AUTH_RATE_LIMIT, AUTH_RATE_WINDOW_MS, allowRequest } from "./rate-limit.js";
+import { AUTH_RATE_LIMIT, AUTH_RATE_WINDOW_MS, allowRequestShared } from "./rate-limit.js";
 import { routes } from "./routes.js";
 import { securityHeaders } from "./security-headers.js";
 
@@ -44,7 +44,7 @@ export function createApp() {
     const path = new URL(c.req.url).pathname;
     if (c.req.method === "POST" && (path.endsWith("/sign-in/email") || path.endsWith("/sign-up/email"))) {
       const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-      if (!allowRequest(`auth:${ip}`, AUTH_RATE_LIMIT, AUTH_RATE_WINDOW_MS)) {
+      if (!(await allowRequestShared(`auth:${ip}`, AUTH_RATE_LIMIT, AUTH_RATE_WINDOW_MS))) {
         return c.json({ error: "rate_limited" }, 429);
       }
     }
@@ -55,7 +55,7 @@ export function createApp() {
     const path = new URL(c.req.url).pathname;
     if (c.req.method === "POST" && (path.endsWith("/accept") || path.endsWith("/reject"))) {
       const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-      if (!allowRequest(`invite:${ip}`, AUTH_RATE_LIMIT, AUTH_RATE_WINDOW_MS)) {
+      if (!(await allowRequestShared(`invite:${ip}`, AUTH_RATE_LIMIT, AUTH_RATE_WINDOW_MS))) {
         return c.json({ error: "rate_limited" }, 429);
       }
     }

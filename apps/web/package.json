@@ -25,6 +25,7 @@
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
+    "@axe-core/playwright": "^4.10.2",
     "@playwright/test": "^1.55.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"

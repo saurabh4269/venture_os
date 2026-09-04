@@ -80,10 +80,11 @@ export default function FlagsPage() {
     <Shell>
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
-          <h1>Flags</h1>
+          <h1 data-testid="flags-ready">Flags</h1>
           <p className="lede">
             Catalog detectors only. Each row carries evidence. Missing inputs do not fire a flag. Mute and snooze
-            survive recompute. Unmute returns a row to open. Thresholds are catalog defaults (Settings).
+            survive recompute. Unmute returns a row to open. Thresholds come from Settings → Flag policy (firm).
+            Recompute after a save — we do not invent a silent rerun.
           </p>
         </div>
         {canWrite && (

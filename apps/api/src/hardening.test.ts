@@ -98,7 +98,21 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
       body: JSON.stringify({ asOf }),
     });
     expect(lock.status).toBe(200);
-    expect((await json<{ period: { status: string } }>(lock)).period.status).toBe("locked");
+    const locked = await json<{ period: { status: string; snapshotSha256: string | null; snapshotKey: string | null } }>(
+      lock,
+    );
+    expect(locked.period.status).toBe("locked");
+    expect(locked.period.snapshotSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(locked.period.snapshotKey).toContain("nav-packs/");
+
+    const snap = await app.request(`/api/nav/snapshot?asOf=${asOf}`, { headers: { cookie: adminCookie } });
+    expect(snap.status).toBe(200);
+    const pack = await json<{ snapshot: { kind: string; asOf: string; rollup: { unmarked: unknown[] } } }>(snap);
+    expect(pack.snapshot.kind).toBe("nav_period_pack");
+    expect(pack.snapshot.asOf).toBe(asOf);
+
+    const viewerSnap = await app.request(`/api/nav/snapshot?asOf=${asOf}`, { headers: { cookie: viewerCookie } });
+    expect(viewerSnap.status).toBe(200);
 
     const write = await app.request("/api/nav/marks", {
       method: "POST",
@@ -131,6 +145,10 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     const period = (await json<{ period: { status: string; unlockReason: string } }>(unlock)).period;
     expect(period.status).toBe("unofficial");
     expect(period.unlockReason).toBe("Restate after board pack");
+    const still = await json<{ period: { snapshotSha256: string | null } }>(
+      await app.request(`/api/nav?asOf=${asOf}`, { headers: { cookie: adminCookie } }),
+    );
+    expect(still.period.snapshotSha256).toMatch(/^[a-f0-9]{64}$/);
 
     const ok = await app.request("/api/nav/marks", {
       method: "POST",
@@ -158,10 +176,22 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     });
     expect(viewer.status).toBe(403);
 
-    const get = await json<{ flagPolicy: { key: string; threshold: number }[] }>(
-      await app.request("/api/settings", { headers: { cookie: adminCookie } }),
-    );
+    const get = await json<{
+      flagPolicy: { key: string; threshold: number }[];
+      flagPolicyAudits?: { after: Record<string, unknown> }[];
+    }>(await app.request("/api/settings", { headers: { cookie: adminCookie } }));
     expect(get.flagPolicy.find((f) => f.key === "runway_short")?.threshold).toBe(4);
+    expect(get.flagPolicyAudits?.[0]?.after).toMatchObject({ runway_short: 4 });
+
+    const invalid = await app.request("/api/settings/flag-policy", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ thresholds: { runway_short: 100 } }),
+    });
+    expect(invalid.status).toBe(400);
+    expect((await json<{ error: string; fields?: { runway_short?: string } }>(invalid)).fields?.runway_short).toMatch(
+      /36/,
+    );
   });
 
   it("drafts a monthly pack with separate objective and subjective lanes", async () => {

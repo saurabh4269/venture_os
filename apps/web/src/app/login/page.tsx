@@ -49,7 +49,10 @@ function LoginForm() {
   return (
     <div className="auth">
       <h1>Venture OS</h1>
-      <p className="lede">The book for the investment team. Sign in to your organisation.</p>
+      <p className="lede">
+        The book for the investment team. Sessions last 7 days and refresh daily. SSO and password reset by email are
+        not connected.
+      </p>
       <form onSubmit={onSubmit} className="field" style={{ gap: 12, marginTop: 24 }} noValidate>
         <label className="field" htmlFor="email">
           Work email

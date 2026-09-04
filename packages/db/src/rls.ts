@@ -19,6 +19,7 @@ export const RLS_TABLES = [
   "document_chunks",
   "org_settings",
   "nav_period_locks",
+  "flag_policy_audits",
 ] as const;
 
 export function rlsSql(): string {

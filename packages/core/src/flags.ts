@@ -174,6 +174,50 @@ export function detectHeadcountDrop(current: Num, prior: Num, threshold = 0.1): 
 /** Org overrides keyed by catalog key. Missing key → catalog default. Invalid numbers ignored. */
 export type FlagThresholds = Partial<Record<FlagKey, number>>;
 
+/** Inclusive bounds for the Settings editor. 0 is valid for evidence-gated keys. */
+export const FLAG_THRESHOLD_BOUNDS: Record<FlagKey, { min: number; max: number; unit: string }> = {
+  runway_short: { min: 0, max: 36, unit: "months" },
+  mis_late: { min: 0, max: 365, unit: "days" },
+  burn_up: { min: 0, max: 1, unit: "ratio" },
+  gm_compression: { min: 0, max: 1, unit: "ratio" },
+  plan_variance: { min: 0, max: 1, unit: "ratio" },
+  mark_stale: { min: 0, max: 3650, unit: "days" },
+  cash_unreported: { min: 0, max: 1, unit: "count" },
+  revenue_down: { min: 0, max: 1, unit: "ratio" },
+  headcount_drop: { min: 0, max: 1, unit: "ratio" },
+  call_concern: { min: 0, max: 1, unit: "ratio" },
+  spend_without_revenue: { min: 0, max: 1, unit: "ratio" },
+  customer_concentration: { min: 0, max: 1, unit: "ratio" },
+  ownership_change: { min: 0, max: 1, unit: "ratio" },
+  key_person: { min: 0, max: 1, unit: "ratio" },
+};
+
+export function validateFlagPolicyThresholds(
+  raw: Record<string, unknown>,
+): { ok: true; thresholds: FlagThresholds } | { ok: false; fields: Record<string, string> } {
+  const fields: Record<string, string> = {};
+  const thresholds: FlagThresholds = {};
+  const known = new Set(FLAG_CATALOG.map((f) => f.key));
+  for (const [k, v] of Object.entries(raw)) {
+    if (!known.has(k as FlagKey)) {
+      fields[k] = "unknown flag key";
+      continue;
+    }
+    if (typeof v !== "number" || !Number.isFinite(v)) {
+      fields[k] = "must be a finite number";
+      continue;
+    }
+    const b = FLAG_THRESHOLD_BOUNDS[k as FlagKey];
+    if (v < b.min || v > b.max) {
+      fields[k] = `must be between ${b.min} and ${b.max} (${b.unit})`;
+      continue;
+    }
+    thresholds[k as FlagKey] = v;
+  }
+  if (Object.keys(fields).length) return { ok: false, fields };
+  return { ok: true, thresholds };
+}
+
 export function resolveFlagThresholds(overrides?: FlagThresholds | null): Record<FlagKey, number> {
   const out = {} as Record<FlagKey, number>;
   for (const item of FLAG_CATALOG) {

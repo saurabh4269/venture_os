@@ -43,7 +43,13 @@ type Nav = {
     sourceRefId: string | null;
     priorMark: number | null;
     priorMarkAsOf: string | null;
+    fxRate?: number | null;
+    fxDate?: string | null;
+    fxSource?: string | null;
+    valueEur?: number | null;
+    markDisplay?: Dual;
   }[];
+  eur?: { total: number | null; conversionRefused: boolean; fxNote: string | null };
   sourceRefs?: { id: string; documentId: string }[];
   documents?: { id: string; filename: string; kind: string; companyId: string | null }[];
 };
@@ -77,11 +83,23 @@ function pctIrr(n: number | null | undefined) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+type Dual = {
+  display: string;
+  isFact: boolean;
+  converted?: string;
+  conversionRefused?: boolean;
+  fxNote?: string | null;
+  sourceRefId?: string | null;
+};
+
 type Period = {
   status: "unofficial" | "locked";
   lockedBy?: string | null;
   lockedAt?: string | null;
   unlockReason?: string | null;
+  snapshotSha256?: string | null;
+  snapshotKey?: string | null;
+  snapshotAt?: string | null;
 };
 
 export default function NavPage() {
@@ -140,12 +158,13 @@ export default function NavPage() {
 
   return (
     <Shell>
-      <h1>NAV</h1>
+      <h1 data-testid="nav-ready">NAV</h1>
       <p className="lede">
         Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
         rollup is complete. IRR appears only when every sourced mark has an <code>investedAt</code> — we never invent
         an investment date. The bridge is period-over-period from booked marks. Dual EUR only with a complete FX
-        triple. A locked as-of cannot be rewritten until Partner or Org Admin unlocks it with a reason.
+        triple on every sourced mark — otherwise the headline refuses. Locking freezes an official JSON pack. A locked
+        as-of cannot be rewritten until Partner or Org Admin unlocks it with a reason.
       </p>
       <div className="row" style={{ flexWrap: "wrap" }}>
         <label className="field" style={{ maxWidth: 200 }}>
@@ -172,6 +191,9 @@ export default function NavPage() {
         <p className="lede" role="status">
           As-of {asOf} is{" "}
           <strong>{data.period.status === "locked" ? "locked (official)" : "unofficial"}</strong>
+          {data.period.snapshotSha256
+            ? ` · pack frozen ${data.period.snapshotSha256.slice(0, 12)}…`
+            : ""}
           {data.period.unlockReason ? ` · last unlock: ${data.period.unlockReason}` : ""}.
         </p>
       )}
@@ -181,6 +203,7 @@ export default function NavPage() {
             <button
               type="button"
               className="btn sm"
+              data-testid="nav-lock"
               disabled={lockBusy}
               onClick={async () => {
                 setLockBusy(true);
@@ -211,6 +234,7 @@ export default function NavPage() {
               <button
                 type="button"
                 className="btn ghost sm"
+                data-testid="nav-unlock"
                 disabled={lockBusy || unlockReason.trim().length < 3}
                 onClick={async () => {
                   setLockBusy(true);
@@ -232,6 +256,27 @@ export default function NavPage() {
                 Unlock
               </button>
             </>
+          )}
+          {data?.period?.snapshotSha256 && (
+            <button
+              type="button"
+              className="btn ghost sm"
+              data-testid="nav-snapshot"
+              onClick={async () => {
+                try {
+                  const pack = await api<{ snapshot: { asOf: string } }>(`/api/nav/snapshot?asOf=${asOf}`);
+                  const blob = new Blob([JSON.stringify(pack.snapshot, null, 2)], { type: "application/json" });
+                  const a = document.createElement("a");
+                  a.href = URL.createObjectURL(blob);
+                  a.download = `nav-pack-${asOf}.json`;
+                  a.click();
+                } catch (e) {
+                  setErr(e instanceof Error ? e.message : "Snapshot missing");
+                }
+              }}
+            >
+              Download official pack
+            </button>
           )}
         </div>
       )}
@@ -257,6 +302,13 @@ export default function NavPage() {
             <div className="card">
               <div className="k">NAV</div>
               <div className="v">{inr(data.rollup.nav.total)}</div>
+              <div className="lede">
+                {data.eur?.conversionRefused
+                  ? "EUR — (no FX triple)"
+                  : data.eur?.total != null
+                    ? `EUR ${data.eur.total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
+                    : "EUR —"}
+              </div>
               {!data.rollup.nav.complete && (
                 <div className="lede">Incomplete · {data.rollup.nav.missing} missing</div>
               )}
@@ -355,8 +407,9 @@ export default function NavPage() {
                   <td>{p.cost == null ? "—" : inr(p.cost)}</td>
                   <td>
                     <Fact
-                      display={p.mark == null ? "—" : inr(p.mark)}
+                      display={p.markDisplay?.display ?? (p.mark == null ? "—" : inr(p.mark))}
                       isFact={Boolean(p.sourceRefId && p.mark != null)}
+                      note={p.markDisplay?.fxNote ?? null}
                       sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)}
                     />
                   </td>

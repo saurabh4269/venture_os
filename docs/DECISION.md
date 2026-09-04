@@ -65,3 +65,21 @@ Status: Locked.
 Decision: Briefs and architecture docs live under /docs. Root AGENTS.md points here.
 
 Status: Locked.
+
+---
+
+## D7 — Official NAV is a locked as-of pack snapshot
+
+**Decision:** When Partner or Org Admin locks an as-of, the API freezes a versioned JSON pack (`nav_period_pack` v1) to the object store and stores `snapshot_key` / `snapshot_sha256` / `snapshot_at` on `nav_period_locks`. Unlock keeps the last official pack. Relock writes a new hash (does not mutate the prior object). Multi-approver / second signature is **not** the V1 control — it would invent an undefined second actor.
+
+**Why:** Circulating a quarter needs a frozen artifact of sourced marks (missing stays missing). A status bit alone can be unlocked and rewritten.
+
+**Status:** Locked (pass 37).
+
+---
+
+## D8 — Auth sessions are 7-day cookie sessions with Redis IP rate-limit
+
+**Decision:** Better Auth `expiresIn` = 7 days, `updateAge` = 24 hours. Signup / sign-in / invite accept+reject share a Redis sliding window (20 / 15 min / IP) with in-memory fallback if Redis is down. No SSO. No SMTP reset. Settings documents this honestly.
+
+**Status:** Locked (pass 32 TTL + pass 36 Redis).

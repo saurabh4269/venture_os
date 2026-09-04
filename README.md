@@ -74,6 +74,19 @@ If the key is unset: parse still works; Ask still retrieves and **refuses to inv
 
 ## Demo for a VC
 
+One command (Compose if Docker is available; otherwise native services must already be up):
+
+```bash
+pnpm i
+pnpm demo:vc
+# open http://localhost:3000/login
+# credentials printed by the script (SEED_DEMO_EMAIL / SEED_DEMO_PASSWORD)
+```
+
+Switch to **Fixture Capital (FIXTURE_ONLY)** if Command is empty. Banner: **FIXTURE_ONLY**. Never treat as the live book.
+
+Manual empty-book path:
+
 1. Open `/signup`. Create your user + organisation (you are Org Admin). A user with no org lands on `/onboard`. Invites are copy-link from **Settings → People** (`/invite?id=`). Email delivery is not connected.
 2. **Settings → Add fund** (or skip — the first company creates “Main fund”).
 3. **Companies → Add company**. Complete the 15-minute path: profile → upload `fixtures/FIXTURE_ONLY-sample-mis.csv` (or any MIS xlsx/pdf).
@@ -106,7 +119,7 @@ CI (`.github/workflows/ci.yml`) runs the same against a Postgres service, includ
 
 **Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog + firm policy), NAV rollup + period-over-period bridge + as-of lock, Compare, Ask (FTS + refuse + digit harness), Reports + monthly pack + PDF/PPTX/XLSX, onboarding wizard, RLS, Vitest.
 
-**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV multi-approver, LP/ILPA room, billing, perfect OCR, domain auto-join, SMTP.
+**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV multi-approver / LP sign-off, LP/ILPA room, billing, perfect OCR, domain auto-join, SMTP.
 
 ---
 

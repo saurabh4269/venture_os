@@ -102,7 +102,10 @@ export default function NewCompanyPage() {
   if (!canWrite) {
     return (
       <Shell>
-        <p className="lede">Viewers cannot add companies. Ask an Org Admin.</p>
+        <h1>Onboard a company</h1>
+        <p className="lede" data-testid="viewer-read-only">
+          Viewers cannot add companies. Ask an Org Admin to onboard a name. The book stays read-only for your role.
+        </p>
       </Shell>
     );
   }

@@ -108,11 +108,25 @@ export default function ComparePage() {
 
   function exportCsv() {
     if (!data) return;
-    const header = ["Company", ...data.metrics.map((m) => metricLabel(m, data.labels))];
+    const header = [
+      "Company",
+      ...data.metrics.flatMap((m) => {
+        const label = metricLabel(m, data.labels);
+        return [label, `${label} (INR Cr)`, `${label} (EUR)`];
+      }),
+    ];
     const lines = [
       header.join(","),
       ...visible.map((row) =>
-        [row.company.name, ...data.metrics.map((m) => `"${row.cells[m]?.display ?? "—"}"`)].join(","),
+        [
+          row.company.name,
+          ...data.metrics.flatMap((m) => {
+            const cell = row.cells[m];
+            const cr = cell?.inrCrore != null ? String(cell.inrCrore) : "—";
+            const eur = cell?.fxNote && !cell.fxNote.startsWith("EUR —") ? cell.fxNote : "—";
+            return [`"${cell?.display ?? "—"}"`, `"${cr}"`, `"${eur}"`];
+          }),
+        ].join(","),
       ),
     ];
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
@@ -149,8 +163,9 @@ export default function ComparePage() {
     <Shell>
       <h1>Compare</h1>
       <p className="lede">
-        Confirmed objective book only. No imputation, no peer-average fill. Empty cell is —. Uncheck a name to exclude
-        it. Stage and sector filter peers; they do not invent a peer set.
+        Confirmed objective book only. No imputation, no peer-average fill. Empty cell is —. Canonical INR Cr shows
+        when the unit converts; otherwise —. EUR only with a complete FX triple. Uncheck a name to exclude it. Stage
+        and sector filter peers; they do not invent a peer set.
       </p>
       {err && (
         <p className="sev-high" role="alert">
@@ -231,6 +246,7 @@ export default function ComparePage() {
                     {metricLabel(m, data.labels)}
                     {sortKey === m ? " ↓" : ""}
                   </button>
+                  <div className="lede">native · INR Cr · EUR</div>
                 </th>
               ))}
             </tr>
@@ -243,19 +259,16 @@ export default function ComparePage() {
                 </td>
                 {data.metrics.map((m) => (
                   <td key={m}>
-                    <Fact
-                      {...row.cells[m]!}
-                      note={
-                        [
-                          row.cells[m]?.inrCrore != null ? `INR Cr ${row.cells[m]!.inrCrore}` : null,
-                          row.cells[m]?.fxNote,
-                          row.cells[m]?.periodEnd,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ") || null
-                      }
-                      sourcePath={sourcePathFor(data.sourceRefs, row.cells[m]?.sourceRefId)}
-                    />
+                    <div>
+                      <div className="lede" data-testid="compare-inr-cr">
+                        INR Cr {row.cells[m]?.inrCrore != null ? row.cells[m]!.inrCrore : "—"}
+                      </div>
+                      <Fact
+                        {...row.cells[m]!}
+                        note={[row.cells[m]?.fxNote, row.cells[m]?.periodEnd].filter(Boolean).join(" · ") || null}
+                        sourcePath={sourcePathFor(data.sourceRefs, row.cells[m]?.sourceRefId)}
+                      />
+                    </div>
                   </td>
                 ))}
               </tr>

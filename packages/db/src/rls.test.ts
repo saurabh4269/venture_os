@@ -3,7 +3,7 @@ import { loadEnv } from "@venture-os/config";
 import { sql } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, describe, expect, it } from "vitest";
-import { companies, navPeriodLocks, organization, orgSettings } from "./schema.js";
+import { companies, flagPolicyAudits, navPeriodLocks, organization, orgSettings, user } from "./schema.js";
 import { drizzle } from "drizzle-orm/postgres-js";
 
 loadEnv();
@@ -75,5 +75,34 @@ describe.skipIf(!url)("RLS org isolation", () => {
     expect(asALocks[0]?.orgId).toBe(orgA);
     const asASettings = await db.select().from(orgSettings);
     expect((asASettings[0]?.flagPolicy as { runway_short?: number })?.runway_short).toBe(4);
+  });
+
+  it("org A cannot read org B flag-policy audits", async () => {
+    const orgA = "rls_aud_a_" + randomUUID();
+    const orgB = "rls_aud_b_" + randomUUID();
+    const userA = "rls_user_a_" + randomUUID();
+    await db.execute(sql`select set_config('app.current_org_id', '', false)`);
+    await db.insert(organization).values([
+      { id: orgA, name: "A aud", slug: orgA },
+      { id: orgB, name: "B aud", slug: orgB },
+    ]);
+    await db.insert(user).values({ id: userA, name: "A", email: `${userA}@rls.test` });
+
+    await db.execute(sql`select set_config('app.current_org_id', ${orgA}, false)`);
+    await db.insert(flagPolicyAudits).values({
+      orgId: orgA,
+      changedBy: userA,
+      before: {},
+      after: { runway_short: 4 },
+    });
+
+    await db.execute(sql`select set_config('app.current_org_id', ${orgB}, false)`);
+    const asB = await db.select().from(flagPolicyAudits);
+    expect(asB).toEqual([]);
+
+    await db.execute(sql`select set_config('app.current_org_id', ${orgA}, false)`);
+    const asA = await db.select().from(flagPolicyAudits);
+    expect(asA).toHaveLength(1);
+    expect(asA[0]?.orgId).toBe(orgA);
   });
 });

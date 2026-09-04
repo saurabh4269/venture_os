@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FLAG_CATALOG } from "@venture-os/core";
+import { FLAG_CATALOG, FLAG_THRESHOLD_BOUNDS } from "@venture-os/core";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
@@ -11,7 +11,23 @@ import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 type Settings = {
   settings: { fyStartMonth: number; baseCurrency: string; displayCurrency: string } | null;
   connectors: { kind: string; status: string }[];
-  flagPolicy?: { key: string; label: string; defaultThreshold: number; threshold?: number }[];
+  flagPolicy?: {
+    key: string;
+    label: string;
+    defaultThreshold: number;
+    threshold?: number;
+    min?: number;
+    max?: number;
+    unit?: string;
+  }[];
+  flagPolicyAudits?: {
+    id: string;
+    changedAt: string;
+    changedByName: string | null;
+    changedByEmail: string | null;
+    before: Record<string, unknown>;
+    after: Record<string, unknown>;
+  }[];
 };
 
 type Member = { id: string; userId: string; role: string; email: string | null; name: string | null };
@@ -40,6 +56,7 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState(false);
   const [policyDraft, setPolicyDraft] = useState<Record<string, string>>({});
   const [policyMsg, setPolicyMsg] = useState("");
+  const [policyFields, setPolicyFields] = useState<Record<string, string>>({});
   const [loadErr, setLoadErr] = useState("");
 
   function load() {
@@ -352,26 +369,52 @@ export default function SettingsPage() {
         </p>
       )}
 
+      <h2>Session</h2>
+      <p className="lede">
+        Cookies are HttpOnly + SameSite=Lax. A session lasts 7 days and refreshes after 24 hours of use. Sign-out is
+        idempotent. SSO, password reset by email, and idle rotation for viewers are not connected.
+      </p>
+
       <h2>Flag policy</h2>
       <p className="lede">
         Firm thresholds persist on <code>org_settings.flag_policy</code>. The Flags job reads these, not only catalog
-        defaults. Missing keys keep the catalog default. Org Admin can edit.
+        defaults. Missing keys keep the catalog default — missing is not zero. Org Admin can edit. Bounds are
+        validated; out-of-range values are refused. Recompute Flags after a save.
       </p>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
           if (!isAdmin) return;
           setPolicyMsg("");
+          setPolicyFields({});
           const thresholds: Record<string, number> = {};
+          const local: Record<string, string> = {};
           for (const [k, v] of Object.entries(policyDraft)) {
             const n = Number(v);
-            if (Number.isFinite(n) && n >= 0) thresholds[k] = n;
+            if (!Number.isFinite(n)) {
+              local[k] = "must be a finite number";
+              continue;
+            }
+            thresholds[k] = n;
+          }
+          if (Object.keys(local).length) {
+            setPolicyFields(local);
+            setPolicyMsg("Fix the highlighted thresholds.");
+            return;
           }
           try {
-            await api("/api/settings/flag-policy", {
+            const res = await fetch("/api/settings/flag-policy", {
               method: "POST",
+              headers: { "content-type": "application/json" },
+              credentials: "include",
               body: JSON.stringify({ thresholds }),
             });
+            const body = (await res.json()) as { error?: string; fields?: Record<string, string> };
+            if (!res.ok) {
+              setPolicyFields(body.fields ?? {});
+              setPolicyMsg(friendlyAuthError(body.error ?? "Could not save policy"));
+              return;
+            }
             setPolicyMsg("Thresholds saved. Recompute Flags to apply.");
             load();
           } catch (ex) {
@@ -384,24 +427,44 @@ export default function SettingsPage() {
             <tr>
               <th>Flag</th>
               <th>Catalog default</th>
+              <th>Bounds</th>
               <th>This firm</th>
             </tr>
           </thead>
           <tbody>
-            {(data?.flagPolicy ?? FLAG_CATALOG.map((c) => ({ ...c, threshold: c.defaultThreshold }))).map((f) => (
+            {(
+              data?.flagPolicy ??
+              FLAG_CATALOG.map((c) => ({
+                ...c,
+                threshold: c.defaultThreshold,
+                ...FLAG_THRESHOLD_BOUNDS[c.key],
+              }))
+            ).map((f) => (
               <tr key={f.key}>
                 <td>{f.label}</td>
                 <td>{f.defaultThreshold}</td>
+                <td className="lede">
+                  {f.min ?? 0}–{f.max ?? "—"} {f.unit ?? ""}
+                </td>
                 <td>
                   {isAdmin ? (
-                    <input
-                      type="number"
-                      min={0}
-                      step="any"
-                      aria-label={`${f.label} threshold`}
-                      value={policyDraft[f.key] ?? String(f.threshold ?? f.defaultThreshold)}
-                      onChange={(e) => setPolicyDraft({ ...policyDraft, [f.key]: e.target.value })}
-                    />
+                    <>
+                      <input
+                        type="number"
+                        min={f.min ?? 0}
+                        max={f.max}
+                        step="any"
+                        aria-label={`${f.label} threshold`}
+                        aria-invalid={Boolean(policyFields[f.key])}
+                        value={policyDraft[f.key] ?? String(f.threshold ?? f.defaultThreshold)}
+                        onChange={(e) => setPolicyDraft({ ...policyDraft, [f.key]: e.target.value })}
+                      />
+                      {policyFields[f.key] && (
+                        <div className="sev-high" role="alert">
+                          {policyFields[f.key]}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     f.threshold ?? f.defaultThreshold
                   )}
@@ -411,7 +474,7 @@ export default function SettingsPage() {
           </tbody>
         </table>
         {isAdmin && (
-          <button className="btn sm" type="submit" style={{ marginTop: 10 }}>
+          <button className="btn sm" type="submit" style={{ marginTop: 10 }} data-testid="save-flag-policy">
             Save flag policy
           </button>
         )}
@@ -420,6 +483,29 @@ export default function SettingsPage() {
         <p className="lede" role="status">
           {policyMsg}
         </p>
+      )}
+      {(data?.flagPolicyAudits ?? []).length > 0 && (
+        <>
+          <h3>Policy audit</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Who</th>
+                <th>After</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data!.flagPolicyAudits!.map((a) => (
+                <tr key={a.id}>
+                  <td className="lede">{new Date(a.changedAt).toLocaleString()}</td>
+                  <td>{a.changedByName ?? a.changedByEmail ?? "—"}</td>
+                  <td className="lede">{JSON.stringify(a.after)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
 
       <h2>Funds</h2>

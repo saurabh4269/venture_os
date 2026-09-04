@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { allowRequest, resetRateLimitForTests } from "./rate-limit.js";
+import { allowRequest, allowRequestShared, getRateLimitRedis, resetRateLimitForTests } from "./rate-limit.js";
 
-describe("auth rate-limit stub", () => {
+describe("auth rate-limit memory fallback", () => {
   it("allows under the limit and refuses after", () => {
     resetRateLimitForTests();
     const now = 1_000_000;
@@ -17,5 +17,22 @@ describe("auth rate-limit stub", () => {
     expect(allowRequest("ip:w", 1, 1000, 0)).toBe(true);
     expect(allowRequest("ip:w", 1, 1000, 500)).toBe(false);
     expect(allowRequest("ip:w", 1, 1000, 1001)).toBe(true);
+  });
+});
+
+describe("auth rate-limit Redis window", () => {
+  it("refuses after the shared limit when Redis is up", async () => {
+    const client = getRateLimitRedis();
+    if (!client) return;
+    try {
+      if (client.status === "wait") await client.connect();
+      await client.ping();
+    } catch {
+      return;
+    }
+    const key = `test:${Date.now()}:${Math.random()}`;
+    expect(await allowRequestShared(key, 2, 60_000)).toBe(true);
+    expect(await allowRequestShared(key, 2, 60_000)).toBe(true);
+    expect(await allowRequestShared(key, 2, 60_000)).toBe(false);
   });
 });
