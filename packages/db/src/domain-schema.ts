@@ -255,6 +255,8 @@ export const flagEvents = pgTable(
     evidence: jsonb("evidence").notNull(),
     sourceRefIds: jsonb("source_ref_ids").notNull().default(sql`'[]'::jsonb`),
     status: text("status").notNull().default("open"),
+    snoozedUntil: timestamp("snoozed_until"),
+    note: text("note"),
     detectedAt: timestamp("detected_at").notNull().defaultNow(),
   },
   (t) => [index("flag_events_org_idx").on(t.orgId, t.status)],
@@ -290,13 +292,17 @@ export const fxRates = pgTable("fx_rates", {
   source: text("source").notNull(),
 });
 
-export const connectors = pgTable("connectors", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  orgId: orgId(),
-  kind: text("kind").notNull(),
-  status: text("status").notNull().default("not_connected"),
-  config: jsonb("config").notNull().default({}),
-});
+export const connectors = pgTable(
+  "connectors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    kind: text("kind").notNull(),
+    status: text("status").notNull().default("not_connected"),
+    config: jsonb("config").notNull().default({}),
+  },
+  (t) => [uniqueIndex("connectors_org_kind_uidx").on(t.orgId, t.kind)],
+);
 
 export const documentChunks = pgTable(
   "document_chunks",

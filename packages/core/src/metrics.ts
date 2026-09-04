@@ -7,6 +7,53 @@ export function runwayMonths(cash: Num, burn: Num): Num {
   return cash / burn;
 }
 
+/**
+ * Brief: runway = closing cash / average burn over the last three reported months.
+ * Missing months are skipped, never zero-filled. Fewer than one present burn → null.
+ */
+export function runwayMonthsFromBurns(cash: Num, burns: Num[]): Num {
+  const present = burns.filter((b): b is number => isPresent(b));
+  if (!isPresent(cash) || present.length === 0) return null;
+  const avg = present.reduce((a, b) => a + b, 0) / present.length;
+  return runwayMonths(cash, avg);
+}
+
+function periodKey(periodEnd: string | Date): string {
+  return typeof periodEnd === "string" ? periodEnd.slice(0, 10) : periodEnd.toISOString().slice(0, 10);
+}
+
+/** One current row per period (highest version wins). Sorted periodEnd desc. Filter to one metric first. */
+export function latestByPeriod<T extends { periodEnd: string | Date; version?: number }>(rows: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const r of rows) {
+    const key = periodKey(r.periodEnd);
+    const cur = map.get(key);
+    if (!cur || (r.version ?? 0) > (cur.version ?? 0)) map.set(key, r);
+  }
+  return [...map.values()].sort((a, b) => (periodKey(a.periodEnd) < periodKey(b.periodEnd) ? 1 : -1));
+}
+
+/** One current row per metric+period. Safe on mixed-key series (reports, company book). */
+export function latestByMetricPeriod<
+  T extends { metricKey: string; periodEnd: string | Date; version?: number },
+>(rows: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const r of rows) {
+    const key = `${r.metricKey}\t${periodKey(r.periodEnd)}`;
+    const cur = map.get(key);
+    if (!cur || (r.version ?? 0) > (cur.version ?? 0)) map.set(key, r);
+  }
+  return [...map.values()].sort((a, b) => (periodKey(a.periodEnd) < periodKey(b.periodEnd) ? 1 : -1));
+}
+
+/** Restatement-safe series for one metric key, newest period first. */
+export function seriesFor<T extends { metricKey: string; periodEnd: string | Date; version?: number }>(
+  rows: T[],
+  key: string,
+): T[] {
+  return latestByPeriod(rows.filter((r) => r.metricKey === key));
+}
+
 /** MOIC = total value / cost. */
 export function moic(totalValue: Num, cost: Num): Num {
   return div(totalValue, cost);

@@ -1,3 +1,4 @@
+import { xirr } from "./metrics.js";
 import { isPresent, sumPresent, type Num } from "./nulls.js";
 
 export type PositionMark = {
@@ -7,6 +8,7 @@ export type PositionMark = {
   cost: Num;
   mark: Num;
   markAsOf: string | null;
+  sourceRefId?: string | null;
 };
 
 export type NavRollup = {
@@ -15,7 +17,12 @@ export type NavRollup = {
   nav: { total: Num; complete: boolean; missing: number };
   moic: Num;
   unmarked: { positionId: string; companyName: string }[];
+  unprovenanced: { positionId: string; companyName: string }[];
 };
+
+function isProvenanced(r: PositionMark): boolean {
+  return isPresent(r.mark) && Boolean(r.sourceRefId);
+}
 
 /** Default prior period: three calendar months before as-of. */
 export function defaultPriorAsOf(asOf: string): string {
@@ -30,24 +37,22 @@ export function rollupNav(asOf: string, rows: PositionMark[]): NavRollup {
     positionId: r.positionId,
     companyName: r.companyName,
   }));
+  const unprovenanced = rows
+    .filter((r) => isPresent(r.mark) && !r.sourceRefId)
+    .map((r) => ({ positionId: r.positionId, companyName: r.companyName }));
   const cost = sumPresent(rows.map((r) => r.cost));
-  const nav = sumPresent(rows.map((r) => r.mark));
-  const moic =
-    isPresent(nav.total) && isPresent(cost.total) && cost.total !== 0 && cost.complete && nav.complete
-      ? nav.total / cost.total
-      : isPresent(nav.total) && isPresent(cost.total) && cost.total !== 0 && !unmarked.length
-        ? nav.total / cost.total
-        : null;
-  // MOIC as a headline only if every position that has cost also has a mark
+  /** Headline NAV excludes unprovenanced marks. Incomplete until every position has a sourced mark. */
+  const nav = sumPresent(rows.map((r) => (isProvenanced(r) ? r.mark : null)));
   const headlineMoic =
-    rows.every((r) => !isPresent(r.cost) || isPresent(r.mark)) &&
+    rows.length > 0 &&
+    rows.every(isProvenanced) &&
+    cost.complete &&
     isPresent(nav.total) &&
     isPresent(cost.total) &&
     cost.total !== 0
       ? nav.total / cost.total
       : null;
-  void moic;
-  return { asOf, cost, nav, moic: headlineMoic, unmarked };
+  return { asOf, cost, nav, moic: headlineMoic, unmarked, unprovenanced };
 }
 
 export type BridgeLine = {
@@ -72,14 +77,14 @@ export type NavBridge = {
  * (missing ≠ 0). Unexplained names are listed, never filled with a guessed prior.
  */
 export function navBridge(currentAsOf: string, current: PositionMark[], prior: PositionMark[]): NavBridge {
-  const priorByCompany = new Map(prior.map((r) => [r.companyId, r]));
+  const priorByPosition = new Map(prior.map((r) => [r.positionId, r]));
   const lines: BridgeLine[] = [];
   const unexplained: NavBridge["unexplained"] = [];
   const deltas: Num[] = [];
   let priorAsOf: string | null = null;
 
   for (const row of current) {
-    const prev = priorByCompany.get(row.companyId);
+    const prev = priorByPosition.get(row.positionId) ?? prior.find((p) => p.companyId === row.companyId);
     if (prev?.markAsOf && (!priorAsOf || prev.markAsOf > priorAsOf)) priorAsOf = prev.markAsOf;
     const priorMark = prev?.mark ?? null;
     const currentMark = row.mark;
@@ -114,4 +119,26 @@ export function navBridge(currentAsOf: string, current: PositionMark[], prior: P
     lines,
     unexplained,
   };
+}
+
+/**
+ * Per-position IRR only when an investment date and a dated mark exist.
+ * Never invents investedAt. Cost is an outflow; mark is the residual inflow.
+ */
+export function datedPositionIrr(args: {
+  investedAt?: string | null;
+  cost: Num;
+  mark: Num;
+  markAsOf?: string | null;
+}): Num {
+  if (!args.investedAt || !args.markAsOf) return null;
+  if (!isPresent(args.cost) || !isPresent(args.mark)) return null;
+  const start = new Date(`${args.investedAt}T00:00:00Z`);
+  const end = new Date(`${args.markAsOf}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  if (end.getTime() <= start.getTime()) return null;
+  return xirr([
+    { date: start, amount: -Math.abs(args.cost) },
+    { date: end, amount: args.mark },
+  ]);
 }

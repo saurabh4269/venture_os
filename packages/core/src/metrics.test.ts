@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { dpi, moic, runwayMonths, tvpi, xirr } from "./metrics.js";
+import {
+  dpi,
+  latestByMetricPeriod,
+  latestByPeriod,
+  moic,
+  runwayMonths,
+  runwayMonthsFromBurns,
+  seriesFor,
+  tvpi,
+  xirr,
+} from "./metrics.js";
 import { add, formatMissing, sumComplete, sumPresent } from "./nulls.js";
 
 describe("null semantics", () => {
@@ -43,6 +53,45 @@ describe("runway", () => {
   it("is null when burn is 0 or negative", () => {
     expect(runwayMonths(12, 0)).toBeNull();
     expect(runwayMonths(12, -1)).toBeNull();
+  });
+
+  it("uses average of present burns only — never zero-fills missing months", () => {
+    expect(runwayMonthsFromBurns(12, [2, 4, null])).toBe(4);
+    expect(runwayMonthsFromBurns(12, [null, null])).toBeNull();
+  });
+
+  it("latestByPeriod ignores a restated older version of the same period", () => {
+    const series = latestByPeriod([
+      { metricKey: "burn", periodEnd: "2026-08-31", version: 2, valueNumeric: 1.1 },
+      { metricKey: "burn", periodEnd: "2026-08-31", version: 1, valueNumeric: 9.9 },
+      { metricKey: "burn", periodEnd: "2026-07-31", version: 1, valueNumeric: 0.8 },
+    ]);
+    expect(series[0]?.valueNumeric).toBe(1.1);
+    expect(series[1]?.valueNumeric).toBe(0.8);
+  });
+
+  it("latestByMetricPeriod keeps cash and burn in the same period", () => {
+    const rows = latestByMetricPeriod([
+      { metricKey: "cash", periodEnd: "2026-08-31", version: 1, valueNumeric: 10 },
+      { metricKey: "burn", periodEnd: "2026-08-31", version: 1, valueNumeric: 2 },
+      { metricKey: "cash", periodEnd: "2026-08-31", version: 2, valueNumeric: 12 },
+    ]);
+    expect(rows.find((r) => r.metricKey === "cash")?.valueNumeric).toBe(12);
+    expect(rows.find((r) => r.metricKey === "burn")?.valueNumeric).toBe(2);
+  });
+
+  it("seriesFor is restatement-safe before a 3-mo burn slice", () => {
+    const burns = seriesFor(
+      [
+        { metricKey: "burn", periodEnd: "2026-08-31", version: 1, valueNumeric: 9 },
+        { metricKey: "burn", periodEnd: "2026-08-31", version: 2, valueNumeric: 2 },
+        { metricKey: "burn", periodEnd: "2026-07-31", version: 1, valueNumeric: 2 },
+        { metricKey: "cash", periodEnd: "2026-08-31", version: 1, valueNumeric: 12 },
+      ],
+      "burn",
+    );
+    expect(burns.map((b) => b.valueNumeric)).toEqual([2, 2]);
+    expect(runwayMonthsFromBurns(12, burns.slice(0, 3).map((b) => b.valueNumeric ?? null))).toBe(6);
   });
 });
 

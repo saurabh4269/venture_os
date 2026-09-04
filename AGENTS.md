@@ -56,11 +56,11 @@ Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
 
 | Phase | Status |
 | --- | --- |
-| 0 Platform | Shipped (auth, RLS, CI, empty shell) |
+| 0 Platform | Shipped (auth, RLS, CI, empty shell). Pass 01: locked-role AC, invite accept, org onboard, membership-checked select |
 | 1 Book | Shipped (upload → parse → inbox → book) |
 | 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements) |
-| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge, Compare); NAV **approval** later |
-| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX from the book) |
+| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge, Compare); NAV **approval** later. Passes 04/07/08/10: 3-mo runway, mute/snooze, position bridge, compare pickers |
+| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX from the book). Pass 05/09: overlap + invented-number refuse; one-pager requires companyId |
 | 5 Live connectors | Stub only — UI says **not connected** |
 | 6 LP room + billing | Out of scope |
 
@@ -99,7 +99,7 @@ If Redis is up and the worker is down, parse jobs sit queued — start the worke
 
 ### Demo for a VC
 
-1. Sign up → create org (you are Org Admin).
+1. Sign up → create org (you are Org Admin). If org create fails, `/onboard` finishes it. Invites: Settings → copy link → `/invite?id=`.
 2. Companies → Add company → upload an MIS `.xlsx` / `.csv` (or run opt-in seed).
 3. Inbox → confirm rows (edit units if needed). Nothing auto-posts to the book.
 4. Command / Flags / NAV / Compare / Ask / Reports now read the **book**.

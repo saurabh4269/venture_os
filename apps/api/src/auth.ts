@@ -4,6 +4,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
 import * as schema from "@venture-os/db/schema";
+import { log } from "./log.js";
+import { orgAc, orgRoles } from "./org-access.js";
 
 const env = loadEnv();
 
@@ -17,6 +19,8 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
   },
   advanced: {
     defaultCookieAttributes: {
@@ -28,9 +32,20 @@ export const auth = betterAuth({
   },
   plugins: [
     organization({
+      ac: orgAc,
+      roles: orgRoles,
       allowUserToCreateOrganization: true,
       creatorRole: "org_admin",
       invitationExpiresIn: 60 * 60 * 24 * 7,
+      sendInvitationEmail: async (data) => {
+        // No SMTP in this phase. Invitation row is SoT; Settings shows a copy-link.
+        log("info", "invitation_created", {
+          invitationId: data.id,
+          email: data.email,
+          organizationId: data.organization.id,
+          role: data.role,
+        });
+      },
     }),
   ],
 });

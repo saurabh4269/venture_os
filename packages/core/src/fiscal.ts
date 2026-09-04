@@ -48,6 +48,16 @@ function iso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Last completed calendar quarter-end (Mar/Jun/Sep/Dec) strictly before `asOf`. */
+export function lastCalendarQuarterEnd(asOf = new Date()): string {
+  const y = asOf.getUTCFullYear();
+  const m = asOf.getUTCMonth();
+  if (m < 3) return `${y - 1}-12-31`;
+  if (m < 6) return `${y}-03-31`;
+  if (m < 9) return `${y}-06-30`;
+  return `${y}-09-30`;
+}
+
 export function parsePeriodHint(text: string, fyStart = DEFAULT_FY_START) {
   const fyMonth = text.match(/FY\s*'?(\d{2,4})\s*M(\d{1,2})/i);
   if (fyMonth) {

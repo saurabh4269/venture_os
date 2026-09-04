@@ -15,8 +15,8 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 
 | # | Requirement (brief) | Demo | This repo | Production work remaining |
 | --- | --- | --- | --- | --- |
-| 1 | Org auth / user logins | **missing** | **done** | Session hardening / SSO later |
-| 2 | Multi-tenant orgs / domain join | **missing** | **partial** | Domain verification / auto-join still missing; invites + RLS shipped |
+| 1 | Org auth / user logins | **missing** | **done** | Session hardening / SSO later. Pass 01: locked-role AC, logout, 401 gate, onboard |
+| 2 | Multi-tenant orgs / domain join | **missing** | **partial** | Domain / SMTP still missing; copy-link invites; role change + remove + last-admin guard (Pass 14) |
 | 3 | Durable database book | **missing** (JSON seed) | **done** | — |
 | 4 | OneDrive API ingest | **missing** | **missing** | Settings stub: **not connected**. No invented Graph fields |
 | 5 | Affinity API (ownership, CRM) | **missing** | **missing** | Settings stub: **not connected** |
@@ -30,17 +30,17 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 13 | missing ≠ 0 | **partial** (Ask declines) | **done** | Core math + UI `—` |
 | 14 | Dual currency INR Cr + EUR + FX audit | **mock** (illustrative FX) | **done** | Converted EUR only with complete FX triple; else refuse |
 | 15 | Attributable corrections survive re-parse | **missing** | **done** | Ledger + extract merge; golden test in `packages/core` |
-| 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Sheet!cell + PDF page; no bbox OCR |
-| 17 | Live dashboard | **mock** | **done** | Command reads the book |
-| 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; incomplete rollups stay `—` |
-| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + PoP bridge shipped; approval / lock later |
+| 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Cookie-auth `Fact` chips on Command/company/compare/NAV/flags (Pass 12); no bbox OCR |
+| 17 | Live dashboard | **mock** | **done** | Command reads the book; Needs-a-look list; 3-mo runway; 0 flags is 0 |
+| 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay `—` |
+| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + position bridge; priorAsOf + fund filter + method enum (Pass 21); approval later |
 | 20 | Objective commentary from MIS | **missing** | **partial** | Separate lane; human + inbox confirm |
 | 21 | Subjective commentary from calls | **missing** | **partial** | Lane rejects MIS-only source; Granola still **not connected** |
-| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | On-demand from book facts (not seed JSON) |
-| 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; refuse without evidence |
-| 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog detectors + evidence payload |
-| 25 | Cross-company compare | **mock** | **done** | Book-only; null-safe |
-| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + upload path; connector IDs wait for OAuth |
+| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Curated one-pager; XLSX commentary+FX; multi-page PDF; cookie-auth download (Pass 21) |
+| 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; company-scoped chunks; per-proposal locators; refuse without overlap; numeric post-check |
+| 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + below-plan; mute/snooze/unmute tabs; grace; restatement-safe reads on all surfaces (Pass 13/15) |
+| 25 | Cross-company compare | **mock** | **done** | Stage/sector peer filter; catalog labels; hide-empty; objective-lane only (Pass 21) |
+| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + parse poll + upload guards; connector IDs wait for OAuth |
 | 27 | Claude as reasoning layer (brief) | Demo uses **OpenAI** Luna | **done** | Pluggable `LlmProvider`; default OpenAI (D5) |
 | 28 | SOC2-ready audit / security | **missing** | **missing** | RLS + roles only so far |
 | 29 | Billing / plans for other VCs | **missing** | **missing** | Out of scope this phase |

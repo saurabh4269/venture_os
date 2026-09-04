@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Shell } from "@/components/Shell";
+import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
 export default function CompaniesPage() {
+  const { canWrite } = useBookSession();
   const [rows, setRows] = useState<{ id: string; name: string; stage: string | null; sector: string | null; country: string | null }[]>([]);
 
   useEffect(() => {
@@ -19,13 +20,15 @@ export default function CompaniesPage() {
           <h1>Companies</h1>
           <p className="lede">Coverage. Add a name, upload MIS, confirm inbox — then it appears on Command.</p>
         </div>
-        <Link className="btn" href="/companies/new">
-          Add company
-        </Link>
+        {canWrite && (
+          <Link className="btn" href="/companies/new">
+            Add company
+          </Link>
+        )}
       </div>
       {rows.length === 0 ? (
         <div className="empty" style={{ marginTop: 20 }}>
-          Empty book. <Link href="/companies/new">Create the first company</Link> (15-minute path).
+          Empty book. {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."} (15-minute path).
         </div>
       ) : (
         <table style={{ marginTop: 18 }}>

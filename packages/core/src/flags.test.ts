@@ -3,8 +3,11 @@ import {
   detectBurnUp,
   detectCashUnreported,
   detectGmCompression,
+  detectMarkStale,
+  detectMisLate,
   detectPlanVariance,
   detectRunwayShort,
+  detectSpendWithoutRevenue,
 } from "./flags.js";
 
 describe("flag detectors", () => {
@@ -38,10 +41,21 @@ describe("flag detectors", () => {
     expect(detectGmCompression(0.32, 0.4, 0.03)?.flagKey).toBe("gm_compression");
   });
 
-  it("plan variance requires both actual and plan", () => {
+  it("plan variance requires both actual and plan, and only fires below plan", () => {
     expect(detectPlanVariance(8, null)).toBeNull();
     expect(detectPlanVariance(8, 10, 0.15)?.flagKey).toBe("plan_variance");
     expect(detectPlanVariance(9, 10, 0.15)).toBeNull();
+    expect(detectPlanVariance(12, 10, 0.15)).toBeNull();
+  });
+
+  it("mis_late grants grace to a newly created company with no MIS yet", () => {
+    const asOf = new Date("2026-09-04T00:00:00Z");
+    expect(
+      detectMisLate(null, asOf, 45, { companyCreatedAt: "2026-09-01T00:00:00Z" }),
+    ).toBeNull();
+    expect(detectMisLate(null, asOf, 45, { companyCreatedAt: "2026-01-01T00:00:00Z" })?.flagKey).toBe(
+      "mis_late",
+    );
   });
 
   it("cash_unreported fires when prior cash exists and current is missing — not zero", () => {
@@ -50,5 +64,18 @@ describe("flag detectors", () => {
     expect(hit?.evidence.currentCash).toBeNull();
     expect(detectCashUnreported(4.2, 0)).toBeNull(); // 0 is a reported number
     expect(detectCashUnreported(null, null)).toBeNull();
+  });
+
+  it("mark_stale is low when never marked and silent inside the stale window", () => {
+    const asOf = new Date("2026-09-04T00:00:00Z");
+    expect(detectMarkStale(null, asOf)?.severity).toBe("low");
+    expect(detectMarkStale("2026-08-01", asOf, 100)).toBeNull();
+    expect(detectMarkStale("2026-01-01", asOf, 100)?.flagKey).toBe("mark_stale");
+  });
+
+  it("spend_without_revenue needs both burn up and flat/down revenue — missing is not 0 growth", () => {
+    expect(detectSpendWithoutRevenue(3, 2, null, 10)).toBeNull();
+    expect(detectSpendWithoutRevenue(3, 2, 12, 10)).toBeNull();
+    expect(detectSpendWithoutRevenue(3, 2, 10, 10)?.flagKey).toBe("spend_without_revenue");
   });
 });
