@@ -11,6 +11,7 @@ import {
   detectSpendWithoutRevenue,
   parseFlagPolicyJson,
   resolveFlagThresholds,
+  validateFlagPolicyThresholds,
 } from "./flags.js";
 
 describe("flag detectors", () => {
@@ -114,5 +115,17 @@ describe("flag detectors", () => {
     expect(loose.some((h) => h.flagKey === "runway_short")).toBe(false);
     const tighter = detectAll({ ...base, policy: { runway_short: 12 } });
     expect(tighter.find((h) => h.flagKey === "runway_short")?.evidence.threshold).toBe(12);
+  });
+
+  it("rejects out-of-bounds and non-finite policy thresholds", () => {
+    const bad = validateFlagPolicyThresholds({ runway_short: 100, burn_up: Number.NaN });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) {
+      expect(bad.fields.runway_short).toMatch(/36/);
+      expect(bad.fields.burn_up).toMatch(/finite/);
+    }
+    const good = validateFlagPolicyThresholds({ runway_short: 4, burn_up: 0.2 });
+    expect(good.ok).toBe(true);
+    if (good.ok) expect(good.thresholds.runway_short).toBe(4);
   });
 });

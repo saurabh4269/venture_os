@@ -39,6 +39,13 @@ type ReportRow = {
   createdAt: Date | string;
 };
 
+function eurOrDash(m?: ReportMetric): string | number {
+  if (!m) return "—";
+  const triple = Boolean(m.fxRate && m.fxDate && m.fxSource);
+  if (!triple || m.valueEur == null) return "—";
+  return m.valueEur;
+}
+
 export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xlsx") {
   const payload = report.body as { pages?: ReportPage[]; rows?: MonthlyRow[]; periodEnd?: string };
   const pages = (payload.pages ?? []) as ReportPage[];
@@ -54,9 +61,12 @@ export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xls
         "Stage",
         "Period end",
         "Net revenue",
+        "Net revenue EUR",
         "Gross margin",
         "Cash",
+        "Cash EUR",
         "Burn",
+        "Burn EUR",
         "Runway",
         "Objective",
         "Subjective",
@@ -78,9 +88,12 @@ export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xls
           r.stage ?? "—",
           r.periodEnd || "—",
           byKey.net_revenue?.value ?? "—",
+          eurOrDash(byKey.net_revenue),
           byKey.gross_margin_pct?.value ?? "—",
           byKey.cash?.value ?? "—",
+          eurOrDash(byKey.cash),
           byKey.burn?.value ?? "—",
+          eurOrDash(byKey.burn),
           byKey.runway_months?.value ?? "—",
           r.objective.join(" / ") || "—",
           r.subjective.join(" / ") || "—",

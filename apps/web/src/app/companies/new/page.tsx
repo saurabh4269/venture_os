@@ -87,14 +87,14 @@ export default function NewCompanyPage() {
   }
 
   async function pollParse(documentId: string) {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 60; i++) {
       const r = await api<{ parse: { status: string; error?: string | null } | null }>(
         `/api/documents/${documentId}`,
       ).catch(() => null);
       const st = r?.parse?.status ?? "queued";
       setParseStatus(st + (r?.parse?.error ? ` — ${r.parse.error}` : ""));
       if (st === "done" || st === "error") return;
-      await new Promise((ok) => setTimeout(ok, 800));
+      await new Promise((ok) => setTimeout(ok, 1000));
     }
     setParseStatus("timed out — start the worker or retry extract from the company page");
   }
@@ -102,7 +102,10 @@ export default function NewCompanyPage() {
   if (!canWrite) {
     return (
       <Shell>
-        <p className="lede">Viewers cannot add companies. Ask an Org Admin.</p>
+        <h1>Onboard a company</h1>
+        <p className="lede" data-testid="viewer-read-only">
+          Viewers cannot add companies. Ask an Org Admin to onboard a name. The book stays read-only for your role.
+        </p>
       </Shell>
     );
   }
@@ -195,7 +198,12 @@ export default function NewCompanyPage() {
       )}
 
       {step === 3 && (
-        <div className="empty" style={{ marginTop: 16 }} data-testid="extract-status">
+        <div
+          className="empty"
+          style={{ marginTop: 16 }}
+          data-testid="extract-status"
+          data-parse-status={parseStatus || "queued"}
+        >
           Extract {parseStatus || "queued"}. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue,
           GM). Nothing auto-posts. Then this name appears on Command with provenance.
         </div>

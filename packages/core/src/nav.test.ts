@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertMarkWritable, datedPositionIrr, isNavPeriodLocked, navBridge, rollupNav } from "./nav.js";
+import { assertMarkWritable, datedPositionIrr, isNavPeriodLocked, navBridge, rollupEur, rollupNav } from "./nav.js";
 
 describe("NAV rollup", () => {
   it("keeps MOIC blank when a position is unmarked", () => {
@@ -96,5 +96,24 @@ describe("NAV period lock", () => {
     const gate = assertMarkWritable("locked");
     expect(gate.ok).toBe(false);
     if (!gate.ok) expect(gate.code).toBe("period_locked");
+  });
+});
+
+describe("rollupEur", () => {
+  it("refuses a headline when any sourced mark lacks a complete FX triple", () => {
+    const r = rollupEur([
+      {
+        mark: 12,
+        sourceRefId: "a",
+        valueEur: 0.13,
+        fxRate: 0.011,
+        fxDate: "2026-06-30",
+        fxSource: "RBI",
+      },
+      { mark: 8, sourceRefId: "b", valueEur: null, fxRate: null, fxDate: null, fxSource: null },
+    ]);
+    expect(r.total).toBeNull();
+    expect(r.conversionRefused).toBe(true);
+    expect(r.fxNote).toBe("EUR — (no FX triple)");
   });
 });

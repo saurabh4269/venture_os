@@ -73,8 +73,8 @@ Resume from `docs/02_GAP_MATRIX.md` (This-repo column) and unchecked boxes in `d
 ```bash
 pnpm i
 cp .env.example .env          # set OPENAI_API_KEY to enable Ask completions; optional
-docker compose up --build     # Postgres, Redis, MinIO, api, web, worker
-# open http://localhost:3000
+pnpm demo:vc                  # Compose + migrate + FIXTURE signup/seed (or docker compose up --build)
+# open http://localhost:3000/login — credentials printed by demo:vc
 ```
 
 Without Docker (native services + filesystem objects):
@@ -103,7 +103,7 @@ If Redis is up and the worker is down, parse jobs sit queued — start the worke
 2. Companies → Add company → upload an MIS `.xlsx` / `.csv` (or run opt-in seed).
 3. Inbox → confirm rows (edit units if needed). Nothing auto-posts to the book.
 4. Command / Flags / NAV / Compare / Ask / Reports now read the **book**.
-5. Optional labelled fixture: `SEED_DEMO=1 pnpm seed:demo`. Banner: **FIXTURE_ONLY**. Never use as production data.
+5. Optional labelled fixture: `pnpm demo:vc` or `SEED_DEMO=1 pnpm seed:demo`. Banner: **FIXTURE_ONLY**. Never use as production data.
 
 ---
 
@@ -117,6 +117,7 @@ If Redis is up and the worker is down, parse jobs sit queued — start the worke
 | `pnpm db:migrate` | Drizzle migrate (`MIGRATE_DATABASE_URL` preferred) |
 | `pnpm db:generate` | Drizzle generate |
 | `pnpm seed:demo` | FIXTURE_ONLY opt-in |
+| `pnpm demo:vc` | Compose/native + migrate + signup + FIXTURE seed |
 | `pnpm --filter @venture-os/api start` | API only |
 
 ---

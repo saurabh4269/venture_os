@@ -44,7 +44,7 @@ export default function AskPage() {
 
   return (
     <Shell>
-      <h1>Ask</h1>
+      <h1 data-testid="ask-ready">Ask</h1>
       <p className="lede">
         Grounded on FTS + booked facts. If it is not in the corpus, the system refuses. Citations must resolve. Numbers
         that are not in evidence cause a refuse.
@@ -65,6 +65,7 @@ export default function AskPage() {
           Question
           <textarea
             id="ask-q"
+            data-testid="ask-question"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             rows={3}
@@ -73,7 +74,7 @@ export default function AskPage() {
             minLength={3}
           />
         </label>
-        <button className="btn" disabled={busy}>
+        <button className="btn" disabled={busy} data-testid="ask-submit">
           {busy ? "Searching the book…" : "Ask"}
         </button>
       </form>
@@ -84,8 +85,16 @@ export default function AskPage() {
       )}
       {res && (
         <div style={{ marginTop: 20 }}>
-          {res.refused && <div className="banner">{res.answer}</div>}
-          {!res.refused && <p style={{ whiteSpace: "pre-wrap" }}>{res.answer}</p>}
+          {(res.refused || /will not guess/i.test(res.answer)) && (
+            <div className="banner" data-testid="ask-refused" role="status">
+              {res.answer}
+            </div>
+          )}
+          {!res.refused && !/will not guess/i.test(res.answer) && (
+            <p style={{ whiteSpace: "pre-wrap" }} data-testid="ask-answer">
+              {res.answer}
+            </p>
+          )}
           <h3>Citations</h3>
           {res.citations.length === 0 && <p className="lede">None — refusal or empty evidence.</p>}
           <ul>

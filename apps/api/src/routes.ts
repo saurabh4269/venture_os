@@ -13,6 +13,7 @@ import {
   documentKindToCommentarySource,
   factOrDash,
   FLAG_CATALOG,
+  FLAG_THRESHOLD_BOUNDS,
   formatDualDisplay,
   lastCalendarQuarterEnd,
   latestByMetricPeriod,
@@ -23,6 +24,7 @@ import {
   parseFlagPolicyJson,
   refuseUnsourcedDigits,
   resolveFlagThresholds,
+  rollupEur,
   rollupNav,
   runwayMonthsFromBurns,
   seriesFor,
@@ -30,8 +32,10 @@ import {
   toInrCrore,
   tokenize,
   toReportMetric,
+  validateFlagPolicyThresholds,
   xirr,
 } from "@venture-os/core";
+import { buildNavPackSnapshot, hashNavPackSnapshot } from "@venture-os/core/server";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
 import {
   invitationExpired,
@@ -54,6 +58,7 @@ import {
   ReportKindSchema,
   UnlockNavPeriodSchema,
   UpdateCompanySchema,
+  type Currency,
 } from "@venture-os/schema";
 import {
   askQueries,
@@ -63,6 +68,7 @@ import {
   createObjectStore,
   documents,
   flagEvents,
+  flagPolicyAudits,
   funds,
   getDb,
   inboxItems,
@@ -1016,85 +1022,123 @@ routes.post("/api/flags/:id/unmute", async (c) => {
   return c.json({ flag: row });
 });
 
+async function assembleNavBook(
+  tx: Parameters<Parameters<typeof withOrg>[1]>[0],
+  asOf: string,
+  priorAsOf: string,
+  fundId: string,
+) {
+  const posAll = await tx.select().from(positions);
+  const pos = fundId ? posAll.filter((p) => p.fundId === fundId) : posAll;
+  const mk = await tx.select().from(marks);
+  const cos = await tx.select().from(companies);
+  const fundRows = await tx.select().from(funds);
+  const refs = await tx.select().from(sourceRefs);
+  const rows = pos.map((p) => {
+    const history = mk.filter((m) => m.positionId === p.id).sort((a, b) => (a.asOf < b.asOf ? 1 : -1));
+    const mark = history.find((m) => m.asOf <= asOf);
+    const prior = history.find((m) => m.asOf <= priorAsOf);
+    const co = cos.find((x) => x.id === p.companyId);
+    const fx = {
+      fxRate: mark?.fxRate ?? null,
+      fxDate: mark?.fxDate ?? null,
+      fxSource: mark?.fxSource ?? null,
+    };
+    const currency = (mark?.currency ?? "INR") as Currency;
+    const valueEur = toEur(mark?.value ?? null, currency, {
+      fxRate: fx.fxRate ?? undefined,
+      fxDate: fx.fxDate ?? undefined,
+      fxSource: fx.fxSource ?? undefined,
+    });
+    const irr = datedPositionIrr({
+      investedAt: p.investedAt,
+      cost: p.costBasis ?? null,
+      mark: mark?.value ?? null,
+      markAsOf: mark?.asOf ?? null,
+    });
+    return {
+      position: p,
+      companyName: co?.name ?? "—",
+      fundName: fundRows.find((f) => f.id === p.fundId)?.name ?? "—",
+      cost: p.costBasis ?? null,
+      mark: mark?.value ?? null,
+      markAsOf: mark?.asOf ?? null,
+      method: mark?.method ?? null,
+      rationale: mark?.rationale ?? null,
+      sourceRefId: mark?.sourceRefId ?? null,
+      currency,
+      ...fx,
+      valueEur,
+      markDisplay: formatDualDisplay({
+        value: mark?.value ?? null,
+        sourceRefId: mark?.sourceRefId,
+        unit: "unit",
+        currency,
+        valueEur,
+        fxRate: fx.fxRate,
+        fxDate: fx.fxDate,
+        fxSource: fx.fxSource,
+      }),
+      priorMark: prior?.value ?? null,
+      priorMarkAsOf: prior?.asOf ?? null,
+      irr,
+    };
+  });
+  const currentMarks = rows.map((r) => ({
+    positionId: r.position.id,
+    companyId: r.position.companyId,
+    companyName: r.companyName,
+    cost: r.cost,
+    mark: r.mark,
+    markAsOf: r.markAsOf,
+    sourceRefId: r.sourceRefId,
+  }));
+  const priorMarks = rows.map((r) => ({
+    positionId: r.position.id,
+    companyId: r.position.companyId,
+    companyName: r.companyName,
+    cost: r.cost,
+    mark: r.priorMark,
+    markAsOf: r.priorMarkAsOf,
+    sourceRefId: r.sourceRefId,
+  }));
+  const rollup = rollupNav(asOf, currentMarks);
+  const bridge = navBridge(asOf, currentMarks, priorMarks);
+  const eur = rollupEur(rows);
+  const provenanced = rows.filter((r) => r.mark != null && r.sourceRefId);
+  const dated = provenanced.filter((r) => r.position.investedAt && r.markAsOf && r.cost != null);
+  const headlineIrr =
+    provenanced.length > 0 && dated.length === provenanced.length
+      ? xirr(
+          dated.flatMap((r) => [
+            { date: new Date(`${r.position.investedAt}T00:00:00Z`), amount: -Math.abs(r.cost ?? 0) },
+            { date: new Date(`${r.markAsOf}T00:00:00Z`), amount: r.mark ?? 0 },
+          ]),
+        )
+      : null;
+  return {
+    asOf,
+    priorAsOf,
+    rollup,
+    eur,
+    bridge,
+    positions: rows,
+    moic: rollup.moic,
+    irr: headlineIrr,
+    funds: fundRows.map((f) => ({ id: f.id, name: f.name, currency: f.currency })),
+    sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
+  };
+}
+
 routes.get("/api/nav", async (c) => {
   const s = requireOrg(c);
   const asOf = c.req.query("asOf") ?? lastCalendarQuarterEnd();
   const priorAsOf = c.req.query("priorAsOf") ?? defaultPriorAsOf(asOf);
   const fundId = c.req.query("fundId") ?? "";
   const data = await withOrg(s.orgId, async (tx) => {
-    const posAll = await tx.select().from(positions);
-    const pos = fundId ? posAll.filter((p) => p.fundId === fundId) : posAll;
-    const mk = await tx.select().from(marks);
-    const cos = await tx.select().from(companies);
-    const fundRows = await tx.select().from(funds);
-    const refs = await tx.select().from(sourceRefs);
-    const rows = pos.map((p) => {
-      const history = mk.filter((m) => m.positionId === p.id).sort((a, b) => (a.asOf < b.asOf ? 1 : -1));
-      const mark = history.find((m) => m.asOf <= asOf);
-      const prior = history.find((m) => m.asOf <= priorAsOf);
-      const co = cos.find((x) => x.id === p.companyId);
-      const irr = datedPositionIrr({
-        investedAt: p.investedAt,
-        cost: p.costBasis ?? null,
-        mark: mark?.value ?? null,
-        markAsOf: mark?.asOf ?? null,
-      });
-      return {
-        position: p,
-        companyName: co?.name ?? "—",
-        fundName: fundRows.find((f) => f.id === p.fundId)?.name ?? "—",
-        cost: p.costBasis ?? null,
-        mark: mark?.value ?? null,
-        markAsOf: mark?.asOf ?? null,
-        method: mark?.method ?? null,
-        rationale: mark?.rationale ?? null,
-        sourceRefId: mark?.sourceRefId ?? null,
-        priorMark: prior?.value ?? null,
-        priorMarkAsOf: prior?.asOf ?? null,
-        irr,
-      };
-    });
-    const currentMarks = rows.map((r) => ({
-      positionId: r.position.id,
-      companyId: r.position.companyId,
-      companyName: r.companyName,
-      cost: r.cost,
-      mark: r.mark,
-      markAsOf: r.markAsOf,
-      sourceRefId: r.sourceRefId,
-    }));
-    const priorMarks = rows.map((r) => ({
-      positionId: r.position.id,
-      companyId: r.position.companyId,
-      companyName: r.companyName,
-      cost: r.cost,
-      mark: r.priorMark,
-      markAsOf: r.priorMarkAsOf,
-      sourceRefId: r.sourceRefId,
-    }));
-    const rollup = rollupNav(asOf, currentMarks);
-    const bridge = navBridge(asOf, currentMarks, priorMarks);
-    const provenanced = rows.filter((r) => r.mark != null && r.sourceRefId);
-    const dated = provenanced.filter((r) => r.position.investedAt && r.markAsOf && r.cost != null);
-    const headlineIrr =
-      provenanced.length > 0 && dated.length === provenanced.length
-        ? xirr(
-            dated.flatMap((r) => [
-              { date: new Date(`${r.position.investedAt}T00:00:00Z`), amount: -Math.abs(r.cost ?? 0) },
-              { date: new Date(`${r.markAsOf}T00:00:00Z`), amount: r.mark ?? 0 },
-            ]),
-          )
-        : null;
+    const book = await assembleNavBook(tx, asOf, priorAsOf, fundId);
     return {
-      asOf,
-      priorAsOf,
-      rollup,
-      bridge,
-      positions: rows,
-      moic: rollup.moic,
-      irr: headlineIrr,
-      funds: fundRows.map((f) => ({ id: f.id, name: f.name, currency: f.currency })),
-      sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
+      ...book,
       documents: (await tx.select().from(documents)).map((d) => ({
         id: d.id,
         filename: d.filename,
@@ -1117,7 +1161,40 @@ async function loadNavPeriod(tx: Parameters<Parameters<typeof withOrg>[1]>[0], a
     unlockReason: lock?.unlockReason ?? null,
     unlockedBy: lock?.unlockedBy ?? null,
     unlockedAt: lock?.unlockedAt ?? null,
+    snapshotKey: lock?.snapshotKey ?? null,
+    snapshotSha256: lock?.snapshotSha256 ?? null,
+    snapshotAt: lock?.snapshotAt ?? null,
   };
+}
+
+async function freezeNavPack(
+  tx: Parameters<Parameters<typeof withOrg>[1]>[0],
+  args: { orgId: string; asOf: string; lockedBy: string; lockedAt: Date },
+) {
+  const book = await assembleNavBook(tx, args.asOf, defaultPriorAsOf(args.asOf), "");
+  const pack = buildNavPackSnapshot({
+    asOf: args.asOf,
+    lockedAt: args.lockedAt.toISOString(),
+    lockedBy: args.lockedBy,
+    rollup: book.rollup,
+    positions: book.positions.map((r) => ({
+      positionId: r.position.id,
+      companyName: r.companyName,
+      cost: r.cost,
+      mark: r.mark,
+      markAsOf: r.markAsOf,
+      sourceRefId: r.sourceRefId,
+      currency: r.currency,
+      fxRate: r.fxRate,
+      fxDate: r.fxDate,
+      fxSource: r.fxSource,
+      valueEur: r.valueEur,
+    })),
+  });
+  const sha = hashNavPackSnapshot(pack);
+  const key = `nav-packs/${args.orgId}/${args.asOf}/${sha}.json`;
+  await createObjectStore().put(key, Buffer.from(JSON.stringify(pack)), "application/json");
+  return { key, sha, pack };
 }
 
 routes.post("/api/nav/lock", async (c) => {
@@ -1125,32 +1202,46 @@ routes.post("/api/nav/lock", async (c) => {
   const parsed = LockNavPeriodSchema.safeParse(await c.req.json());
   if (!parsed.success) throw new HttpError(400, "invalid_as_of");
   const asOf = parsed.data.asOf;
+  const lockedAt = new Date();
   const period = await withOrg(s.orgId, async (tx) => {
+    const snap = await freezeNavPack(tx, { orgId: s.orgId, asOf, lockedBy: s.user.id, lockedAt });
     const [existing] = await tx.select().from(navPeriodLocks).where(eq(navPeriodLocks.asOf, asOf));
+    const fields = {
+      status: "locked" as const,
+      lockedBy: s.user.id,
+      lockedAt,
+      unlockReason: null,
+      unlockedBy: null,
+      unlockedAt: null,
+      snapshotKey: snap.key,
+      snapshotSha256: snap.sha,
+      snapshotAt: lockedAt,
+    };
     if (existing) {
-      await tx
-        .update(navPeriodLocks)
-        .set({
-          status: "locked",
-          lockedBy: s.user.id,
-          lockedAt: new Date(),
-          unlockReason: null,
-          unlockedBy: null,
-          unlockedAt: null,
-        })
-        .where(eq(navPeriodLocks.id, existing.id));
+      await tx.update(navPeriodLocks).set(fields).where(eq(navPeriodLocks.id, existing.id));
     } else {
       await tx.insert(navPeriodLocks).values({
         orgId: s.orgId,
         asOf,
-        status: "locked",
-        lockedBy: s.user.id,
-        lockedAt: new Date(),
+        ...fields,
       });
     }
     return loadNavPeriod(tx, asOf);
   });
   return c.json({ period });
+});
+
+routes.get("/api/nav/snapshot", async (c) => {
+  const s = requireOrg(c);
+  const asOf = c.req.query("asOf");
+  if (!asOf) throw new HttpError(400, "invalid_as_of");
+  const pack = await withOrg(s.orgId, async (tx) => {
+    const [lock] = await tx.select().from(navPeriodLocks).where(eq(navPeriodLocks.asOf, asOf));
+    if (!lock?.snapshotKey) throw new HttpError(404, "snapshot_not_found");
+    const buf = await createObjectStore().get(lock.snapshotKey);
+    return JSON.parse(buf.toString("utf8")) as unknown;
+  });
+  return c.json({ snapshot: pack });
 });
 
 routes.post("/api/nav/unlock", async (c) => {
@@ -1403,6 +1494,26 @@ routes.post("/api/ask", async (c) => {
     ...decision.evidence.chunks.map((ch) => ch.excerpt),
   ].join("\n---\n");
 
+  const asked = refuseUnsourcedDigits("", context, body.question);
+  if (!asked.ok) {
+    const refused = {
+      answer: ASK_REFUSAL,
+      refused: true,
+      citations: cites,
+    };
+    await withOrg(s.orgId, (tx) =>
+      tx.insert(askQueries).values({
+        orgId: s.orgId,
+        question: body.question,
+        answer: refused.answer,
+        refused: true,
+        citations: cites,
+        createdBy: s.user.id,
+      }),
+    );
+    return c.json(refused);
+  }
+
   let answer = `From the book:\n${context.slice(0, 2000)}`;
   try {
     const llm = createLlmProvider();
@@ -1422,7 +1533,7 @@ routes.post("/api/ask", async (c) => {
     // Key missing: still return grounded extract, not an invention.
   }
 
-  const grounded = refuseUnsourcedDigits(answer, context);
+  const grounded = refuseUnsourcedDigits(answer, context, body.question);
   if (!grounded.ok) {
     const refused = {
       answer: ASK_REFUSAL,
@@ -1585,6 +1696,13 @@ routes.get("/api/settings", async (c) => {
       conns = await tx.select().from(connectors);
     }
     const policy = resolveFlagThresholds(parseFlagPolicyJson(settings?.flagPolicy));
+    const auditRows = await tx
+      .select()
+      .from(flagPolicyAudits)
+      .orderBy(desc(flagPolicyAudits.changedAt))
+      .limit(20);
+    const actorIds = [...new Set(auditRows.map((a) => a.changedBy))];
+    const users = actorIds.length ? await tx.select().from(user).where(inArray(user.id, actorIds)) : [];
     return {
       settings,
       connectors: conns.map((c) => ({ kind: c.kind, status: c.status })),
@@ -1593,7 +1711,22 @@ routes.get("/api/settings", async (c) => {
         label: f.label,
         defaultThreshold: f.defaultThreshold,
         threshold: policy[f.key],
+        min: FLAG_THRESHOLD_BOUNDS[f.key].min,
+        max: FLAG_THRESHOLD_BOUNDS[f.key].max,
+        unit: FLAG_THRESHOLD_BOUNDS[f.key].unit,
       })),
+      flagPolicyAudits: auditRows.map((a) => {
+        const who = users.find((u) => u.id === a.changedBy);
+        return {
+          id: a.id,
+          changedAt: a.changedAt,
+          changedBy: a.changedBy,
+          changedByName: who?.name ?? null,
+          changedByEmail: who?.email ?? null,
+          before: a.before,
+          after: a.after,
+        };
+      }),
     };
   });
   return c.json(data);
@@ -1603,14 +1736,25 @@ routes.post("/api/settings/flag-policy", async (c) => {
   const s = requireAdmin(c);
   const parsed = FlagPolicySchema.safeParse(await c.req.json());
   if (!parsed.success) throw new HttpError(400, "invalid_flag_policy");
-  const next = parseFlagPolicyJson(parsed.data.thresholds);
+  const checked = validateFlagPolicyThresholds(parsed.data.thresholds);
+  if (!checked.ok) {
+    return c.json({ error: "invalid_flag_policy", fields: checked.fields }, 400);
+  }
+  const next = checked.thresholds;
   const row = await withOrg(s.orgId, async (tx) => {
     const [existing] = await tx.select().from(orgSettings);
+    const before = (existing?.flagPolicy as Record<string, unknown> | undefined) ?? {};
     if (!existing) {
       await tx.insert(orgSettings).values({ orgId: s.orgId, flagPolicy: next });
     } else {
       await tx.update(orgSettings).set({ flagPolicy: next }).where(eq(orgSettings.orgId, s.orgId));
     }
+    await tx.insert(flagPolicyAudits).values({
+      orgId: s.orgId,
+      changedBy: s.user.id,
+      before,
+      after: next,
+    });
     const [settings] = await tx.select().from(orgSettings);
     return settings;
   });
@@ -1621,6 +1765,9 @@ routes.post("/api/settings/flag-policy", async (c) => {
       label: f.label,
       defaultThreshold: f.defaultThreshold,
       threshold: resolveFlagThresholds(next)[f.key],
+      min: FLAG_THRESHOLD_BOUNDS[f.key].min,
+      max: FLAG_THRESHOLD_BOUNDS[f.key].max,
+      unit: FLAG_THRESHOLD_BOUNDS[f.key].unit,
     })),
   });
 });

@@ -72,6 +72,12 @@ export function friendlyAuthError(raw: string): string {
   if (t.includes("period_locked")) {
     return "This as-of is locked. Partner or Org Admin must unlock it with a reason before marks can change.";
   }
+  if (t.includes("snapshot_not_found")) {
+    return "No official pack has been frozen for that as-of.";
+  }
+  if (t.includes("invalid_flag_policy")) {
+    return "A flag threshold is out of range. Check the bounds next to each input.";
+  }
   if (t.includes("rate_limited")) {
     return "Too many sign-in attempts. Wait a few minutes.";
   }

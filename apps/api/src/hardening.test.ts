@@ -98,7 +98,21 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
       body: JSON.stringify({ asOf }),
     });
     expect(lock.status).toBe(200);
-    expect((await json<{ period: { status: string } }>(lock)).period.status).toBe("locked");
+    const locked = await json<{ period: { status: string; snapshotSha256: string | null; snapshotKey: string | null } }>(
+      lock,
+    );
+    expect(locked.period.status).toBe("locked");
+    expect(locked.period.snapshotSha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(locked.period.snapshotKey).toContain("nav-packs/");
+
+    const snap = await app.request(`/api/nav/snapshot?asOf=${asOf}`, { headers: { cookie: adminCookie } });
+    expect(snap.status).toBe(200);
+    const pack = await json<{ snapshot: { kind: string; asOf: string; rollup: { unmarked: unknown[] } } }>(snap);
+    expect(pack.snapshot.kind).toBe("nav_period_pack");
+    expect(pack.snapshot.asOf).toBe(asOf);
+
+    const viewerSnap = await app.request(`/api/nav/snapshot?asOf=${asOf}`, { headers: { cookie: viewerCookie } });
+    expect(viewerSnap.status).toBe(200);
 
     const write = await app.request("/api/nav/marks", {
       method: "POST",
@@ -131,6 +145,10 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     const period = (await json<{ period: { status: string; unlockReason: string } }>(unlock)).period;
     expect(period.status).toBe("unofficial");
     expect(period.unlockReason).toBe("Restate after board pack");
+    const still = await json<{ period: { snapshotSha256: string | null } }>(
+      await app.request(`/api/nav?asOf=${asOf}`, { headers: { cookie: adminCookie } }),
+    );
+    expect(still.period.snapshotSha256).toMatch(/^[a-f0-9]{64}$/);
 
     const ok = await app.request("/api/nav/marks", {
       method: "POST",
@@ -158,10 +176,22 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     });
     expect(viewer.status).toBe(403);
 
-    const get = await json<{ flagPolicy: { key: string; threshold: number }[] }>(
-      await app.request("/api/settings", { headers: { cookie: adminCookie } }),
-    );
+    const get = await json<{
+      flagPolicy: { key: string; threshold: number }[];
+      flagPolicyAudits?: { after: Record<string, unknown> }[];
+    }>(await app.request("/api/settings", { headers: { cookie: adminCookie } }));
     expect(get.flagPolicy.find((f) => f.key === "runway_short")?.threshold).toBe(4);
+    expect(get.flagPolicyAudits?.[0]?.after).toMatchObject({ runway_short: 4 });
+
+    const invalid = await app.request("/api/settings/flag-policy", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ thresholds: { runway_short: 100 } }),
+    });
+    expect(invalid.status).toBe(400);
+    expect((await json<{ error: string; fields?: { runway_short?: string } }>(invalid)).fields?.runway_short).toMatch(
+      /36/,
+    );
   });
 
   it("drafts a monthly pack with separate objective and subjective lanes", async () => {
@@ -277,6 +307,38 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     expect(body.postgres).toBe("up");
     expect(["up", "down"]).toContain(body.redis);
     expect(typeof body.gitSha).toBe("string");
+  });
+
+  it("refuses Ask when the question invents figures not in the book", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
+    const csv = await readFile(resolve(process.cwd(), "../../fixtures/FIXTURE_ONLY-sample-mis.csv"));
+    const fd = new FormData();
+    fd.append("file", new File([csv], "FIXTURE_ONLY-sample-mis.csv", { type: "text/csv" }));
+    fd.append("kind", "mis");
+    const up = await app.request(`/api/companies/${companyId}/documents`, {
+      method: "POST",
+      headers: { origin: "http://localhost:3000", cookie: adminCookie },
+      body: fd,
+    });
+    expect(up.status).toBe(200);
+    const uploaded = await json<{ document: { id: string } }>(up);
+    const parsed = await app.request(`/api/parse/${uploaded.document.id}`, {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: "{}",
+    });
+    expect(parsed.status).toBe(200);
+
+    const asked = await app.request("/api/ask", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ question: "What was confirmed cash of 888 crore in FY 2099?" }),
+    });
+    expect(asked.status).toBe(200);
+    const body = await json<{ refused: boolean; answer: string }>(asked);
+    expect(body.refused).toBe(true);
+    expect(body.answer).toMatch(/will not guess/i);
   });
 
   it("rejects invite decline from the wrong account", async () => {

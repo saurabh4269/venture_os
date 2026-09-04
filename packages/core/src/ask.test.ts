@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASK_REFUSAL, citationsFrom, decideAsk, inventedNumbers } from "./ask.js";
+import { ASK_REFUSAL, citationsFrom, decideAsk, inventedNumbers, refuseUnsourcedDigits } from "./ask.js";
 
 describe("Ask refuse", () => {
   it("refuses when the corpus and book are empty", () => {
@@ -61,5 +61,15 @@ describe("Ask refuse", () => {
   it("flags numerals that do not appear in evidence", () => {
     expect(inventedNumbers("Cash is 99 crore", "cash 4.2 crore")).toEqual(["99"]);
     expect(inventedNumbers("Cash is 4.2 crore", "cash 4.2 crore")).toEqual([]);
+  });
+
+  it("refuses when the question invents figures even if a book extract is grounded", () => {
+    const gate = refuseUnsourcedDigits(
+      "From the book:\ncash 4.2 crore INR",
+      "cash 4.2 crore INR 2025-08-31",
+      "What was confirmed cash of 888 crore in FY 2099?",
+    );
+    expect(gate.ok).toBe(false);
+    if (!gate.ok) expect(gate.invented).toEqual(expect.arrayContaining(["888", "2099"]));
   });
 });

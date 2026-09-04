@@ -288,8 +288,27 @@ export const navPeriodLocks = pgTable(
     unlockReason: text("unlock_reason"),
     unlockedBy: text("unlocked_by").references(() => user.id),
     unlockedAt: timestamp("unlocked_at"),
+    snapshotKey: text("snapshot_key"),
+    snapshotSha256: text("snapshot_sha256"),
+    snapshotAt: timestamp("snapshot_at"),
   },
   (t) => [uniqueIndex("nav_period_locks_org_asof_uidx").on(t.orgId, t.asOf)],
+);
+
+/** Who changed firm flag thresholds. Missing ≠ 0; before/after are raw jsonb. */
+export const flagPolicyAudits = pgTable(
+  "flag_policy_audits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    changedBy: text("changed_by")
+      .notNull()
+      .references(() => user.id),
+    changedAt: timestamp("changed_at").notNull().defaultNow(),
+    before: jsonb("before").notNull(),
+    after: jsonb("after").notNull(),
+  },
+  (t) => [index("flag_policy_audits_org_idx").on(t.orgId, t.changedAt)],
 );
 
 export const askQueries = pgTable("ask_queries", {

@@ -74,6 +74,12 @@ jobs:
           done
           test -n "$ready" || { echo "web never became healthy"; exit 1; }
           PLAYWRIGHT_BASE_URL=http://localhost:3000 pnpm test:e2e
+      - name: Optional axe (does not fail the job)
+        continue-on-error: true
+        env:
+          PLAYWRIGHT_AXE: "1"
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+        run: pnpm --filter @venture-os/web exec playwright test --grep @axe
 
   image:
     runs-on: ubuntu-latest

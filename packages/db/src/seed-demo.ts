@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { loadEnv } from "@venture-os/config";
 import { toEur, toInrCrore } from "@venture-os/core";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, withOrgRaw, closeDb } from "./client.js";
 import {
   companies,
@@ -13,11 +13,14 @@ import {
   documents,
   funds,
   inboxItems,
+  member,
   metricValues,
   orgSettings,
   organization,
   positions,
+  session,
   sourceRefs,
+  user,
 } from "./schema.js";
 
 async function main() {
@@ -41,6 +44,29 @@ async function main() {
       slug: "fixture-capital-only",
       metadata: JSON.stringify({ fixtureOnly: true }),
     });
+  }
+
+  const email = env.SEED_DEMO_EMAIL || process.env.SEED_DEMO_EMAIL;
+  if (email) {
+    const [u] = await db.select().from(user).where(eq(user.email, email));
+    if (u) {
+      const already = await db
+        .select()
+        .from(member)
+        .where(and(eq(member.userId, u.id), eq(member.organizationId, orgId)));
+      if (!already.length) {
+        await db.insert(member).values({
+          id: randomUUID(),
+          organizationId: orgId,
+          userId: u.id,
+          role: "org_admin",
+        });
+      }
+      await db.update(session).set({ activeOrganizationId: orgId }).where(eq(session.userId, u.id));
+      console.log(`Attached ${email} as org_admin of Fixture Capital (FIXTURE_ONLY).`);
+    } else {
+      console.log(`No user for ${email} yet. Sign up first (pnpm demo:vc does this), then re-seed.`);
+    }
   }
 
   await withOrgRaw(orgId, async (tx) => {
@@ -68,6 +94,15 @@ async function main() {
         committedCapital: 100,
       })
       .returning();
+
+    const existingCo = await tx
+      .select()
+      .from(companies)
+      .where(eq(companies.name, "Fixture Apparel Co (FIXTURE_ONLY)"));
+    if (existingCo.length) {
+      console.log("FIXTURE_ONLY company already present — leaving the book as-is.");
+      return;
+    }
 
     const [co] = await tx
       .insert(companies)

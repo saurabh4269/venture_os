@@ -77,7 +77,7 @@ function SignupForm() {
       <p className="lede">
         {inviteId
           ? "Create your user, then accept the invite. You join as the role you were offered."
-          : "Create your user and organisation. You will be Org Admin."}
+          : "Create your user and organisation. You will be Org Admin. You start with an empty book — upload an MIS, or run pnpm demo:vc for labelled FIXTURE_ONLY rows."}
       </p>
       <form onSubmit={onSubmit} className="field" style={{ gap: 12, marginTop: 24 }}>
         <label className="field" htmlFor="name">

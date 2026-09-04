@@ -57,11 +57,12 @@ export default function ReportsPage() {
 
   return (
     <Shell>
-      <h1>Reports</h1>
+      <h1 data-testid="reports-ready">Reports</h1>
       <p className="lede">
         Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). The
         monthly pack keeps objective and subjective in separate columns. Exports are real files (session cookie).
-        Narrative cannot invent numbers. A worker writes the monthly XLSX to the object store when Redis is up.
+        Narrative cannot invent numbers. EUR columns refuse without a complete FX triple. A worker writes the monthly
+        XLSX to the object store when Redis is up.
       </p>
       {err && (
         <p className="sev-high" role="alert">

@@ -33,14 +33,14 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Cookie-auth `Fact` chips on Command/company/compare/NAV/flags (Pass 12); no bbox OCR |
 | 17 | Live dashboard | **mock** | **done** | Command reads the book; Needs-a-look list; 3-mo runway; 0 flags is 0 |
 | 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay `—` |
-| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + bridge + period lock/unlock with audit (Pass 23). Multi-approver / frozen pack later |
+| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + bridge + period lock + frozen official pack snapshot (Pass 23/37). Multi-approver / LP sign-off later |
 | 20 | Objective commentary from MIS | **missing** | **partial** | Separate lane; human + inbox confirm |
 | 21 | Subjective commentary from calls | **missing** | **partial** | Lane rejects MIS-only source; Granola still **not connected** |
 | 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Monthly pack lanes + worker artifact (Pass 25); curated one-pager; cookie-auth download |
 | 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; refuse without overlap; `refuseUnsourcedDigits` + golden harness (Pass 26) |
 | 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + evidence; firm `flag_policy` jsonb (Pass 24); mute/snooze; restatement-safe reads |
 | 25 | Cross-company compare | **mock** | **done** | Stage/sector peer filter; catalog labels; hide-empty; objective-lane only (Pass 21) |
-| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + timed script (Pass 28); Playwright smoke signup→confirm (Pass 33); connector IDs wait for OAuth |
+| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + timed script (Pass 28); Playwright smoke + rituals (Pass 33/35); `pnpm demo:vc` (Pass 40); connector IDs wait for OAuth |
 | 27 | Claude as reasoning layer (brief) | Demo uses **OpenAI** Luna | **done** | Pluggable `LlmProvider`; default OpenAI (D5) |
 | 28 | SOC2-ready audit / security | **missing** | **partial** | RLS + lock/policy isolation; invite mask + admin list; origin patterns; headers; secret fail-closed (Pass 30–32). Audit viewer / SSO later |
 | 29 | Billing / plans for other VCs | **missing** | **missing** | Out of scope this phase |
