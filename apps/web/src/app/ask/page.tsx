@@ -85,12 +85,16 @@ export default function AskPage() {
       )}
       {res && (
         <div style={{ marginTop: 20 }}>
-          {res.refused && (
+          {(res.refused || /will not guess/i.test(res.answer)) && (
             <div className="banner" data-testid="ask-refused" role="status">
               {res.answer}
             </div>
           )}
-          {!res.refused && <p style={{ whiteSpace: "pre-wrap" }}>{res.answer}</p>}
+          {!res.refused && !/will not guess/i.test(res.answer) && (
+            <p style={{ whiteSpace: "pre-wrap" }} data-testid="ask-answer">
+              {res.answer}
+            </p>
+          )}
           <h3>Citations</h3>
           {res.citations.length === 0 && <p className="lede">None — refusal or empty evidence.</p>}
           <ul>

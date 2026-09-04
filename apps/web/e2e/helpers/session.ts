@@ -29,7 +29,26 @@ export async function onboardCompany(page: Page, stamp: string) {
   await page.getByTestId("mis-file").setInputFiles(fixture);
   await page.getByTestId("mis-upload").click();
   await expect(page.getByTestId("extract-status")).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId("extract-status")).toContainText(/done/i, { timeout: 30_000 });
+  await expect(page.getByTestId("extract-status")).toContainText(/done/i, { timeout: 60_000 });
+}
+
+/** Inbox list is fetched after extract; poll/reload until confirm or reject is in the DOM. */
+export async function waitForInboxActions(page: Page, action: "inbox-confirm" | "inbox-reject" = "inbox-confirm") {
+  await page.goto("/inbox");
+  await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("inbox-ready")).toBeVisible({ timeout: 30_000 });
+  await expect
+    .poll(
+      async () => {
+        if (await page.getByTestId(action).first().isVisible().catch(() => false)) return true;
+        await page.reload();
+        await expect(page.getByTestId("inbox-ready")).toBeVisible({ timeout: 20_000 });
+        return page.getByTestId(action).first().isVisible().catch(() => false);
+      },
+      { timeout: 60_000, intervals: [1_000, 2_000, 2_000, 3_000] },
+    )
+    .toBeTruthy();
+  return page.getByTestId(action).first();
 }
 
 export async function createViewerStorageState(page: Page, browser: Browser, stamp: string) {

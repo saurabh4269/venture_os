@@ -107,3 +107,5 @@
 - Compose-attached Playwright.
 - Fact download event.
 - `SEED_DEMO` in CI (still forbidden).
+- Ask refuse e2e asks `What was confirmed cash of 888 crore in FY 2099?`. FTS may match cash/crore; `refuseUnsourcedDigits` now also scans the **question**, so invented 888 / 2099 refuse and `ask-refused` renders.
+- Inbox exposes `inbox-ready` after the list fetch and polls pending while empty. Smoke/rituals `waitForInboxActions` reloads until confirm/reject. Extract poll is 60s; CI Playwright stays serial (`workers: 1`).

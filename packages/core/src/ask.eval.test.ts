@@ -108,6 +108,18 @@ describe("Ask eval harness — refuse unsourced digits", () => {
     });
   }
 
+  it("refuses a question that names figures not in evidence", () => {
+    const gate = refuseUnsourcedDigits(
+      "From the book:\ncash 4.2 crore",
+      "cash 4.2 crore INR 2025-08-01–2025-08-31",
+      "What was confirmed cash of 888 crore in FY 2099?",
+    );
+    expect(gate.ok).toBe(false);
+    if (!gate.ok) {
+      expect(gate.invented).toEqual(expect.arrayContaining(["888", "2099"]));
+    }
+  });
+
   it("empty retrieval still refuses before any completion", () => {
     const d = decideAsk({ chunks: [], facts: [] }, tokenize("what is cash"));
     expect(d.ok).toBe(false);

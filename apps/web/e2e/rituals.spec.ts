@@ -1,15 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { onboardCompany, signupAdmin } from "./helpers/session";
+import { onboardCompany, signupAdmin, waitForInboxActions } from "./helpers/session";
 
 test.describe("@smoke rituals", () => {
   test("inbox reject, Flags, NAV lock control, Ask refuse", async ({ page }) => {
     const { stamp } = await signupAdmin(page);
     await onboardCompany(page, stamp);
 
-    await page.goto("/inbox");
-    await expect(page.getByTestId("shell-ready")).toBeVisible();
-    const reject = page.getByTestId("inbox-reject").first();
-    await expect(reject).toBeVisible({ timeout: 30_000 });
+    const reject = await waitForInboxActions(page, "inbox-reject");
     await reject.click();
     await page.getByTestId("inbox-tab-rejected").click();
     await expect(page.locator("table tbody tr").first()).toBeVisible({ timeout: 15_000 });
@@ -24,9 +21,10 @@ test.describe("@smoke rituals", () => {
 
     await page.goto("/ask");
     await expect(page.getByTestId("ask-ready")).toBeVisible();
-    await page.getByTestId("ask-question").fill("Does xyzzy-plugh-atlas-prime appear in the book?");
+    await page.getByTestId("ask-question").fill("What was confirmed cash of 888 crore in FY 2099?");
     await page.getByTestId("ask-submit").click();
     await expect(page.getByTestId("ask-refused")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("ask-refused")).toContainText(/will not guess/i);
 
     await page.goto("/reports");
     await expect(page.getByTestId("reports-ready")).toBeVisible();

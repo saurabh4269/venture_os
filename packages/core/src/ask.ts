@@ -87,16 +87,22 @@ export function evidenceText(evidence: AskEvidence): string {
 }
 
 /**
- * Any numeral in the answer that is not in evidence is an invention.
+ * Any numeral in the answer (or question) that is not in evidence is an invention.
  * Refuse — do not strip digits and pretend the rest is grounded.
+ * Passing the question catches “cash of 888 in FY 2099” against a 4.2 excerpt.
  */
 export function refuseUnsourcedDigits(
   answer: string,
   evidence: AskEvidence | string,
+  question?: string,
 ): { ok: true; answer: string } | { ok: false; invented: string[] } {
   const text = typeof evidence === "string" ? evidence : evidenceText(evidence);
-  const invented = inventedNumbers(answer, text);
-  if (invented.length) return { ok: false, invented };
+  const invented = [
+    ...inventedNumbers(answer, text),
+    ...(question ? inventedNumbers(question, text) : []),
+  ];
+  const unique = [...new Set(invented)];
+  if (unique.length) return { ok: false, invented: unique };
   return { ok: true, answer };
 }
 

@@ -309,6 +309,38 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     expect(typeof body.gitSha).toBe("string");
   });
 
+  it("refuses Ask when the question invents figures not in the book", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
+    const csv = await readFile(resolve(process.cwd(), "../../fixtures/FIXTURE_ONLY-sample-mis.csv"));
+    const fd = new FormData();
+    fd.append("file", new File([csv], "FIXTURE_ONLY-sample-mis.csv", { type: "text/csv" }));
+    fd.append("kind", "mis");
+    const up = await app.request(`/api/companies/${companyId}/documents`, {
+      method: "POST",
+      headers: { origin: "http://localhost:3000", cookie: adminCookie },
+      body: fd,
+    });
+    expect(up.status).toBe(200);
+    const uploaded = await json<{ document: { id: string } }>(up);
+    const parsed = await app.request(`/api/parse/${uploaded.document.id}`, {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: "{}",
+    });
+    expect(parsed.status).toBe(200);
+
+    const asked = await app.request("/api/ask", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ question: "What was confirmed cash of 888 crore in FY 2099?" }),
+    });
+    expect(asked.status).toBe(200);
+    const body = await json<{ refused: boolean; answer: string }>(asked);
+    expect(body.refused).toBe(true);
+    expect(body.answer).toMatch(/will not guess/i);
+  });
+
   it("rejects invite decline from the wrong account", async () => {
     const created = await json<{ invitation: { id: string } }>(
       await app.request("/api/invitations", {

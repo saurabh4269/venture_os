@@ -5,7 +5,7 @@
 
 ## Closed in this batch
 
-- **35 Playwright hardening** — viewer `storageState`; Flags / NAV / Ask refuse / inbox reject; axe optional in CI (`PLAYWRIGHT_AXE=1`, `continue-on-error`).
+- **35 Playwright hardening** — viewer `storageState`; Flags / NAV / Ask refuse (unsourced question digits) / inbox reject + `inbox-ready` poll; axe optional in CI (`PLAYWRIGHT_AXE=1`, `continue-on-error`).
 - **36 Redis rate-limit** — sliding-window Lua on `REDIS_URL`; memory fallback if Redis is down; session notes (7d / 24h refresh, no SSO).
 - **37 NAV pack snapshot** — lock writes a deterministic JSON pack to the object store; unlock keeps the last official sha; GET `/api/nav/snapshot`.
 - **38 Flag policy UX** — threshold bounds + field errors; `flag_policy_audits` + Settings table. Per-company override still deferred.

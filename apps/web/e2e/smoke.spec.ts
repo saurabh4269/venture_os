@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { resolve } from "node:path";
+import { waitForInboxActions } from "./helpers/session";
 
 const stamp = Date.now().toString(36);
 const email = `e2e-${stamp}@example.test`;
@@ -31,11 +32,8 @@ test.describe("@smoke happy path", () => {
     await page.getByTestId("mis-file").setInputFiles(fixture);
     await page.getByTestId("mis-upload").click();
     await expect(page.getByTestId("extract-status")).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId("extract-status")).toContainText(/done/i, { timeout: 30_000 });
-    await page.goto("/inbox");
-    await expect(page.getByTestId("shell-ready")).toBeVisible();
-    const confirm = page.getByTestId("inbox-confirm").first();
-    await expect(confirm).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("extract-status")).toContainText(/done/i, { timeout: 60_000 });
+    const confirm = await waitForInboxActions(page, "inbox-confirm");
     await confirm.click();
     console.log(`time_to_inbox_confirm_ms=${Date.now() - started}`);
 

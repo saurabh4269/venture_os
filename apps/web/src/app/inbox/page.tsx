@@ -26,7 +26,7 @@ type Item = {
 const STATUSES = ["pending", "confirmed", "edited", "rejected"] as const;
 
 export default function InboxPage() {
-  const { canWrite } = useBookSession();
+  const { canWrite, ready: sessionReady } = useBookSession();
   const [items, setItems] = useState<Item[]>([]);
   const [periodEdits, setPeriodEdits] = useState<Record<string, { start: string; end: string }>>({});
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("pending");
@@ -35,15 +35,33 @@ export default function InboxPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [listReady, setListReady] = useState(false);
 
   function load(next = status) {
-    api<{ items: Item[] }>(`/api/inbox?status=${next}`)
-      .then((r) => setItems(r.items))
-      .catch((e: Error) => setErr(e.message));
+    return api<{ items: Item[] }>(`/api/inbox?status=${next}`)
+      .then((r) => {
+        setItems(r.items);
+        setErr("");
+        setListReady(true);
+      })
+      .catch((e: Error) => {
+        setErr(e.message);
+        setListReady(true);
+      });
   }
   useEffect(() => {
-    load();
-  }, [status]);
+    if (!sessionReady) return;
+    setListReady(false);
+    void load();
+  }, [status, sessionReady]);
+
+  useEffect(() => {
+    if (!sessionReady || status !== "pending" || items.length > 0) return;
+    const id = window.setInterval(() => {
+      void load();
+    }, 1500);
+    return () => window.clearInterval(id);
+  }, [status, sessionReady, items.length]);
 
   async function confirm(item: Item) {
     const unit = unitEdits[item.id] || item.proposed.unit;
@@ -118,8 +136,13 @@ export default function InboxPage() {
           {err}
         </p>
       )}
+      {listReady && (
+        <p className="lede" data-testid="inbox-ready" data-inbox-count={items.length} data-inbox-status={status}>
+          {items.length} {status} {items.length === 1 ? "row" : "rows"} — confirm before anything posts to the book.
+        </p>
+      )}
       {items.length === 0 ? (
-        <div className="empty">
+        <div className="empty" data-testid="inbox-empty">
           {status === "pending"
             ? "Queue is clear. Upload a pack from Companies if you expect extracts."
             : `No ${status} rows.`}

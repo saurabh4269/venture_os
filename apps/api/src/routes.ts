@@ -1494,6 +1494,26 @@ routes.post("/api/ask", async (c) => {
     ...decision.evidence.chunks.map((ch) => ch.excerpt),
   ].join("\n---\n");
 
+  const asked = refuseUnsourcedDigits("", context, body.question);
+  if (!asked.ok) {
+    const refused = {
+      answer: ASK_REFUSAL,
+      refused: true,
+      citations: cites,
+    };
+    await withOrg(s.orgId, (tx) =>
+      tx.insert(askQueries).values({
+        orgId: s.orgId,
+        question: body.question,
+        answer: refused.answer,
+        refused: true,
+        citations: cites,
+        createdBy: s.user.id,
+      }),
+    );
+    return c.json(refused);
+  }
+
   let answer = `From the book:\n${context.slice(0, 2000)}`;
   try {
     const llm = createLlmProvider();
@@ -1513,7 +1533,7 @@ routes.post("/api/ask", async (c) => {
     // Key missing: still return grounded extract, not an invention.
   }
 
-  const grounded = refuseUnsourcedDigits(answer, context);
+  const grounded = refuseUnsourcedDigits(answer, context, body.question);
   if (!grounded.ok) {
     const refused = {
       answer: ASK_REFUSAL,
