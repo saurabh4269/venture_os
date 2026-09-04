@@ -105,3 +105,52 @@ export function buildOnePagerMetrics(rows: BookMetric[]): ReportMetric[] {
 export function toReportMetric(m: BookMetric): ReportMetric {
   return fromBook(m.metricKey, m);
 }
+
+/** Monthly pack metric order. Objective numbers only. */
+export const MONTHLY_PACK_METRIC_KEYS = [
+  "net_revenue",
+  "gross_margin_pct",
+  "cash",
+  "burn",
+  "runway_months",
+] as const;
+
+export type MonthlyPackRow = {
+  companyId: string;
+  name: string;
+  stage: string | null;
+  periodEnd: string;
+  metrics: ReportMetric[];
+  objective: string[];
+  subjective: string[];
+};
+
+/**
+ * One row per company for the monthly sheet.
+ * Objective and subjective stay in separate arrays — never blended.
+ * Missing metrics stay null / —.
+ */
+export function buildMonthlyPackRow(args: {
+  companyId: string;
+  name: string;
+  stage?: string | null;
+  periodEnd?: string;
+  metrics: BookMetric[];
+  objective: string[];
+  subjective: string[];
+}): MonthlyPackRow {
+  const curated = buildOnePagerMetrics(args.metrics);
+  const periodEnd =
+    args.periodEnd ||
+    curated.find((m) => m.periodEnd)?.periodEnd ||
+    "";
+  return {
+    companyId: args.companyId,
+    name: args.name,
+    stage: args.stage ?? null,
+    periodEnd,
+    metrics: curated,
+    objective: args.objective,
+    subjective: args.subjective,
+  };
+}

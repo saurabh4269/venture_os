@@ -125,6 +125,23 @@ export function navBridge(currentAsOf: string, current: PositionMark[], prior: P
  * Per-position IRR only when an investment date and a dated mark exist.
  * Never invents investedAt. Cost is an outflow; mark is the residual inflow.
  */
+export type NavPeriodStatus = "unofficial" | "locked";
+
+export function isNavPeriodLocked(status: string | null | undefined): boolean {
+  return status === "locked";
+}
+
+/**
+ * Write role cannot silently change a locked as-of. Unlock first (with reason).
+ * Missing status is unofficial — we do not invent a lock.
+ */
+export function assertMarkWritable(periodStatus: string | null | undefined):
+  | { ok: true }
+  | { ok: false; code: "period_locked" } {
+  if (isNavPeriodLocked(periodStatus)) return { ok: false, code: "period_locked" };
+  return { ok: true };
+}
+
 export function datedPositionIrr(args: {
   investedAt?: string | null;
   cost: Num;

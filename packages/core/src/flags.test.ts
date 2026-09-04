@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectAll,
   detectBurnUp,
   detectCashUnreported,
   detectGmCompression,
@@ -8,6 +9,8 @@ import {
   detectPlanVariance,
   detectRunwayShort,
   detectSpendWithoutRevenue,
+  parseFlagPolicyJson,
+  resolveFlagThresholds,
 } from "./flags.js";
 
 describe("flag detectors", () => {
@@ -77,5 +80,39 @@ describe("flag detectors", () => {
     expect(detectSpendWithoutRevenue(3, 2, null, 10)).toBeNull();
     expect(detectSpendWithoutRevenue(3, 2, 12, 10)).toBeNull();
     expect(detectSpendWithoutRevenue(3, 2, 10, 10)?.flagKey).toBe("spend_without_revenue");
+  });
+
+  it("org policy overrides catalog defaults; unknown keys and negatives are ignored", () => {
+    const t = resolveFlagThresholds({ runway_short: 3, mis_late: -1, burn_up: 0.5 });
+    expect(t.runway_short).toBe(3);
+    expect(t.mis_late).toBe(45);
+    expect(t.burn_up).toBe(0.5);
+    expect(parseFlagPolicyJson({ runway_short: 4, ghost: 9, burn_up: "nope" })).toEqual({ runway_short: 4 });
+    expect(parseFlagPolicyJson(null)).toEqual({});
+  });
+
+  it("detectAll uses org runway threshold instead of the catalog 6", () => {
+    const base = {
+      cash: 10,
+      burn: 2,
+      priorBurn: null,
+      gm: null,
+      priorGm: null,
+      revenue: null,
+      priorRevenue: null,
+      planRevenue: null,
+      headcount: null,
+      priorHeadcount: null,
+      lastMisPeriodEnd: "2026-08-31",
+      lastMarkAsOf: "2026-06-30",
+      priorCash: 10,
+      asOf: new Date("2026-09-04T00:00:00Z"),
+    };
+    const catalog = detectAll(base);
+    expect(catalog.find((h) => h.flagKey === "runway_short")?.evidence.threshold).toBe(6);
+    const loose = detectAll({ ...base, policy: { runway_short: 3 } });
+    expect(loose.some((h) => h.flagKey === "runway_short")).toBe(false);
+    const tighter = detectAll({ ...base, policy: { runway_short: 12 } });
+    expect(tighter.find((h) => h.flagKey === "runway_short")?.evidence.threshold).toBe(12);
   });
 });

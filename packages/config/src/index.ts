@@ -71,6 +71,9 @@ export const DISPLAY_CURRENCY = "EUR";
 export const WRITE_ROLES: Role[] = ["org_admin", "partner", "analyst"];
 export const ADMIN_ROLES: Role[] = ["org_admin"];
 export const CONFIRM_ROLES: Role[] = ["org_admin", "partner", "analyst"];
+/** Partner or Org Admin may lock / unlock a NAV as-of. Analyst may not. */
+export const LOCK_ROLES: Role[] = ["org_admin", "partner"];
+export const INVITE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 /** Better Auth historically used owner/admin; treat as org_admin aliases. */
 const ROLE_ALIASES: Record<string, Role> = {
@@ -102,6 +105,18 @@ export function isAdminRole(role: string | null | undefined): boolean {
 export function isConfirmRole(role: string | null | undefined): boolean {
   const r = canonicalizeRole(role);
   return r !== null && CONFIRM_ROLES.includes(r);
+}
+
+export function isLockRole(role: string | null | undefined): boolean {
+  const r = canonicalizeRole(role);
+  return r !== null && LOCK_ROLES.includes(r);
+}
+
+export function invitationExpired(expiresAt: Date | string | null | undefined, now = new Date()): boolean {
+  if (!expiresAt) return false;
+  const t = expiresAt instanceof Date ? expiresAt.getTime() : new Date(expiresAt).getTime();
+  if (Number.isNaN(t)) return false;
+  return t < now.getTime();
 }
 
 export function roleLabel(role: string | null | undefined): string {

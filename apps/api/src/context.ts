@@ -1,5 +1,5 @@
 import type { Context, Next } from "hono";
-import { isAdminRole, isConfirmRole, isWriteRole } from "@venture-os/config";
+import { isAdminRole, isConfirmRole, isLockRole, isWriteRole } from "@venture-os/config";
 import { ensureOrgDefaults, getDb, member } from "@venture-os/db";
 import { eq } from "drizzle-orm";
 import { auth } from "./auth.js";
@@ -73,6 +73,12 @@ export function requireWrite(c: Context) {
 export function requireAdmin(c: Context) {
   const s = requireOrg(c);
   if (!isAdminRole(s.role)) throw new HttpError(403, "org_admin_required");
+  return s;
+}
+
+export function requireLock(c: Context) {
+  const s = requireOrg(c);
+  if (!isLockRole(s.role)) throw new HttpError(403, "partner_or_admin_required");
   return s;
 }
 

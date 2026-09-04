@@ -104,9 +104,9 @@ CI (`.github/workflows/ci.yml`) runs the same against a Postgres service, includ
 
 ## What is real vs stubbed
 
-**Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog detectors), NAV rollup + period-over-period bridge, Compare, Ask (FTS + refuse), Reports + PDF/PPTX/XLSX downloads, onboarding wizard, RLS, Vitest.
+**Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog + firm policy), NAV rollup + period-over-period bridge + as-of lock, Compare, Ask (FTS + refuse + digit harness), Reports + monthly pack + PDF/PPTX/XLSX, onboarding wizard, RLS, Vitest.
 
-**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV approval workflow, LP/ILPA room, billing, perfect OCR, domain auto-join.
+**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV multi-approver, LP/ILPA room, billing, perfect OCR, domain auto-join, SMTP.
 
 ---
 
@@ -124,3 +124,25 @@ docs/             official numbered pack (do not fork a second tree)
 ```
 
 Early live hosting notes: [`docs/cost-hosting.md`](docs/cost-hosting.md). Deploy stubs: `apps/web/vercel.json`, `fly.toml`, `render.yaml`.
+
+---
+
+## Free-tier preview (Vercel + Neon + Upstash + Fly/Render)
+
+Names only — copy from [`.env.example`](.env.example). **Do not invent connector secrets** (`AFFINITY_*`, Graph folder IDs, `lastSyncAt`). Do not commit `.env`.
+
+| Where | Role | Env names you actually set |
+| --- | --- | --- |
+| **Vercel** (`apps/web`) | Next.js desktop | `NEXT_PUBLIC_API_URL` (public API origin), `NEXT_PUBLIC_WEB_URL` (this Vercel URL) |
+| **Neon** | Postgres | `MIGRATE_DATABASE_URL` (owner — migrate + GRANT), `DATABASE_URL` (role `venture_os_app`, **no BYPASSRLS**) |
+| **Upstash** | Redis / BullMQ | `REDIS_URL` |
+| **Fly.io or Render** | `apps/api` + `apps/worker` | `API_URL`, `API_PORT=4000`, `WEB_URL` (Vercel origin), `BETTER_AUTH_URL` (same as `API_URL`), `BETTER_AUTH_SECRET` (32+ random), `DATABASE_URL`, `REDIS_URL`, `S3_*` |
+| **R2 / MinIO / fs** | Objects | `S3_ENDPOINT` (or `fs` for local), `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_FORCE_PATH_STYLE` |
+| **OpenAI** (optional) | Ask rewrite | `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-4o-mini`, `LLM_PROVIDER=openai`. Empty key: Ask still searches and **refuses**. |
+| **Never on a client URL** | Fixtures | `SEED_DEMO=0`. `SEED_DEMO_EMAIL` / `SEED_DEMO_PASSWORD` are local only. |
+
+Also set `NODE_ENV=production` on live processes so Better Auth cookies are `Secure` + `HttpOnly` + `SameSite=Lax`.
+
+**Shape:** web on Vercel; api HTTP on Fly/Render; worker as a **second** process (do not run parse/flags/report jobs on Vercel). Migrate once from the api build (`pnpm db:migrate` / Render `buildCommand`). Point `WEB_URL` at the Vercel origin or CORS and the origin allow-list will 403.
+
+15-minute upload path: [`docs/improvements/onboarding-15min.md`](docs/improvements/onboarding-15min.md).

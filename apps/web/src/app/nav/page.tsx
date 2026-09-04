@@ -77,15 +77,24 @@ function pctIrr(n: number | null | undefined) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+type Period = {
+  status: "unofficial" | "locked";
+  lockedBy?: string | null;
+  lockedAt?: string | null;
+  unlockReason?: string | null;
+};
+
 export default function NavPage() {
-  const { canWrite } = useBookSession();
-  const [data, setData] = useState<Nav | null>(null);
+  const { canWrite, canLock } = useBookSession();
+  const [data, setData] = useState<(Nav & { period?: Period }) | null>(null);
   const [asOf, setAsOf] = useState(lastCalendarQuarterEnd());
   const [priorAsOf, setPriorAsOf] = useState(defaultPriorAsOf(lastCalendarQuarterEnd()));
   const [fundId, setFundId] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [clearMark, setClearMark] = useState(false);
   const [err, setErr] = useState("");
+  const [unlockReason, setUnlockReason] = useState("");
+  const [lockBusy, setLockBusy] = useState(false);
 
   const qs = useMemo(() => {
     const p = new URLSearchParams({ asOf, priorAsOf });
@@ -136,7 +145,7 @@ export default function NavPage() {
         Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
         rollup is complete. IRR appears only when every sourced mark has an <code>investedAt</code> — we never invent
         an investment date. The bridge is period-over-period from booked marks. Dual EUR only with a complete FX
-        triple. Approval / period lock is later.
+        triple. A locked as-of cannot be rewritten until Partner or Org Admin unlocks it with a reason.
       </p>
       <div className="row" style={{ flexWrap: "wrap" }}>
         <label className="field" style={{ maxWidth: 200 }}>
@@ -159,11 +168,79 @@ export default function NavPage() {
           </select>
         </label>
       </div>
+      {data?.period && (
+        <p className="lede" role="status">
+          As-of {asOf} is{" "}
+          <strong>{data.period.status === "locked" ? "locked (official)" : "unofficial"}</strong>
+          {data.period.unlockReason ? ` · last unlock: ${data.period.unlockReason}` : ""}.
+        </p>
+      )}
+      {canLock && (
+        <div className="row" style={{ marginBottom: 12 }}>
+          {data?.period?.status !== "locked" ? (
+            <button
+              type="button"
+              className="btn sm"
+              disabled={lockBusy}
+              onClick={async () => {
+                setLockBusy(true);
+                setErr("");
+                try {
+                  await api("/api/nav/lock", { method: "POST", body: JSON.stringify({ asOf }) });
+                  load();
+                } catch (e) {
+                  setErr(e instanceof Error ? e.message : "Lock failed");
+                } finally {
+                  setLockBusy(false);
+                }
+              }}
+            >
+              {lockBusy ? "Locking…" : "Lock this as-of"}
+            </button>
+          ) : (
+            <>
+              <label className="field" style={{ maxWidth: 320 }}>
+                Unlock reason
+                <input
+                  value={unlockReason}
+                  onChange={(e) => setUnlockReason(e.target.value)}
+                  placeholder="Why reopen this quarter?"
+                  required
+                />
+              </label>
+              <button
+                type="button"
+                className="btn ghost sm"
+                disabled={lockBusy || unlockReason.trim().length < 3}
+                onClick={async () => {
+                  setLockBusy(true);
+                  setErr("");
+                  try {
+                    await api("/api/nav/unlock", {
+                      method: "POST",
+                      body: JSON.stringify({ asOf, reason: unlockReason }),
+                    });
+                    setUnlockReason("");
+                    load();
+                  } catch (e) {
+                    setErr(e instanceof Error ? e.message : "Unlock failed");
+                  } finally {
+                    setLockBusy(false);
+                  }
+                }}
+              >
+                Unlock
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
+      {!data && !err && <p className="lede">Loading marks…</p>}
       {data && data.positions.length === 0 && (
         <div className="empty">
           No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
@@ -291,7 +368,10 @@ export default function NavPage() {
               ))}
             </tbody>
           </table>
-          {canWrite && (
+          {canWrite && data.period?.status === "locked" && (
+            <p className="lede">This as-of is locked. Unlock with a reason before changing marks.</p>
+          )}
+          {canWrite && data.period?.status !== "locked" && (
             <form onSubmit={addMark} className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
               <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required>
                 <option value="">Position</option>

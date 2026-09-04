@@ -25,6 +25,11 @@ export function isAdminRole(role: string | null | undefined): boolean {
   return canonicalizeRole(role) === "org_admin";
 }
 
+export function isLockRole(role: string | null | undefined): boolean {
+  const r = canonicalizeRole(role);
+  return r === "org_admin" || r === "partner";
+}
+
 export function roleLabel(role: string | null | undefined): string {
   const r = canonicalizeRole(role);
   if (r) return ROLE_LABEL[r];
@@ -58,8 +63,17 @@ export function friendlyAuthError(raw: string): string {
   if (t.includes("invitation_email_mismatch")) {
     return "Sign in with the email this invite was sent to.";
   }
+  if (t.includes("invitation_expired")) {
+    return "This invite has expired. Ask Org Admin for a new copy-link.";
+  }
   if (t.includes("invitation_not_pending") || t.includes("invitation_not_found")) {
     return "This invite is no longer valid.";
+  }
+  if (t.includes("period_locked")) {
+    return "This as-of is locked. Partner or Org Admin must unlock it with a reason before marks can change.";
+  }
+  if (t.includes("rate_limited")) {
+    return "Too many sign-in attempts. Wait a few minutes.";
   }
   if (t.includes("select_or_create_an_org")) {
     return "Create or join an organisation to open the book.";

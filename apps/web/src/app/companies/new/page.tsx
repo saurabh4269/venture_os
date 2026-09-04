@@ -21,6 +21,7 @@ export default function NewCompanyPage() {
   const [parseStatus, setParseStatus] = useState("");
   const [funds, setFunds] = useState<{ id: string; name: string }[]>([]);
   const [fundId, setFundId] = useState("");
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     api<{ funds: { id: string; name: string }[] }>("/api/funds")
@@ -30,21 +31,29 @@ export default function NewCompanyPage() {
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    const res = await api<{ company: { id: string } }>("/api/companies", {
-      method: "POST",
-      body: JSON.stringify({
-        name,
-        sector,
-        stage,
-        country,
-        fyStartMonth: fy,
-        unitHint,
-        currencyHint: "INR",
-        fundId: fundId || undefined,
-      }),
-    });
-    setCompanyId(res.company.id);
-    setStep(2);
+    setErr("");
+    setBusy(true);
+    try {
+      const res = await api<{ company: { id: string } }>("/api/companies", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          sector,
+          stage,
+          country,
+          fyStartMonth: fy,
+          unitHint,
+          currencyHint: "INR",
+          fundId: fundId || undefined,
+        }),
+      });
+      setCompanyId(res.company.id);
+      setStep(2);
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "Could not create company");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function upload(e: React.FormEvent<HTMLFormElement>) {
@@ -99,7 +108,16 @@ export default function NewCompanyPage() {
   return (
     <Shell>
       <h1>Onboard a company</h1>
-      <p className="lede">Fifteen-minute path: profile → first file → inbox. Nothing auto-posts to the book.</p>
+      <p className="lede">
+        Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Happy-path script:{" "}
+        <code>docs/improvements/onboarding-15min.md</code>. Sample MIS:{" "}
+        <code>fixtures/FIXTURE_ONLY-sample-mis.csv</code>.
+      </p>
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
       <ol style={{ color: "var(--muted)" }}>
         <li style={{ fontWeight: step === 1 ? 600 : 400 }}>Profile</li>
         <li style={{ fontWeight: step === 2 ? 600 : 400 }}>Vault (upload or OneDrive stub)</li>
@@ -148,8 +166,8 @@ export default function NewCompanyPage() {
             </select>
           </label>
           <div>
-            <button className="btn" type="submit">
-              Create company
+            <button className="btn" type="submit" disabled={busy}>
+              {busy ? "Creating…" : "Create company"}
             </button>
           </div>
         </form>
@@ -160,7 +178,7 @@ export default function NewCompanyPage() {
           <p className="lede">OneDrive folder connect is not connected. Upload the first MIS / board pack.</p>
           <label className="field">
             First file (MIS / board pack)
-            <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First file" />
+            <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" />
           </label>
           <div className="row" style={{ marginTop: 12 }}>
             <button className="btn" type="submit" disabled={busy}>

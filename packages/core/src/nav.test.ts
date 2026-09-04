@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { datedPositionIrr, navBridge, rollupNav } from "./nav.js";
+import { assertMarkWritable, datedPositionIrr, isNavPeriodLocked, navBridge, rollupNav } from "./nav.js";
 
 describe("NAV rollup", () => {
   it("keeps MOIC blank when a position is unmarked", () => {
@@ -81,5 +81,20 @@ describe("datedPositionIrr", () => {
     expect(r).not.toBeNull();
     expect(r!).toBeGreaterThan(0.3);
     expect(r!).toBeLessThan(0.5);
+  });
+});
+
+describe("NAV period lock", () => {
+  it("treats missing status as unofficial — we do not invent a lock", () => {
+    expect(isNavPeriodLocked(null)).toBe(false);
+    expect(isNavPeriodLocked("unofficial")).toBe(false);
+    expect(assertMarkWritable(null).ok).toBe(true);
+  });
+
+  it("blocks a write on a locked as-of", () => {
+    expect(isNavPeriodLocked("locked")).toBe(true);
+    const gate = assertMarkWritable("locked");
+    expect(gate.ok).toBe(false);
+    if (!gate.ok) expect(gate.code).toBe("period_locked");
   });
 });

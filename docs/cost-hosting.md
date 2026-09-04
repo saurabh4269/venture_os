@@ -24,7 +24,8 @@ Intended for a closed V3 design-partner URL, not production scale.
 
 **Band:** $0–50 / month if Ask is used lightly. OpenAI is the first bill that moves.
 
-Deploy files: `apps/web/vercel.json`, `fly.toml`, `render.yaml`.
+Deploy files: `apps/web/vercel.json`, `fly.toml`, `render.yaml`.  
+Env names (no secrets): README “Free-tier preview” — only keys from `.env.example`.
 
 ## 3. Azure later (when the firm wants it)
 

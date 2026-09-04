@@ -5,10 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { api, downloadAuthed } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
-import { isAdminRole, isWriteRole, roleLabel } from "@/lib/roles";
+import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
 
-type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean };
-const BookSessionContext = createContext<BookSession>({ me: null, canWrite: false, isAdmin: false });
+type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean };
+const BookSessionContext = createContext<BookSession>({
+  me: null,
+  canWrite: false,
+  isAdmin: false,
+  canLock: false,
+});
 
 /** Safe above or below <Shell>: pages mount as the parent, so we also read /api/me. */
 export function useBookSession(): BookSession {
@@ -24,20 +29,25 @@ export function useBookSession(): BookSession {
       .catch(() => setMe(null));
   }, [ctx.me]);
   const role = ctx.me?.role ?? me?.role ?? null;
-  return { me: ctx.me ?? me, canWrite: isWriteRole(role), isAdmin: isAdminRole(role) };
+  return {
+    me: ctx.me ?? me,
+    canWrite: isWriteRole(role),
+    isAdmin: isAdminRole(role),
+    canLock: isLockRole(role),
+  };
 }
 
 const NAV = [
-  { href: "/command", label: "Command" },
-  { href: "/companies", label: "Companies" },
-  { href: "/inbox", label: "Inbox" },
-  { href: "/flags", label: "Flags" },
-  { href: "/nav", label: "NAV" },
-  { href: "/compare", label: "Compare" },
-  { href: "/ask", label: "Ask" },
-  { href: "/reports", label: "Reports" },
-  { href: "/vault", label: "Vault" },
-  { href: "/settings", label: "Settings" },
+  { href: "/command", label: "Command", hint: "Fund pulse" },
+  { href: "/companies", label: "Companies", hint: "Names on the book" },
+  { href: "/inbox", label: "Inbox", hint: "Confirm before it posts" },
+  { href: "/flags", label: "Flags", hint: "Catalog risks" },
+  { href: "/nav", label: "NAV", hint: "Marks and lock" },
+  { href: "/compare", label: "Compare", hint: "Peer metrics" },
+  { href: "/ask", label: "Ask", hint: "Cite or refuse" },
+  { href: "/reports", label: "Reports", hint: "Packs from the book" },
+  { href: "/vault", label: "Vault", hint: "Source files" },
+  { href: "/settings", label: "Settings", hint: "Firm, people, policy" },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -104,6 +114,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app">
+      <a href="#main" className="skip-link">
+        Skip to book
+      </a>
       <aside className="rail">
         <div className="brand">
           Venture OS
@@ -112,19 +125,37 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <nav className="nav" aria-label="Primary">
           <div className="sec">Morning</div>
           {NAV.slice(0, 3).map((n) => (
-            <Link key={n.href} href={n.href} className={path.startsWith(n.href) ? "active" : ""}>
+            <Link
+              key={n.href}
+              href={n.href}
+              title={n.hint}
+              className={path.startsWith(n.href) ? "active" : ""}
+              aria-current={path.startsWith(n.href) ? "page" : undefined}
+            >
               {n.label}
             </Link>
           ))}
-          <div className="sec">Book</div>
+          <div className="sec">Rituals</div>
           {NAV.slice(3, 8).map((n) => (
-            <Link key={n.href} href={n.href} className={path.startsWith(n.href) ? "active" : ""}>
+            <Link
+              key={n.href}
+              href={n.href}
+              title={n.hint}
+              className={path.startsWith(n.href) ? "active" : ""}
+              aria-current={path.startsWith(n.href) ? "page" : undefined}
+            >
               {n.label}
             </Link>
           ))}
           <div className="sec">Firm</div>
           {NAV.slice(8).map((n) => (
-            <Link key={n.href} href={n.href} className={path.startsWith(n.href) ? "active" : ""}>
+            <Link
+              key={n.href}
+              href={n.href}
+              title={n.hint}
+              className={path.startsWith(n.href) ? "active" : ""}
+              aria-current={path.startsWith(n.href) ? "page" : undefined}
+            >
               {n.label}
             </Link>
           ))}
@@ -137,7 +168,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </aside>
-      <div className="main">
+      <div className="main" id="main">
         {fixture && (
           <div className="banner" role="status">
             FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
@@ -164,7 +195,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <BookSessionContext.Provider
-          value={{ me, canWrite: isWriteRole(me?.role), isAdmin: isAdminRole(me?.role) }}
+          value={{
+            me,
+            canWrite: isWriteRole(me?.role),
+            isAdmin: isAdminRole(me?.role),
+            canLock: isLockRole(me?.role),
+          }}
         >
           {children}
         </BookSessionContext.Provider>

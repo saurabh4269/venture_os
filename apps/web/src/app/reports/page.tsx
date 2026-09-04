@@ -9,6 +9,7 @@ type Report = { id: string; title: string; kind: string; createdAt: string };
 const KIND_LABEL: Record<string, string> = {
   one_pager: "One-pager",
   portfolio: "Portfolio",
+  monthly_pack: "Monthly pack",
 };
 
 export default function ReportsPage() {
@@ -17,18 +18,24 @@ export default function ReportsPage() {
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState("");
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState<"one_pager" | "portfolio" | "">("");
+  const [busy, setBusy] = useState<"one_pager" | "portfolio" | "monthly_pack" | "">("");
   const [periodEnd, setPeriodEnd] = useState("");
 
+  const [loading, setLoading] = useState(true);
   function load() {
-    api<{ reports: Report[] }>("/api/reports").then((r) => setRows(r.reports));
-    api<{ companies: { id: string; name: string }[] }>("/api/companies").then((r) => setCos(r.companies));
+    setLoading(true);
+    Promise.all([
+      api<{ reports: Report[] }>("/api/reports").then((r) => setRows(r.reports)),
+      api<{ companies: { id: string; name: string }[] }>("/api/companies").then((r) => setCos(r.companies)),
+    ])
+      .catch((e: Error) => setErr(e.message))
+      .finally(() => setLoading(false));
   }
   useEffect(() => {
     load();
   }, []);
 
-  async function draft(kind: "one_pager" | "portfolio") {
+  async function draft(kind: "one_pager" | "portfolio" | "monthly_pack") {
     setErr("");
     if (kind === "one_pager" && !companyId) {
       setErr("Pick a company for a one-pager. We will not invent a name.");
@@ -52,8 +59,9 @@ export default function ReportsPage() {
     <Shell>
       <h1>Reports</h1>
       <p className="lede">
-        Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). Exports
-        are real files (session cookie). Narrative cannot invent numbers.
+        Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). The
+        monthly pack keeps objective and subjective in separate columns. Exports are real files (session cookie).
+        Narrative cannot invent numbers. A worker writes the monthly XLSX to the object store when Redis is up.
       </p>
       {err && (
         <p className="sev-high" role="alert">
@@ -77,13 +85,17 @@ export default function ReportsPage() {
         <button className="btn ghost" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
           {busy === "portfolio" ? "Drafting…" : "Draft portfolio"}
         </button>
+        <button className="btn ghost" onClick={() => draft("monthly_pack")} disabled={Boolean(busy)}>
+          {busy === "monthly_pack" ? "Drafting…" : "Draft monthly pack"}
+        </button>
       </div>
       )}
-      {rows.length === 0 ? (
+      {loading && !err && <p className="lede">Loading drafts…</p>}
+      {!loading && rows.length === 0 ? (
         <div className="empty" style={{ marginTop: 18 }}>
-          No drafts yet. Pick a company and draft a one-pager from confirmed facts.
+          No drafts yet. Pick a company and draft a one-pager, or draft the monthly pack from confirmed facts.
         </div>
-      ) : (
+      ) : !loading ? (
         <table style={{ marginTop: 18 }}>
           <thead>
             <tr>
@@ -115,7 +127,7 @@ export default function ReportsPage() {
             ))}
           </tbody>
         </table>
-      )}
+      ) : null}
     </Shell>
   );
 }

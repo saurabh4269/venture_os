@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import {
   ASK_REFUSAL,
   assertCommentaryLane,
+  assertMarkWritable,
+  buildMonthlyPackRow,
   buildOnePagerMetrics,
   citationsFrom,
   datedPositionIrr,
@@ -12,12 +14,15 @@ import {
   factOrDash,
   FLAG_CATALOG,
   formatDualDisplay,
-  inventedNumbers,
+  lastCalendarQuarterEnd,
   latestByMetricPeriod,
   metricByKey,
   navBridge,
   defaultPriorAsOf,
   objectiveBook,
+  parseFlagPolicyJson,
+  refuseUnsourcedDigits,
+  resolveFlagThresholds,
   rollupNav,
   runwayMonthsFromBurns,
   seriesFor,
@@ -28,13 +33,17 @@ import {
   xirr,
 } from "@venture-os/core";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
-import { isAdminRole, loadEnv, ROLES, slugifyOrg } from "@venture-os/config";
+import { invitationExpired, isAdminRole, loadEnv, ROLES, slugifyOrg } from "@venture-os/config";
 import {
   AskRequestSchema,
   ConfirmInboxSchema,
   CreateCompanySchema,
   CreateFundSchema,
+  FlagPolicySchema,
+  LockNavPeriodSchema,
   MarkMethodSchema,
+  ReportKindSchema,
+  UnlockNavPeriodSchema,
   UpdateCompanySchema,
 } from "@venture-os/schema";
 import {
@@ -52,6 +61,7 @@ import {
   marks,
   member,
   metricValues,
+  navPeriodLocks,
   orgSettings,
   organization,
   parseJobs,
@@ -65,8 +75,8 @@ import {
   withOrg,
 } from "@venture-os/db";
 import { auth } from "./auth.js";
-import { canConfirm, HttpError, requireAdmin, requireOrg, requireUser, requireWrite } from "./context.js";
-import { enqueueFlags, enqueueParse } from "./queues.js";
+import { canConfirm, HttpError, requireAdmin, requireLock, requireOrg, requireUser, requireWrite } from "./context.js";
+import { enqueueFlags, enqueueParse, enqueueReport } from "./queues.js";
 import { buildExports } from "./reports-export.js";
 
 export const routes = new Hono();
@@ -244,13 +254,17 @@ routes.get("/api/invitations/:id", async (c) => {
   const db = getDb();
   const [row] = await db.select().from(invitation).where(eq(invitation.id, id));
   if (!row) throw new HttpError(404, "invitation_not_found");
+  const expired = invitationExpired(row.expiresAt);
+  if (expired && row.status === "pending") {
+    await db.update(invitation).set({ status: "expired" }).where(eq(invitation.id, id));
+  }
   const [org] = await db.select().from(organization).where(eq(organization.id, row.organizationId));
   return c.json({
     invitation: {
       id: row.id,
       email: row.email,
       role: row.role,
-      status: row.status,
+      status: expired ? "expired" : row.status,
       expiresAt: row.expiresAt,
       orgName: org?.name ?? "Organisation",
     },
@@ -286,6 +300,12 @@ routes.post("/api/invitations/:id/accept", async (c) => {
   const db = getDb();
   const [row] = await db.select().from(invitation).where(eq(invitation.id, id));
   if (!row) throw new HttpError(404, "invitation_not_found");
+  if (invitationExpired(row.expiresAt)) {
+    if (row.status === "pending") {
+      await db.update(invitation).set({ status: "expired" }).where(eq(invitation.id, id));
+    }
+    throw new HttpError(410, "invitation_expired");
+  }
   if (row.status !== "pending") throw new HttpError(400, "invitation_not_pending");
   if (row.email.toLowerCase() !== s.user.email.toLowerCase()) {
     throw new HttpError(403, "invitation_email_mismatch");
@@ -876,6 +896,7 @@ routes.get("/api/flags", async (c) => {
       flags: filtered.map((f) => ({ ...f, companyName: cos.find((co) => co.id === f.companyId)?.name })),
       companies: cos.map((co) => ({ id: co.id, name: co.name })),
       catalog: FLAG_CATALOG,
+      policy: resolveFlagThresholds(parseFlagPolicyJson((await tx.select().from(orgSettings))[0]?.flagPolicy)),
       sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
     };
   });
@@ -938,7 +959,7 @@ routes.post("/api/flags/:id/unmute", async (c) => {
 
 routes.get("/api/nav", async (c) => {
   const s = requireOrg(c);
-  const asOf = c.req.query("asOf") ?? new Date().toISOString().slice(0, 10);
+  const asOf = c.req.query("asOf") ?? lastCalendarQuarterEnd();
   const priorAsOf = c.req.query("priorAsOf") ?? defaultPriorAsOf(asOf);
   const fundId = c.req.query("fundId") ?? "";
   const data = await withOrg(s.orgId, async (tx) => {
@@ -1021,9 +1042,78 @@ routes.get("/api/nav", async (c) => {
         kind: d.kind,
         companyId: d.companyId,
       })),
+      period: await loadNavPeriod(tx, asOf),
     };
   });
   return c.json(data);
+});
+
+async function loadNavPeriod(tx: Parameters<Parameters<typeof withOrg>[1]>[0], asOf: string) {
+  const [lock] = await tx.select().from(navPeriodLocks).where(eq(navPeriodLocks.asOf, asOf));
+  return {
+    asOf,
+    status: lock?.status ?? "unofficial",
+    lockedBy: lock?.lockedBy ?? null,
+    lockedAt: lock?.lockedAt ?? null,
+    unlockReason: lock?.unlockReason ?? null,
+    unlockedBy: lock?.unlockedBy ?? null,
+    unlockedAt: lock?.unlockedAt ?? null,
+  };
+}
+
+routes.post("/api/nav/lock", async (c) => {
+  const s = requireLock(c);
+  const parsed = LockNavPeriodSchema.safeParse(await c.req.json());
+  if (!parsed.success) throw new HttpError(400, "invalid_as_of");
+  const asOf = parsed.data.asOf;
+  const period = await withOrg(s.orgId, async (tx) => {
+    const [existing] = await tx.select().from(navPeriodLocks).where(eq(navPeriodLocks.asOf, asOf));
+    if (existing) {
+      await tx
+        .update(navPeriodLocks)
+        .set({
+          status: "locked",
+          lockedBy: s.user.id,
+          lockedAt: new Date(),
+          unlockReason: null,
+          unlockedBy: null,
+          unlockedAt: null,
+        })
+        .where(eq(navPeriodLocks.id, existing.id));
+    } else {
+      await tx.insert(navPeriodLocks).values({
+        orgId: s.orgId,
+        asOf,
+        status: "locked",
+        lockedBy: s.user.id,
+        lockedAt: new Date(),
+      });
+    }
+    return loadNavPeriod(tx, asOf);
+  });
+  return c.json({ period });
+});
+
+routes.post("/api/nav/unlock", async (c) => {
+  const s = requireLock(c);
+  const parsed = UnlockNavPeriodSchema.safeParse(await c.req.json());
+  if (!parsed.success) throw new HttpError(400, "unlock_reason_required");
+  const { asOf, reason } = parsed.data;
+  const period = await withOrg(s.orgId, async (tx) => {
+    const [existing] = await tx.select().from(navPeriodLocks).where(eq(navPeriodLocks.asOf, asOf));
+    if (!existing || existing.status !== "locked") throw new HttpError(409, "period_not_locked");
+    await tx
+      .update(navPeriodLocks)
+      .set({
+        status: "unofficial",
+        unlockReason: reason,
+        unlockedBy: s.user.id,
+        unlockedAt: new Date(),
+      })
+      .where(eq(navPeriodLocks.id, existing.id));
+    return loadNavPeriod(tx, asOf);
+  });
+  return c.json({ period });
 });
 
 routes.post("/api/nav/marks", async (c) => {
@@ -1044,6 +1134,9 @@ routes.post("/api/nav/marks", async (c) => {
   const methodParsed = MarkMethodSchema.safeParse(body.method ?? "last_round");
   if (!methodParsed.success) throw new HttpError(400, "invalid_mark_method");
   const row = await withOrg(s.orgId, async (tx) => {
+    const [lock] = await tx.select().from(navPeriodLocks).where(eq(navPeriodLocks.asOf, body.asOf));
+    const gate = assertMarkWritable(lock?.status ?? "unofficial");
+    if (!gate.ok) throw new HttpError(409, "period_locked");
     let sourceRefId = body.sourceRefId ?? null;
     if (!sourceRefId && body.documentId) {
       const [doc] = await tx.select().from(documents).where(eq(documents.id, body.documentId));
@@ -1270,8 +1363,8 @@ routes.post("/api/ask", async (c) => {
     // Key missing: still return grounded extract, not an invention.
   }
 
-  const invented = inventedNumbers(answer, context);
-  if (invented.length) {
+  const grounded = refuseUnsourcedDigits(answer, context);
+  if (!grounded.ok) {
     const refused = {
       answer: ASK_REFUSAL,
       refused: true,
@@ -1312,7 +1405,9 @@ routes.get("/api/reports", async (c) => {
 
 routes.post("/api/reports", async (c) => {
   const s = requireWrite(c);
-  const body = await c.req.json<{ kind: "one_pager" | "portfolio"; companyId?: string; periodEnd?: string }>();
+  const body = await c.req.json<{ kind: "one_pager" | "portfolio" | "monthly_pack"; companyId?: string; periodEnd?: string }>();
+  const kindParsed = ReportKindSchema.safeParse(body.kind);
+  if (!kindParsed.success) throw new HttpError(400, "invalid_report_kind");
   if (body.kind === "one_pager" && !body.companyId) throw new HttpError(400, "company_id_required");
   const pinPeriod = body.periodEnd?.slice(0, 10) || "";
   const draft = await withOrg(s.orgId, async (tx) => {
@@ -1326,9 +1421,9 @@ routes.post("/api/reports", async (c) => {
         metrics.filter((m) => m.companyId === co.id && (!pinPeriod || m.periodEnd === pinPeriod)),
       );
       const curated =
-        body.kind === "one_pager" ? buildOnePagerMetrics(raw) : latestByMetricPeriod(raw).map(toReportMetric);
-      const obj = notes.filter((n) => n.companyId === co.id && n.lane === "objective");
-      const sub = notes.filter((n) => n.companyId === co.id && n.lane === "subjective");
+        body.kind === "portfolio" ? latestByMetricPeriod(raw).map(toReportMetric) : buildOnePagerMetrics(raw);
+      const obj = notes.filter((n) => n.companyId === co.id && n.lane === "objective" && (!pinPeriod || n.periodEnd === pinPeriod));
+      const sub = notes.filter((n) => n.companyId === co.id && n.lane === "subjective" && (!pinPeriod || n.periodEnd === pinPeriod));
       const flags = openFlags
         .filter((f) => f.companyId === co.id)
         .map((f) => ({
@@ -1346,22 +1441,56 @@ routes.post("/api/reports", async (c) => {
         subjective: sub.map((n) => n.body),
       };
     });
+    const packRows =
+      body.kind === "monthly_pack"
+        ? pages.map((p) =>
+            buildMonthlyPackRow({
+              companyId: p.companyId,
+              name: p.name,
+              stage: p.stage,
+              periodEnd: pinPeriod,
+              metrics: metrics
+                .filter((m) => m.companyId === p.companyId && (!pinPeriod || m.periodEnd === pinPeriod))
+                .map((m) => ({
+                  metricKey: m.metricKey,
+                  valueNumeric: m.valueNumeric,
+                  unit: m.unit,
+                  currency: m.currency,
+                  periodEnd: m.periodEnd,
+                  sourceRefId: m.sourceRefId,
+                  valueEur: m.valueEur,
+                  fxRate: m.fxRate,
+                  fxDate: m.fxDate,
+                  fxSource: m.fxSource,
+                  lane: m.lane,
+                })),
+              objective: p.objective,
+              subjective: p.subjective,
+            }),
+          )
+        : undefined;
     const title =
       body.kind === "one_pager"
         ? `One-pager · ${target[0]?.name ?? "Company"}`
-        : `Portfolio draft · ${new Date().toISOString().slice(0, 10)}`;
+        : body.kind === "monthly_pack"
+          ? `Monthly pack · ${pinPeriod || new Date().toISOString().slice(0, 10)}`
+          : `Portfolio draft · ${new Date().toISOString().slice(0, 10)}`;
     const [row] = await tx
       .insert(reports)
       .values({
         orgId: s.orgId,
         kind: body.kind,
         title,
-        body: { pages, generatedFrom: "book", fixture: false },
+        body: { pages, rows: packRows, periodEnd: pinPeriod || null, generatedFrom: "book", fixture: false },
         createdBy: s.user.id,
+        artifactStatus: body.kind === "monthly_pack" ? "queued" : "inline",
       })
       .returning();
     return row;
   });
+  if (draft && body.kind === "monthly_pack") {
+    await enqueueReport(s.orgId, draft.id);
+  }
   return c.json({ report: draft });
 });
 
@@ -1396,13 +1525,45 @@ routes.get("/api/settings", async (c) => {
       ]);
       conns = await tx.select().from(connectors);
     }
+    const policy = resolveFlagThresholds(parseFlagPolicyJson(settings?.flagPolicy));
     return {
       settings,
       connectors: conns.map((c) => ({ kind: c.kind, status: c.status })),
-      flagPolicy: FLAG_CATALOG,
+      flagPolicy: FLAG_CATALOG.map((f) => ({
+        key: f.key,
+        label: f.label,
+        defaultThreshold: f.defaultThreshold,
+        threshold: policy[f.key],
+      })),
     };
   });
   return c.json(data);
+});
+
+routes.post("/api/settings/flag-policy", async (c) => {
+  const s = requireAdmin(c);
+  const parsed = FlagPolicySchema.safeParse(await c.req.json());
+  if (!parsed.success) throw new HttpError(400, "invalid_flag_policy");
+  const next = parseFlagPolicyJson(parsed.data.thresholds);
+  const row = await withOrg(s.orgId, async (tx) => {
+    const [existing] = await tx.select().from(orgSettings);
+    if (!existing) {
+      await tx.insert(orgSettings).values({ orgId: s.orgId, flagPolicy: next });
+    } else {
+      await tx.update(orgSettings).set({ flagPolicy: next }).where(eq(orgSettings.orgId, s.orgId));
+    }
+    const [settings] = await tx.select().from(orgSettings);
+    return settings;
+  });
+  return c.json({
+    settings: row,
+    flagPolicy: FLAG_CATALOG.map((f) => ({
+      key: f.key,
+      label: f.label,
+      defaultThreshold: f.defaultThreshold,
+      threshold: resolveFlagThresholds(next)[f.key],
+    })),
+  });
 });
 
 routes.post("/api/settings", async (c) => {

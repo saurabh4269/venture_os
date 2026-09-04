@@ -50,3 +50,15 @@ export async function enqueueFlags(orgId: string, companyId?: string) {
     await runFlagJob(orgId, companyId);
   }
 }
+
+export async function enqueueReport(orgId: string, reportId: string) {
+  try {
+    await getReportQueue().add("render-report", { orgId, reportId });
+    return "queued";
+  } catch (err) {
+    log("warn", "redis_unavailable_inline_report", { err: String(err) });
+    const { runReportJob } = await import("@venture-os/db");
+    await runReportJob(orgId, reportId);
+    return "inline";
+  }
+}

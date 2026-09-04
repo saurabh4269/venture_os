@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   canonicalizeRole,
+  invitationExpired,
   isAdminRole,
   isConfirmRole,
+  isLockRole,
   isWriteRole,
   roleLabel,
   slugifyOrg,
@@ -26,6 +28,16 @@ describe("roles", () => {
     expect(isConfirmRole("partner")).toBe(true);
     expect(isAdminRole("org_admin")).toBe(true);
     expect(isAdminRole("owner")).toBe(true);
+    expect(isLockRole("partner")).toBe(true);
+    expect(isLockRole("org_admin")).toBe(true);
+    expect(isLockRole("analyst")).toBe(false);
+    expect(isLockRole("viewer")).toBe(false);
+  });
+
+  it("treats invite expiry as a hard gate — missing date is not expired", () => {
+    expect(invitationExpired("2020-01-01T00:00:00.000Z", new Date("2026-09-04T00:00:00Z"))).toBe(true);
+    expect(invitationExpired("2026-12-01T00:00:00.000Z", new Date("2026-09-04T00:00:00Z"))).toBe(false);
+    expect(invitationExpired(null)).toBe(false);
   });
 
   it("labels every underscore, not only the first", () => {

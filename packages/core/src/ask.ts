@@ -82,6 +82,24 @@ export function inventedNumbers(answer: string, evidenceText: string): string[] 
 export const ASK_REFUSAL =
   "Not in the book / corpus — I will not guess. Upload a source or confirm the figure in Inbox.";
 
+export function evidenceText(evidence: AskEvidence): string {
+  return [...evidence.facts.map((f) => f.excerpt), ...evidence.chunks.map((c) => c.excerpt)].join("\n");
+}
+
+/**
+ * Any numeral in the answer that is not in evidence is an invention.
+ * Refuse — do not strip digits and pretend the rest is grounded.
+ */
+export function refuseUnsourcedDigits(
+  answer: string,
+  evidence: AskEvidence | string,
+): { ok: true; answer: string } | { ok: false; invented: string[] } {
+  const text = typeof evidence === "string" ? evidence : evidenceText(evidence);
+  const invented = inventedNumbers(answer, text);
+  if (invented.length) return { ok: false, invented };
+  return { ok: true, answer };
+}
+
 export function citationsFrom(evidence: AskEvidence) {
   const fromChunks = evidence.chunks.map((c) => ({
     documentId: c.documentId,

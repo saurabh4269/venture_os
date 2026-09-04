@@ -270,7 +270,27 @@ export const reports = pgTable("reports", {
   body: jsonb("body").notNull(),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  storageKey: text("storage_key"),
+  artifactStatus: text("artifact_status").notNull().default("inline"),
+  artifactError: text("artifact_error"),
 });
+
+/** Official vs unofficial NAV as-of. Write role cannot silently change a locked period. */
+export const navPeriodLocks = pgTable(
+  "nav_period_locks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    asOf: date("as_of").notNull(),
+    status: text("status").notNull().default("unofficial"),
+    lockedBy: text("locked_by").references(() => user.id),
+    lockedAt: timestamp("locked_at"),
+    unlockReason: text("unlock_reason"),
+    unlockedBy: text("unlocked_by").references(() => user.id),
+    unlockedAt: timestamp("unlocked_at"),
+  },
+  (t) => [uniqueIndex("nav_period_locks_org_asof_uidx").on(t.orgId, t.asOf)],
+);
 
 export const askQueries = pgTable("ask_queries", {
   id: uuid("id").primaryKey().defaultRandom(),
