@@ -1,3 +1,4 @@
+import { xirr } from "./metrics.js";
 import { isPresent, sumPresent, type Num } from "./nulls.js";
 
 export type PositionMark = {
@@ -118,4 +119,26 @@ export function navBridge(currentAsOf: string, current: PositionMark[], prior: P
     lines,
     unexplained,
   };
+}
+
+/**
+ * Per-position IRR only when an investment date and a dated mark exist.
+ * Never invents investedAt. Cost is an outflow; mark is the residual inflow.
+ */
+export function datedPositionIrr(args: {
+  investedAt?: string | null;
+  cost: Num;
+  mark: Num;
+  markAsOf?: string | null;
+}): Num {
+  if (!args.investedAt || !args.markAsOf) return null;
+  if (!isPresent(args.cost) || !isPresent(args.mark)) return null;
+  const start = new Date(`${args.investedAt}T00:00:00Z`);
+  const end = new Date(`${args.markAsOf}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  if (end.getTime() <= start.getTime()) return null;
+  return xirr([
+    { date: start, amount: -Math.abs(args.cost) },
+    { date: end, amount: args.mark },
+  ]);
 }

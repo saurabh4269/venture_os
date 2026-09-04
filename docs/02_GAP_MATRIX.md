@@ -32,14 +32,14 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 15 | Attributable corrections survive re-parse | **missing** | **done** | Ledger + extract merge; golden test in `packages/core` |
 | 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Cookie-auth `Fact` chips on Command/company/compare/NAV/flags (Pass 12); no bbox OCR |
 | 17 | Live dashboard | **mock** | **done** | Command reads the book; Needs-a-look list; 3-mo runway; 0 flags is 0 |
-| 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; incomplete rollups stay `—` |
-| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + position bridge; single MOIC; FX triple; optional memo → sourceRef (Pass 17); approval later |
+| 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay `—` |
+| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + position bridge; priorAsOf + fund filter + method enum (Pass 21); approval later |
 | 20 | Objective commentary from MIS | **missing** | **partial** | Separate lane; human + inbox confirm |
 | 21 | Subjective commentary from calls | **missing** | **partial** | Lane rejects MIS-only source; Granola still **not connected** |
-| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | On-demand from book facts; one-pager requires companyId; cookie-auth download |
+| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Curated one-pager; XLSX commentary+FX; multi-page PDF; cookie-auth download (Pass 21) |
 | 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; company-scoped chunks; per-proposal locators; refuse without overlap; numeric post-check |
 | 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + below-plan; mute/snooze/unmute tabs; grace; restatement-safe reads on all surfaces (Pass 13/15) |
-| 25 | Cross-company compare | **mock** | **done** | Book-only; pickers + CSV; exclude-one checkbox semantics; provenance chips; restatement-safe cells |
+| 25 | Cross-company compare | **mock** | **done** | Stage/sector peer filter; catalog labels; hide-empty; objective-lane only (Pass 21) |
 | 26 | 15-min company onboarding | **missing** | **partial** | Wizard + parse poll + upload guards; connector IDs wait for OAuth |
 | 27 | Claude as reasoning layer (brief) | Demo uses **OpenAI** Luna | **done** | Pluggable `LlmProvider`; default OpenAI (D5) |
 | 28 | SOC2-ready audit / security | **missing** | **missing** | RLS + roles only so far |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { navBridge, rollupNav } from "./nav.js";
+import { datedPositionIrr, navBridge, rollupNav } from "./nav.js";
 
 describe("NAV rollup", () => {
   it("keeps MOIC blank when a position is unmarked", () => {
@@ -61,5 +61,25 @@ describe("NAV bridge", () => {
     expect(b.deltaNav).toBeNull();
     expect(b.lines[0]?.delta).toBeNull();
     expect(b.unexplained).toEqual([{ companyName: "Alpha", reason: "no_prior_mark" }]);
+  });
+});
+
+describe("datedPositionIrr", () => {
+  it("returns null when investedAt is missing — never invents a date", () => {
+    expect(
+      datedPositionIrr({ investedAt: null, cost: 10, mark: 20, markAsOf: "2026-09-01" }),
+    ).toBeNull();
+  });
+
+  it("computes XIRR when cost date and mark date both exist", () => {
+    const r = datedPositionIrr({
+      investedAt: "2024-09-01",
+      cost: 10,
+      mark: 20,
+      markAsOf: "2026-09-01",
+    });
+    expect(r).not.toBeNull();
+    expect(r!).toBeGreaterThan(0.3);
+    expect(r!).toBeLessThan(0.5);
   });
 });

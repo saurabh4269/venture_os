@@ -138,6 +138,21 @@ export const CreateCompanySchema = z.object({
   fundId: z.string().uuid().optional(),
 });
 
+export const UpdateCompanySchema = CreateCompanySchema.omit({ fundId: true }).partial().extend({
+  name: z.string().min(1).max(200).optional(),
+});
+
+export const CreateFundSchema = z.object({
+  name: z.string().min(1).max(200),
+  vintage: z.number().int().min(1990).max(2100).optional(),
+  currency: CurrencySchema.optional(),
+  committedCapital: z.number().nonnegative().optional(),
+});
+
+export const MARK_METHODS = ["last_round", "dcf", "bid", "write_down", "other"] as const;
+export const MarkMethodSchema = z.enum(MARK_METHODS);
+export type MarkMethod = z.infer<typeof MarkMethodSchema>;
+
 export const ConfirmInboxSchema = z.object({
   valueNumeric: z.number().nullable().optional(),
   unit: UnitSchema.optional(),

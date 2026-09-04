@@ -6,12 +6,18 @@ import { api, downloadAuthed } from "@/lib/api";
 
 type Report = { id: string; title: string; kind: string; createdAt: string };
 
+const KIND_LABEL: Record<string, string> = {
+  one_pager: "One-pager",
+  portfolio: "Portfolio",
+};
+
 export default function ReportsPage() {
   const { canWrite } = useBookSession();
   const [rows, setRows] = useState<Report[]>([]);
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState("");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState<"one_pager" | "portfolio" | "">("");
 
   function load() {
     api<{ reports: Report[] }>("/api/reports").then((r) => setRows(r.reports));
@@ -27,17 +33,27 @@ export default function ReportsPage() {
       setErr("Pick a company for a one-pager. We will not invent a name.");
       return;
     }
-    await api("/api/reports", {
-      method: "POST",
-      body: JSON.stringify({ kind, companyId: companyId || undefined }),
-    });
-    load();
+    setBusy(kind);
+    try {
+      await api("/api/reports", {
+        method: "POST",
+        body: JSON.stringify({ kind, companyId: companyId || undefined }),
+      });
+      load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Draft failed");
+    } finally {
+      setBusy("");
+    }
   }
 
   return (
     <Shell>
       <h1>Reports</h1>
-      <p className="lede">Drafted from the book. Exports are real files (session cookie). Narrative cannot invent numbers.</p>
+      <p className="lede">
+        Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). Exports
+        are real files (session cookie). Narrative cannot invent numbers.
+      </p>
       {err && (
         <p className="sev-high" role="alert">
           {err}
@@ -53,17 +69,17 @@ export default function ReportsPage() {
             </option>
           ))}
         </select>
-        <button className="btn" onClick={() => draft("one_pager")}>
-          Draft one-pager
+        <button className="btn" onClick={() => draft("one_pager")} disabled={Boolean(busy)}>
+          {busy === "one_pager" ? "Drafting…" : "Draft one-pager"}
         </button>
-        <button className="btn ghost" onClick={() => draft("portfolio")}>
-          Draft portfolio
+        <button className="btn ghost" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
+          {busy === "portfolio" ? "Drafting…" : "Draft portfolio"}
         </button>
       </div>
       )}
       {rows.length === 0 ? (
         <div className="empty" style={{ marginTop: 18 }}>
-          No drafts yet.
+          No drafts yet. Pick a company and draft a one-pager from confirmed facts.
         </div>
       ) : (
         <table style={{ marginTop: 18 }}>
@@ -71,6 +87,7 @@ export default function ReportsPage() {
             <tr>
               <th>Title</th>
               <th>Kind</th>
+              <th>Created</th>
               <th>Export</th>
             </tr>
           </thead>
@@ -78,7 +95,8 @@ export default function ReportsPage() {
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{r.title}</td>
-                <td>{r.kind}</td>
+                <td>{KIND_LABEL[r.kind] ?? r.kind}</td>
+                <td className="lede">{new Date(r.createdAt).toLocaleString()}</td>
                 <td className="row">
                   {(["pdf", "pptx", "xlsx"] as const).map((fmt) => (
                     <button

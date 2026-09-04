@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { defaultPriorAsOf } from "@venture-os/core";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
 type Nav = {
   asOf: string;
   priorAsOf: string;
+  irr?: number | null;
+  funds?: { id: string; name: string; currency: string }[];
   rollup: {
     nav: { total: number | null; complete: boolean; missing: number };
     cost: { total: number | null; complete: boolean };
     moic: number | null;
-    unmarked: { companyName: string }[];
+    unmarked: { companyName: string; positionId?: string }[];
     unprovenanced?: { companyName: string }[];
   };
   bridge: {
@@ -34,6 +38,8 @@ type Nav = {
     mark: number | null;
     markAsOf: string | null;
     method: string | null;
+    rationale?: string | null;
+    irr?: number | null;
     sourceRefId: string | null;
     priorMark: number | null;
     priorMarkAsOf: string | null;
@@ -53,18 +59,48 @@ const emptyForm = {
   documentId: "",
 };
 
+const MARK_METHODS = [
+  { value: "last_round", label: "Last round" },
+  { value: "dcf", label: "DCF" },
+  { value: "bid", label: "Bid" },
+  { value: "write_down", label: "Write-down" },
+  { value: "other", label: "Other" },
+];
+
+function inr(n: number | null | undefined) {
+  if (n == null) return "—";
+  return n.toLocaleString("en-IN");
+}
+
+function pctIrr(n: number | null | undefined) {
+  if (n == null) return "—";
+  return `${(n * 100).toFixed(1)}%`;
+}
+
 export default function NavPage() {
   const { canWrite } = useBookSession();
   const [data, setData] = useState<Nav | null>(null);
   const [asOf, setAsOf] = useState(new Date().toISOString().slice(0, 10));
+  const [priorAsOf, setPriorAsOf] = useState(defaultPriorAsOf(new Date().toISOString().slice(0, 10)));
+  const [fundId, setFundId] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [err, setErr] = useState("");
+
+  const qs = useMemo(() => {
+    const p = new URLSearchParams({ asOf, priorAsOf });
+    if (fundId) p.set("fundId", fundId);
+    return p.toString();
+  }, [asOf, priorAsOf, fundId]);
 
   function load() {
-    api<Nav>(`/api/nav?asOf=${asOf}`).then(setData);
+    setErr("");
+    api<Nav>(`/api/nav?${qs}`)
+      .then(setData)
+      .catch((e: Error) => setErr(e.message));
   }
   useEffect(() => {
     load();
-  }, [asOf]);
+  }, [qs]);
 
   async function addMark(e: React.FormEvent) {
     e.preventDefault();
@@ -92,37 +128,85 @@ export default function NavPage() {
       <h1>NAV</h1>
       <p className="lede">
         Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
-        rollup is complete. The bridge is period-over-period from booked marks — missing priors stay unexplained, never
-        zero-filled. Dual EUR only with a complete FX triple. Approval / period lock is later.
+        rollup is complete. IRR appears only when every sourced mark has an <code>investedAt</code> — we never invent
+        an investment date. The bridge is period-over-period from booked marks. Dual EUR only with a complete FX
+        triple. Approval / period lock is later.
       </p>
-      <label className="field" style={{ maxWidth: 200 }}>
-        As-of
-        <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
-      </label>
-      {data && (
+      <div className="row" style={{ flexWrap: "wrap" }}>
+        <label className="field" style={{ maxWidth: 200 }}>
+          As-of
+          <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
+        </label>
+        <label className="field" style={{ maxWidth: 200 }}>
+          Prior as-of
+          <input type="date" value={priorAsOf} onChange={(e) => setPriorAsOf(e.target.value)} />
+        </label>
+        <label className="field" style={{ maxWidth: 220 }}>
+          Fund
+          <select value={fundId} onChange={(e) => setFundId(e.target.value)} aria-label="Fund">
+            <option value="">All funds</option>
+            {(data?.funds ?? []).map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
+      {data && data.positions.length === 0 && (
+        <div className="empty">
+          No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
+        </div>
+      )}
+      {data && data.positions.length > 0 && (
         <>
           <div className="cards">
             <div className="card">
               <div className="k">Cost</div>
-              <div className="v">{data.rollup.cost.total ?? "—"}</div>
+              <div className="v">{inr(data.rollup.cost.total)}</div>
+              {!data.rollup.cost.complete && <div className="lede">Incomplete</div>}
             </div>
             <div className="card">
               <div className="k">NAV</div>
-              <div className="v">{data.rollup.nav.total ?? "—"}</div>
-              {!data.rollup.nav.complete && <div className="lede">Incomplete</div>}
+              <div className="v">{inr(data.rollup.nav.total)}</div>
+              {!data.rollup.nav.complete && (
+                <div className="lede">Incomplete · {data.rollup.nav.missing} missing</div>
+              )}
             </div>
             <div className="card">
               <div className="k">MOIC</div>
               <div className="v">{data.rollup.moic == null ? "—" : `${data.rollup.moic.toFixed(2)}x`}</div>
             </div>
             <div className="card">
+              <div className="k">IRR</div>
+              <div className="v">{pctIrr(data.irr)}</div>
+              {data.irr == null && <div className="lede">Needs investedAt on every sourced mark</div>}
+            </div>
+            <div className="card">
               <div className="k">Bridge Δ</div>
-              <div className="v">{data.bridge.deltaNav == null ? "—" : data.bridge.deltaNav.toLocaleString("en-IN")}</div>
+              <div className="v">{data.bridge.deltaNav == null ? "—" : inr(data.bridge.deltaNav)}</div>
               <div className="lede">vs {data.priorAsOf}</div>
             </div>
           </div>
           {data.rollup.unmarked.length > 0 && (
-            <p className="lede">Unmarked: {data.rollup.unmarked.map((u) => u.companyName).join(", ")}</p>
+            <p className="lede">
+              Unmarked:{" "}
+              {data.rollup.unmarked.map((u) => (
+                <button
+                  key={`${u.companyName}-${u.positionId ?? ""}`}
+                  type="button"
+                  className="chip"
+                  onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
+                >
+                  {u.companyName}
+                </button>
+              ))}
+            </p>
           )}
           {(data.rollup.unprovenanced ?? []).length > 0 && (
             <p className="lede">
@@ -144,7 +228,9 @@ export default function NavPage() {
                   <tr>
                     <th>Company</th>
                     <th>Prior</th>
+                    <th>Prior as-of</th>
                     <th>Current</th>
+                    <th>Current as-of</th>
                     <th>Δ</th>
                   </tr>
                 </thead>
@@ -152,9 +238,11 @@ export default function NavPage() {
                   {data.bridge.lines.map((l) => (
                     <tr key={`${l.companyName}-${l.currentAsOf}`}>
                       <td>{l.companyName}</td>
-                      <td>{l.priorMark ?? "—"}</td>
-                      <td>{l.currentMark ?? "—"}</td>
-                      <td>{l.delta == null ? "—" : l.delta.toLocaleString("en-IN")}</td>
+                      <td>{l.priorMark == null ? "—" : inr(l.priorMark)}</td>
+                      <td>{l.priorAsOf ?? "—"}</td>
+                      <td>{l.currentMark == null ? "—" : inr(l.currentMark)}</td>
+                      <td>{l.currentAsOf ?? "—"}</td>
+                      <td>{l.delta == null ? "—" : inr(l.delta)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -166,10 +254,12 @@ export default function NavPage() {
               <tr>
                 <th>Company</th>
                 <th>Fund</th>
+                <th>Ownership</th>
                 <th>Cost</th>
                 <th>Mark</th>
                 <th>As-of</th>
                 <th>Method</th>
+                <th>IRR</th>
               </tr>
             </thead>
             <tbody>
@@ -177,16 +267,18 @@ export default function NavPage() {
                 <tr key={p.position.id}>
                   <td>{p.companyName}</td>
                   <td>{p.fundName}</td>
-                  <td>{p.cost ?? "—"}</td>
+                  <td>{p.position.ownershipPct == null ? "—" : `${p.position.ownershipPct}%`}</td>
+                  <td>{p.cost == null ? "—" : inr(p.cost)}</td>
                   <td>
                     <Fact
-                      display={p.mark == null ? "—" : String(p.mark)}
+                      display={p.mark == null ? "—" : inr(p.mark)}
                       isFact={Boolean(p.sourceRefId && p.mark != null)}
                       sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)}
                     />
                   </td>
                   <td>{p.markAsOf ?? "—"}</td>
                   <td>{p.method ?? "—"}</td>
+                  <td>{pctIrr(p.irr)}</td>
                 </tr>
               ))}
             </tbody>
@@ -197,7 +289,7 @@ export default function NavPage() {
                 <option value="">Position</option>
                 {data.positions.map((p) => (
                   <option key={p.position.id} value={p.position.id}>
-                    {p.companyName}
+                    {p.fundName} · {p.companyName}
                   </option>
                 ))}
               </select>
@@ -206,11 +298,17 @@ export default function NavPage() {
                 value={form.value}
                 onChange={(e) => setForm({ ...form, value: e.target.value })}
               />
-              <input
-                placeholder="Method"
+              <select
                 value={form.method}
                 onChange={(e) => setForm({ ...form, method: e.target.value })}
-              />
+                aria-label="Mark method"
+              >
+                {MARK_METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
               <input
                 placeholder="Rationale"
                 value={form.rationale}

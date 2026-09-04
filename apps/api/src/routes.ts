@@ -4,25 +4,39 @@ import { randomUUID } from "node:crypto";
 import {
   ASK_REFUSAL,
   assertCommentaryLane,
+  buildOnePagerMetrics,
   citationsFrom,
+  datedPositionIrr,
   decideAsk,
   documentKindToCommentarySource,
   factOrDash,
+  FLAG_CATALOG,
   formatDualDisplay,
   inventedNumbers,
+  latestByMetricPeriod,
+  metricByKey,
   navBridge,
   defaultPriorAsOf,
+  objectiveBook,
   rollupNav,
-  latestByMetricPeriod,
   runwayMonthsFromBurns,
   seriesFor,
   toEur,
   toInrCrore,
   tokenize,
+  toReportMetric,
+  xirr,
 } from "@venture-os/core";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
 import { isAdminRole, loadEnv, ROLES, slugifyOrg } from "@venture-os/config";
-import { AskRequestSchema, ConfirmInboxSchema, CreateCompanySchema } from "@venture-os/schema";
+import {
+  AskRequestSchema,
+  ConfirmInboxSchema,
+  CreateCompanySchema,
+  CreateFundSchema,
+  MarkMethodSchema,
+  UpdateCompanySchema,
+} from "@venture-os/schema";
 import {
   askQueries,
   commentary,
@@ -315,7 +329,7 @@ routes.get("/api/funds", async (c) => {
 
 routes.post("/api/funds", async (c) => {
   const s = requireWrite(c);
-  const body = await c.req.json<{ name: string; vintage?: number; committedCapital?: number }>();
+  const body = CreateFundSchema.parse(await c.req.json());
   const [row] = await withOrg(s.orgId, (tx) =>
     tx
       .insert(funds)
@@ -323,6 +337,7 @@ routes.post("/api/funds", async (c) => {
         orgId: s.orgId,
         name: body.name,
         vintage: body.vintage,
+        currency: body.currency ?? "INR",
         committedCapital: body.committedCapital,
       })
       .returning(),
@@ -435,10 +450,59 @@ routes.get("/api/companies/:id", async (c) => {
         sourceRefId: cash?.sourceRefId && burn?.sourceRefId ? cash.sourceRefId : null,
       }),
     };
-    return { company: co, metrics, commentary: notes, documents: docs, flags, sourceRefs: refs, kpi };
+    const pos = await tx.select().from(positions).where(eq(positions.companyId, id));
+    const fundRows = await tx.select().from(funds);
+    const bookedPositions = pos.map((p) => ({
+      id: p.id,
+      fundId: p.fundId,
+      fundName: fundRows.find((f) => f.id === p.fundId)?.name ?? "—",
+      instrument: p.instrument,
+      ownershipPct: p.ownershipPct,
+      costBasis: p.costBasis,
+      costCurrency: p.costCurrency,
+      investedAt: p.investedAt,
+    }));
+    return {
+      company: co,
+      metrics,
+      commentary: notes,
+      documents: docs,
+      flags,
+      sourceRefs: refs,
+      kpi,
+      positions: bookedPositions,
+    };
   });
   if (!data) throw new HttpError(404, "company_not_found");
   return c.json(data);
+});
+
+routes.patch("/api/companies/:id", async (c) => {
+  const s = requireWrite(c);
+  const id = c.req.param("id");
+  const body = UpdateCompanySchema.parse(await c.req.json());
+  const row = await withOrg(s.orgId, async (tx) => {
+    const [existing] = await tx.select().from(companies).where(eq(companies.id, id));
+    if (!existing) return null;
+    const [updated] = await tx
+      .update(companies)
+      .set({
+        name: body.name ?? existing.name,
+        legalName: body.legalName ?? existing.legalName,
+        sector: body.sector ?? existing.sector,
+        stage: body.stage ?? existing.stage,
+        country: body.country ?? existing.country,
+        fyStartMonth: body.fyStartMonth ?? existing.fyStartMonth,
+        website: body.website === undefined ? existing.website : body.website || null,
+        unitHint: body.unitHint ?? existing.unitHint,
+        currencyHint: body.currencyHint ?? existing.currencyHint,
+      })
+      .where(eq(companies.id, id))
+      .returning();
+    return updated;
+  });
+  if (!row) throw new HttpError(404, "company_not_found");
+  return c.json({ company: row });
 });
 
 routes.post("/api/companies/:id/documents", async (c) => {
@@ -790,6 +854,9 @@ routes.get("/api/command", async (c) => {
 routes.get("/api/flags", async (c) => {
   const s = requireOrg(c);
   const status = c.req.query("status") ?? "open";
+  const severity = c.req.query("severity") ?? "";
+  const companyId = c.req.query("companyId") ?? "";
+  const flagKey = c.req.query("flagKey") ?? "";
   const allowed = ["open", "snoozed", "muted", "cleared", "all"];
   if (!allowed.includes(status)) throw new HttpError(400, "invalid_status");
   const data = await withOrg(s.orgId, async (tx) => {
@@ -799,8 +866,16 @@ routes.get("/api/flags", async (c) => {
         : await tx.select().from(flagEvents).where(eq(flagEvents.status, status));
     const cos = await tx.select().from(companies);
     const refs = await tx.select().from(sourceRefs);
+    const filtered = flags.filter((f) => {
+      if (severity && f.severity !== severity) return false;
+      if (companyId && f.companyId !== companyId) return false;
+      if (flagKey && f.flagKey !== flagKey) return false;
+      return true;
+    });
     return {
-      flags: flags.map((f) => ({ ...f, companyName: cos.find((co) => co.id === f.companyId)?.name })),
+      flags: filtered.map((f) => ({ ...f, companyName: cos.find((co) => co.id === f.companyId)?.name })),
+      companies: cos.map((co) => ({ id: co.id, name: co.name })),
+      catalog: FLAG_CATALOG,
       sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
     };
   });
@@ -865,8 +940,10 @@ routes.get("/api/nav", async (c) => {
   const s = requireOrg(c);
   const asOf = c.req.query("asOf") ?? new Date().toISOString().slice(0, 10);
   const priorAsOf = c.req.query("priorAsOf") ?? defaultPriorAsOf(asOf);
+  const fundId = c.req.query("fundId") ?? "";
   const data = await withOrg(s.orgId, async (tx) => {
-    const pos = await tx.select().from(positions);
+    const posAll = await tx.select().from(positions);
+    const pos = fundId ? posAll.filter((p) => p.fundId === fundId) : posAll;
     const mk = await tx.select().from(marks);
     const cos = await tx.select().from(companies);
     const fundRows = await tx.select().from(funds);
@@ -876,6 +953,12 @@ routes.get("/api/nav", async (c) => {
       const mark = history.find((m) => m.asOf <= asOf);
       const prior = history.find((m) => m.asOf <= priorAsOf);
       const co = cos.find((x) => x.id === p.companyId);
+      const irr = datedPositionIrr({
+        investedAt: p.investedAt,
+        cost: p.costBasis ?? null,
+        mark: mark?.value ?? null,
+        markAsOf: mark?.asOf ?? null,
+      });
       return {
         position: p,
         companyName: co?.name ?? "—",
@@ -888,6 +971,7 @@ routes.get("/api/nav", async (c) => {
         sourceRefId: mark?.sourceRefId ?? null,
         priorMark: prior?.value ?? null,
         priorMarkAsOf: prior?.asOf ?? null,
+        irr,
       };
     });
     const currentMarks = rows.map((r) => ({
@@ -910,6 +994,17 @@ routes.get("/api/nav", async (c) => {
     }));
     const rollup = rollupNav(asOf, currentMarks);
     const bridge = navBridge(asOf, currentMarks, priorMarks);
+    const provenanced = rows.filter((r) => r.mark != null && r.sourceRefId);
+    const dated = provenanced.filter((r) => r.position.investedAt && r.markAsOf && r.cost != null);
+    const headlineIrr =
+      provenanced.length > 0 && dated.length === provenanced.length
+        ? xirr(
+            dated.flatMap((r) => [
+              { date: new Date(`${r.position.investedAt}T00:00:00Z`), amount: -Math.abs(r.cost ?? 0) },
+              { date: new Date(`${r.markAsOf}T00:00:00Z`), amount: r.mark ?? 0 },
+            ]),
+          )
+        : null;
     return {
       asOf,
       priorAsOf,
@@ -917,6 +1012,8 @@ routes.get("/api/nav", async (c) => {
       bridge,
       positions: rows,
       moic: rollup.moic,
+      irr: headlineIrr,
+      funds: fundRows.map((f) => ({ id: f.id, name: f.name, currency: f.currency })),
       sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
       documents: (await tx.select().from(documents)).map((d) => ({
         id: d.id,
@@ -934,7 +1031,7 @@ routes.post("/api/nav/marks", async (c) => {
   const body = await c.req.json<{
     positionId: string;
     asOf: string;
-    method: string;
+    method?: string;
     value: number | null;
     currency?: string;
     rationale?: string;
@@ -944,6 +1041,8 @@ routes.post("/api/nav/marks", async (c) => {
     fxDate?: string;
     fxSource?: string;
   }>();
+  const methodParsed = MarkMethodSchema.safeParse(body.method ?? "last_round");
+  if (!methodParsed.success) throw new HttpError(400, "invalid_mark_method");
   const row = await withOrg(s.orgId, async (tx) => {
     let sourceRefId = body.sourceRefId ?? null;
     if (!sourceRefId && body.documentId) {
@@ -966,7 +1065,7 @@ routes.post("/api/nav/marks", async (c) => {
         orgId: s.orgId,
         positionId: body.positionId,
         asOf: body.asOf,
-        method: body.method,
+        method: methodParsed.data,
         value: body.value,
         currency: body.currency ?? "INR",
         rationale: body.rationale,
@@ -997,14 +1096,21 @@ routes.get("/api/compare", async (c) => {
           .map((k) => k.trim())
           .filter(Boolean);
   const periodEnd = c.req.query("periodEnd") ?? "";
+  const stage = c.req.query("stage") ?? "";
+  const sector = c.req.query("sector") ?? "";
   const data = await withOrg(s.orgId, async (tx) => {
     const allCos = await tx.select().from(companies);
-    const cos = companyIds === null ? allCos : allCos.filter((co) => companyIds.includes(co.id));
+    const cos = allCos.filter((co) => {
+      if (companyIds !== null && !companyIds.includes(co.id)) return false;
+      if (stage && (co.stage ?? "") !== stage) return false;
+      if (sector && (co.sector ?? "") !== sector) return false;
+      return true;
+    });
     const metrics = await tx.select().from(metricValues);
     const refs = await tx.select().from(sourceRefs);
     const matrix = cos.map((co) => {
       const cells: Record<string, ReturnType<typeof factOrDash> & { periodEnd?: string | null; sourceRefId?: string | null }> = {};
-      const cm = metrics.filter((m) => m.companyId === co.id);
+      const cm = objectiveBook(metrics.filter((m) => m.companyId === co.id));
       for (const key of keys) {
         if (key === "runway_months") {
           const cashS = seriesFor(cm, "cash");
@@ -1045,8 +1151,11 @@ routes.get("/api/compare", async (c) => {
     const periods = [...new Set(metrics.map((m) => m.periodEnd))].sort().reverse();
     return {
       metrics: keys,
+      labels: Object.fromEntries(keys.map((k) => [k, metricByKey(k)?.label ?? k.replaceAll("_", " ")])),
       matrix,
-      companies: allCos.map((co) => ({ id: co.id, name: co.name })),
+      companies: allCos.map((co) => ({ id: co.id, name: co.name, stage: co.stage, sector: co.sector })),
+      stages: [...new Set(allCos.map((co) => co.stage).filter((x): x is string => Boolean(x)))].sort(),
+      sectors: [...new Set(allCos.map((co) => co.sector).filter((x): x is string => Boolean(x)))].sort(),
       periods,
       sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
     };
@@ -1205,23 +1314,27 @@ routes.post("/api/reports", async (c) => {
     const cos = await tx.select().from(companies);
     const metrics = await tx.select().from(metricValues);
     const notes = await tx.select().from(commentary);
+    const openFlags = await tx.select().from(flagEvents).where(eq(flagEvents.status, "open"));
     const target = body.companyId ? cos.filter((x) => x.id === body.companyId) : cos;
     const pages = target.map((co) => {
-      const cm = latestByMetricPeriod(metrics.filter((m) => m.companyId === co.id));
+      const raw = objectiveBook(metrics.filter((m) => m.companyId === co.id));
+      const curated =
+        body.kind === "one_pager" ? buildOnePagerMetrics(raw) : latestByMetricPeriod(raw).map(toReportMetric);
       const obj = notes.filter((n) => n.companyId === co.id && n.lane === "objective");
       const sub = notes.filter((n) => n.companyId === co.id && n.lane === "subjective");
+      const flags = openFlags
+        .filter((f) => f.companyId === co.id)
+        .map((f) => ({
+          flagKey: f.flagKey,
+          severity: f.severity,
+          label: FLAG_CATALOG.find((c) => c.key === f.flagKey)?.label ?? f.flagKey,
+        }));
       return {
         companyId: co.id,
         name: co.name,
         stage: co.stage,
-        metrics: cm.map((m) => ({
-          key: m.metricKey,
-          value: m.valueNumeric,
-          unit: m.unit,
-          currency: m.currency,
-          periodEnd: m.periodEnd,
-          sourceRefId: m.sourceRefId,
-        })),
+        metrics: curated,
+        flags,
         objective: obj.map((n) => n.body),
         subjective: sub.map((n) => n.body),
       };
@@ -1276,7 +1389,7 @@ routes.get("/api/settings", async (c) => {
       ]);
       conns = await tx.select().from(connectors);
     }
-    return { settings, connectors: conns };
+    return { settings, connectors: conns, flagPolicy: FLAG_CATALOG };
   });
   return c.json(data);
 });

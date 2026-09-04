@@ -19,6 +19,8 @@ export default function AskPage() {
 
   useEffect(() => {
     api<{ companies: { id: string; name: string }[] }>("/api/companies").then((r) => setCos(r.companies));
+    const fromUrl = new URLSearchParams(window.location.search).get("companyId");
+    if (fromUrl) setCompanyId(fromUrl);
   }, []);
 
   async function send(e: React.FormEvent) {

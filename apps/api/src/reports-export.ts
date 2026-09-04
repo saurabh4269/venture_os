@@ -1,5 +1,27 @@
 import ExcelJS from "exceljs";
 
+type ReportMetric = {
+  key: string;
+  label?: string;
+  value: number | null;
+  unit: string;
+  currency?: string;
+  periodEnd: string;
+  sourceRefId: string;
+  valueEur?: number | null;
+  fxRate?: number | null;
+  fxDate?: string | null;
+  fxSource?: string | null;
+};
+
+type ReportPage = {
+  name: string;
+  metrics: ReportMetric[];
+  objective: string[];
+  subjective: string[];
+  flags?: { flagKey: string; severity: string; label?: string }[];
+};
+
 type ReportRow = {
   title: string;
   kind: string;
@@ -8,19 +30,60 @@ type ReportRow = {
 };
 
 export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xlsx") {
-  const pages = (report.body as { pages?: { name: string; metrics: { key: string; value: number | null; unit: string; periodEnd: string; sourceRefId: string }[]; objective: string[]; subjective: string[] }[] })
-    .pages ?? [];
+  const pages = ((report.body as { pages?: ReportPage[] }).pages ?? []) as ReportPage[];
   if (fmt === "xlsx") {
     const wb = new ExcelJS.Workbook();
     const sheet = wb.addWorksheet("Book");
     sheet.addRow(["Venture OS report — confirmed book facts only"]);
     sheet.addRow([report.title, String(report.createdAt)]);
     sheet.addRow([]);
-    sheet.addRow(["Company", "Metric", "Value", "Unit", "Period end", "source_ref"]);
+    sheet.addRow([
+      "Company",
+      "Metric",
+      "Value",
+      "Unit",
+      "Currency",
+      "EUR",
+      "FX rate",
+      "FX date",
+      "FX source",
+      "Period end",
+      "source_ref",
+    ]);
     for (const p of pages) {
       for (const m of p.metrics) {
-        sheet.addRow([p.name, m.key, m.value ?? "—", m.unit, m.periodEnd, m.sourceRefId]);
+        const triple = Boolean(m.fxRate && m.fxDate && m.fxSource);
+        sheet.addRow([
+          p.name,
+          m.label ?? m.key,
+          m.value ?? "—",
+          m.unit,
+          m.currency ?? "",
+          triple ? (m.valueEur ?? "—") : "—",
+          triple ? m.fxRate : "—",
+          triple ? m.fxDate : "—",
+          triple ? m.fxSource : "—",
+          m.periodEnd || "—",
+          m.sourceRefId || "—",
+        ]);
       }
+    }
+    const notes = wb.addWorksheet("Commentary");
+    notes.addRow(["Company", "Lane", "Body"]);
+    for (const p of pages) {
+      for (const line of p.objective) notes.addRow([p.name, "objective", line]);
+      for (const line of p.subjective) notes.addRow([p.name, "subjective", line]);
+      if (!p.objective.length) notes.addRow([p.name, "objective", "—"]);
+      if (!p.subjective.length) notes.addRow([p.name, "subjective", "—"]);
+    }
+    const flags = wb.addWorksheet("Flags");
+    flags.addRow(["Company", "Flag", "Severity"]);
+    for (const p of pages) {
+      if (!p.flags?.length) {
+        flags.addRow([p.name, "—", "—"]);
+        continue;
+      }
+      for (const f of p.flags) flags.addRow([p.name, f.label ?? f.flagKey, f.severity]);
     }
     const buf = Buffer.from(await wb.xlsx.writeBuffer());
     return {
@@ -43,26 +106,60 @@ export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xls
       fontSize: 12,
     });
     for (const p of pages) {
-      const s = pptx.addSlide();
-      s.addText(p.name, { x: 0.5, y: 0.3, w: 9, fontSize: 18, fontFace: "Georgia" });
-      const rows = p.metrics.slice(0, 10).map((m) => [
-        { text: m.key },
-        { text: m.value === null || m.value === undefined ? "—" : String(m.value) },
-        { text: m.unit },
-        { text: m.periodEnd },
-      ]);
-      if (rows.length) {
-        s.addTable([[{ text: "Metric" }, { text: "Value" }, { text: "Unit" }, { text: "Period" }], ...rows], {
+      const chunks: ReportMetric[][] = [];
+      for (let i = 0; i < p.metrics.length; i += 12) chunks.push(p.metrics.slice(i, i + 12));
+      if (!chunks.length) chunks.push([]);
+      chunks.forEach((chunk, idx) => {
+        const s = pptx.addSlide();
+        s.addText(idx === 0 ? p.name : `${p.name} (metrics ${idx + 1})`, {
           x: 0.5,
-          y: 0.9,
+          y: 0.3,
           w: 9,
-          colW: [2.5, 2, 2, 2.5],
-          border: { pt: 0.5, color: "D4CFC3" },
-          fontSize: 11,
+          fontSize: 18,
+          fontFace: "Georgia",
         });
+        const rows = chunk.map((m) => [
+          { text: m.label ?? m.key },
+          { text: m.value === null || m.value === undefined ? "—" : String(m.value) },
+          { text: m.unit },
+          { text: m.periodEnd || "—" },
+        ]);
+        if (rows.length) {
+          s.addTable([[{ text: "Metric" }, { text: "Value" }, { text: "Unit" }, { text: "Period" }], ...rows], {
+            x: 0.5,
+            y: 0.9,
+            w: 9,
+            colW: [2.5, 2, 2, 2.5],
+            border: { pt: 0.5, color: "D4CFC3" },
+            fontSize: 11,
+          });
+        } else {
+          s.addText("No confirmed metrics.", { x: 0.5, y: 1.2, w: 9, fontSize: 12 });
+        }
+      });
+      const note = pptx.addSlide();
+      note.addText(`${p.name} — commentary`, { x: 0.5, y: 0.3, w: 9, fontSize: 16, fontFace: "Georgia" });
+      note.addText(`Objective:\n${p.objective.join("\n") || "—"}`, {
+        x: 0.5,
+        y: 0.9,
+        w: 9,
+        h: 2.4,
+        fontSize: 12,
+      });
+      note.addText(`Subjective:\n${p.subjective.join("\n") || "—"}`, {
+        x: 0.5,
+        y: 3.5,
+        w: 9,
+        h: 2.2,
+        fontSize: 12,
+        color: "3D3A5C",
+      });
+      if (p.flags?.length) {
+        note.addText(
+          `Open flags: ${p.flags.map((f) => `${f.label ?? f.flagKey} (${f.severity})`).join("; ")}`,
+          { x: 0.5, y: 5.8, w: 9, fontSize: 11 },
+        );
       }
-      s.addText(`Objective: ${p.objective[0] ?? "—"}`, { x: 0.5, y: 4.6, w: 9, fontSize: 10 });
-      s.addText(`Subjective: ${p.subjective[0] ?? "—"}`, { x: 0.5, y: 5.1, w: 9, fontSize: 10, color: "3D3A5C" });
     }
     const buf = (await pptx.write({ outputType: "nodebuffer" })) as Buffer;
     return {
@@ -71,7 +168,6 @@ export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xls
       filename: `${slug(report.title)}.pptx`,
     };
   }
-  // Minimal PDF (text stream) — real file that opens.
   const lines = [
     report.title,
     `Generated ${String(report.createdAt)} from confirmed book facts.`,
@@ -81,7 +177,14 @@ export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xls
   for (const p of pages) {
     lines.push(p.name);
     for (const m of p.metrics) {
-      lines.push(`  ${m.key}: ${m.value ?? "—"} ${m.unit}  (${m.periodEnd})  src:${m.sourceRefId}`);
+      const triple = Boolean(m.fxRate && m.fxDate && m.fxSource);
+      const fx = triple ? ` EUR ${m.valueEur ?? "—"} @ ${m.fxRate} on ${m.fxDate} (${m.fxSource})` : " EUR —";
+      lines.push(
+        `  ${m.label ?? m.key}: ${m.value ?? "—"} ${m.unit} ${m.currency ?? ""}  (${m.periodEnd || "—"})  src:${m.sourceRefId || "—"}${fx}`,
+      );
+    }
+    if (p.flags?.length) {
+      lines.push(`  Flags: ${p.flags.map((f) => `${f.label ?? f.flagKey} ${f.severity}`).join("; ")}`);
     }
     lines.push(`  Objective: ${p.objective.join(" / ") || "—"}`);
     lines.push(`  Subjective: ${p.subjective.join(" / ") || "—"}`);
@@ -95,23 +198,39 @@ function slug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "report";
 }
 
-function simplePdf(text: string): Buffer {
+/** Multi-page text PDF. Does not silently drop lines after 60. */
+export function simplePdf(text: string): Buffer {
   const escaped = text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-  const wrapped = escaped.split("\n").slice(0, 60);
-  const cmds = [`BT /F1 10 Tf 40 780 Td`];
-  wrapped.forEach((line, i) => {
-    if (i === 0) cmds.push(`(${line}) Tj`);
-    else cmds.push(`T* (${line}) Tj`);
+  const all = escaped.split("\n");
+  const PER = 58;
+  const pages: string[][] = [];
+  for (let i = 0; i < all.length; i += PER) pages.push(all.slice(i, i + PER));
+  if (!pages.length) pages.push([""]);
+
+  const objects: string[] = [];
+  objects.push("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj");
+  const pageNums = pages.map((_, i) => 4 + i * 2);
+  const contentNums = pages.map((_, i) => 5 + i * 2);
+  objects.push(
+    `2 0 obj << /Type /Pages /Kids [${pageNums.map((n) => `${n} 0 R`).join(" ")}] /Count ${pages.length} >> endobj`,
+  );
+  objects.push("3 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >> endobj");
+  pages.forEach((pl, i) => {
+    objects.push(
+      `${pageNums[i]} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${contentNums[i]} 0 R /Resources << /Font << /F1 3 0 R >> >> >> endobj`,
+    );
+    const cmds = [`BT /F1 10 Tf 40 780 Td 12 TL`];
+    pl.forEach((line, j) => {
+      if (j === 0) cmds.push(`(${line}) Tj`);
+      else cmds.push(`T* (${line}) Tj`);
+    });
+    cmds.push("ET");
+    const stream = cmds.join("\n");
+    objects.push(
+      `${contentNums[i]} 0 obj << /Length ${Buffer.byteLength(stream)} >> stream\n${stream}\nendstream endobj`,
+    );
   });
-  cmds.push("ET");
-  const stream = cmds.join("\n");
-  const objects = [
-    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
-    "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
-    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj",
-    `4 0 obj << /Length ${Buffer.byteLength(stream)} >> stream\n${stream}\nendstream endobj`,
-    "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >> endobj",
-  ];
+
   let offset = 9;
   const xref = ["0000000000 65535 f "];
   let body = "%PDF-1.4\n";

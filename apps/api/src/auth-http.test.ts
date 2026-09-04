@@ -224,6 +224,83 @@ describe.skipIf(!url)("auth & org HTTP", () => {
     expect((await json<{ error: string }>(rpt)).error).toBe("company_id_required");
   });
 
+  it("patches company profile, funds, curated one-pager, and refuses undated IRR", async () => {
+    const created = await app.request("/api/companies", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ name: `Edit ${stamp}`, sector: "consumer", stage: "Seed" }),
+    });
+    expect(created.status).toBe(200);
+    const co = await json<{ company: { id: string } }>(created);
+
+    const patch = await app.request(`/api/companies/${co.company.id}`, {
+      method: "PATCH",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ legalName: "Edit Pvt Ltd", fyStartMonth: 7, unitHint: "crore" }),
+    });
+    expect(patch.status).toBe(200);
+    expect((await json<{ company: { legalName: string; fyStartMonth: number } }>(patch)).company.legalName).toBe(
+      "Edit Pvt Ltd",
+    );
+
+    const detail = await json<{
+      positions: { id: string; fundName: string }[];
+      company: { fyStartMonth: number; unitHint: string | null };
+    }>(await app.request(`/api/companies/${co.company.id}`, { headers: { cookie: adminCookie } }));
+    expect(detail.company.fyStartMonth).toBe(7);
+    expect(detail.company.unitHint).toBe("crore");
+    expect(detail.positions.length).toBeGreaterThan(0);
+
+    const fund = await app.request("/api/funds", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ name: `Euro ${stamp}`, vintage: 2024, currency: "EUR", committedCapital: 10 }),
+    });
+    expect(fund.status).toBe(200);
+    const funded = await json<{ fund: { currency: string; vintage: number } }>(fund);
+    expect(funded.fund.currency).toBe("EUR");
+    expect(funded.fund.vintage).toBe(2024);
+
+    const cmp = await json<{ stages: string[]; sectors: string[]; labels: Record<string, string> }>(
+      await app.request("/api/compare?stage=Seed&metrics=cash,cac", { headers: { cookie: adminCookie } }),
+    );
+    expect(cmp.stages).toContain("Seed");
+    expect(cmp.labels.cac).toBe("CAC");
+
+    const rpt = await app.request("/api/reports", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ kind: "one_pager", companyId: co.company.id }),
+    });
+    expect(rpt.status).toBe(200);
+    const draft = await json<{ report: { body: { pages: { metrics: { key: string }[] }[] } } }>(rpt);
+    expect(draft.report.body.pages[0]?.metrics.map((m) => m.key)).toEqual([
+      "net_revenue",
+      "gross_margin_pct",
+      "cash",
+      "burn",
+      "runway_months",
+    ]);
+
+    const nav = await json<{ irr: number | null }>(
+      await app.request("/api/nav", { headers: { cookie: adminCookie } }),
+    );
+    expect(nav.irr).toBeNull();
+
+    const bad = await app.request("/api/nav/marks", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({
+        positionId: detail.positions[0]!.id,
+        asOf: "2026-09-01",
+        method: "made_up",
+        value: 1,
+      }),
+    });
+    expect(bad.status).toBe(400);
+    expect((await json<{ error: string }>(bad)).error).toBe("invalid_mark_method");
+  });
+
   it("forbids viewer writes", async () => {
     const vEmail = `viewer-${stamp}@alpha.test`;
     const inv = await app.request("/api/invitations", {

@@ -21,9 +21,15 @@ type Flag = {
   sourceRefIds?: string[] | null;
   note?: string | null;
   snoozedUntil?: string | null;
+  detectedAt?: string | null;
 };
 
-type FlagPayload = { flags: Flag[]; sourceRefs: { id: string; documentId: string }[] };
+type FlagPayload = {
+  flags: Flag[];
+  companies?: { id: string; name: string }[];
+  catalog?: { key: string; label: string }[];
+  sourceRefs: { id: string; documentId: string }[];
+};
 
 const TABS = ["open", "snoozed", "muted"] as const;
 
@@ -37,14 +43,38 @@ function evidenceLine(ev: Record<string, unknown>) {
 export default function FlagsPage() {
   const { canWrite } = useBookSession();
   const [status, setStatus] = useState<(typeof TABS)[number]>("open");
+  const [severity, setSeverity] = useState("");
+  const [companyId, setCompanyId] = useState("");
+  const [flagKey, setFlagKey] = useState("");
   const [data, setData] = useState<FlagPayload>({ flags: [], sourceRefs: [] });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   function load(next = status) {
-    api<FlagPayload>(`/api/flags?status=${next}`).then(setData);
+    const p = new URLSearchParams({ status: next });
+    if (severity) p.set("severity", severity);
+    if (companyId) p.set("companyId", companyId);
+    if (flagKey) p.set("flagKey", flagKey);
+    api<FlagPayload>(`/api/flags?${p.toString()}`)
+      .then(setData)
+      .catch((e: Error) => setErr(e.message));
   }
   useEffect(() => {
     load();
-  }, [status]);
+  }, [status, severity, companyId, flagKey]);
+
+  async function recompute() {
+    setBusy(true);
+    setErr("");
+    try {
+      await api("/api/flags/refresh", { method: "POST", body: "{}" });
+      load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Recompute failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <Shell>
@@ -53,15 +83,20 @@ export default function FlagsPage() {
           <h1>Flags</h1>
           <p className="lede">
             Catalog detectors only. Each row carries evidence. Missing inputs do not fire a flag. Mute and snooze
-            survive recompute. Unmute returns a row to open.
+            survive recompute. Unmute returns a row to open. Thresholds are catalog defaults (Settings).
           </p>
         </div>
         {canWrite && (
-          <button className="btn ghost" onClick={() => api("/api/flags/refresh", { method: "POST", body: "{}" }).then(() => load())}>
-            Recompute
+          <button className="btn ghost" onClick={recompute} disabled={busy}>
+            {busy ? "Recomputing…" : "Recompute"}
           </button>
         )}
       </div>
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
       <div className="row" style={{ margin: "12px 0" }}>
         {TABS.map((s) => (
           <button
@@ -74,10 +109,34 @@ export default function FlagsPage() {
           </button>
         ))}
       </div>
+      <div className="row" style={{ marginBottom: 12, flexWrap: "wrap" }}>
+        <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
+          <option value="">All severities</option>
+          <option value="high">high</option>
+          <option value="med">med</option>
+          <option value="low">low</option>
+        </select>
+        <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
+          <option value="">All companies</option>
+          {(data.companies ?? []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <select value={flagKey} onChange={(e) => setFlagKey(e.target.value)} aria-label="Flag">
+          <option value="">All flags</option>
+          {(data.catalog ?? FLAG_CATALOG).map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </div>
       {data.flags.length === 0 ? (
         <div className="empty">
           {status === "open"
-            ? "No open flags — either the book is quiet, or headlines are still unconfirmed."
+            ? "No open flags for this filter — either the book is quiet, or headlines are still unconfirmed."
             : `No ${status} flags.`}
         </div>
       ) : (
@@ -87,6 +146,7 @@ export default function FlagsPage() {
               <th>Company</th>
               <th>Flag</th>
               <th>Severity</th>
+              <th>Detected</th>
               <th>Evidence</th>
               <th></th>
             </tr>
@@ -99,6 +159,7 @@ export default function FlagsPage() {
                 </td>
                 <td>{flagLabel(f.flagKey)}</td>
                 <td className={`sev-${f.severity}`}>{f.severity}</td>
+                <td className="lede">{f.detectedAt ? new Date(f.detectedAt).toLocaleString() : "—"}</td>
                 <td className="lede">
                   {evidenceLine(f.evidence ?? {})}
                   <div className="row" style={{ marginTop: 4 }}>
