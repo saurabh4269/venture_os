@@ -261,8 +261,15 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
     setMsg("");
     try {
       const fd = new FormData(e.currentTarget);
-      await api(`/api/companies/${companyId}/documents`, { method: "POST", body: fd });
-      setMsg("Queued. Confirm extracts in Inbox — nothing auto-posts.");
+      const res = await api<{ duplicateOf?: string | null }>(`/api/companies/${companyId}/documents`, {
+        method: "POST",
+        body: fd,
+      });
+      setMsg(
+        res.duplicateOf
+          ? "Same SHA as a vault file already stored. Extract queued — confirm Inbox; do not treat as a new source."
+          : "Queued. Confirm extracts in Inbox — nothing auto-posts.",
+      );
       onDone();
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Upload failed");

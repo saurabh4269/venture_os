@@ -456,10 +456,12 @@ routes.post("/api/companies/:id/documents", async (c) => {
   }
   const kind = String(form["kind"] ?? "mis");
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 180);
+  const digest = sha256(buf);
   const key = `${s.orgId}/${companyId}/${Date.now()}-${safeName}`;
   const store = createObjectStore();
   await store.put(key, buf, file.type || "application/octet-stream");
-  const doc = await withOrg(s.orgId, async (tx) => {
+  const { doc, duplicateOf } = await withOrg(s.orgId, async (tx) => {
+    const [prior] = await tx.select().from(documents).where(eq(documents.sha256, digest));
     const [row] = await tx
       .insert(documents)
       .values({
@@ -469,14 +471,14 @@ routes.post("/api/companies/:id/documents", async (c) => {
         filename: safeName,
         storageKey: key,
         mime: file.type || "application/octet-stream",
-        sha256: sha256(buf),
+        sha256: digest,
         uploadedBy: s.user.id,
       })
       .returning();
-    return row;
+    return { doc: row, duplicateOf: prior && prior.id !== row?.id ? prior.id : null };
   });
   const mode = await enqueueParse(s.orgId, doc!.id);
-  return c.json({ document: doc, parse: mode });
+  return c.json({ document: doc, parse: mode, duplicateOf });
 });
 
 routes.get("/api/documents", async (c) => {

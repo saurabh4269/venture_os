@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Shell } from "@/components/Shell";
+import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
 export default function NewCompanyPage() {
+  const { canWrite } = useBookSession();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
@@ -42,10 +43,13 @@ export default function NewCompanyPage() {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("kind", "mis");
-      const res = await api<{ document: { id: string } }>(`/api/companies/${companyId}/documents`, {
-        method: "POST",
-        body: fd,
-      });
+      const res = await api<{ document: { id: string }; duplicateOf?: string | null }>(
+        `/api/companies/${companyId}/documents`,
+        { method: "POST", body: fd },
+      );
+      if (res.duplicateOf) {
+        setMsg("This file matches a vault object already stored (same SHA). Extract still queued — confirm Inbox, do not treat as a new source.");
+      }
       setStep(3);
       pollParse(res.document.id);
     } catch (err) {
@@ -65,6 +69,14 @@ export default function NewCompanyPage() {
       if (st === "done" || st === "error") return;
       await new Promise((ok) => setTimeout(ok, 800));
     }
+  }
+
+  if (!canWrite) {
+    return (
+      <Shell>
+        <p className="lede">Viewers cannot add companies. Ask an Org Admin.</p>
+      </Shell>
+    );
   }
 
   return (
@@ -118,7 +130,10 @@ export default function NewCompanyPage() {
       {step === 2 && (
         <form onSubmit={upload} style={{ marginTop: 16 }}>
           <p className="lede">OneDrive folder connect is not connected. Upload the first MIS / board pack.</p>
-          <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" />
+          <label className="field">
+            First file (MIS / board pack)
+            <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First file" />
+          </label>
           <div className="row" style={{ marginTop: 12 }}>
             <button className="btn" type="submit" disabled={busy}>
               {busy ? "Uploading…" : "Upload and extract"}
