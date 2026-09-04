@@ -13,8 +13,9 @@ import {
   navBridge,
   defaultPriorAsOf,
   rollupNav,
-  runwayMonths,
+  latestByMetricPeriod,
   runwayMonthsFromBurns,
+  seriesFor,
   toEur,
   toInrCrore,
   tokenize,
@@ -169,6 +170,42 @@ routes.get("/api/members", async (c) => {
       };
     }),
   });
+});
+
+routes.patch("/api/members/:id", async (c) => {
+  const s = requireAdmin(c);
+  const id = c.req.param("id");
+  const body = (await c.req.json().catch(() => ({}))) as { role?: string };
+  if (!body.role || !(ROLES as readonly string[]).includes(body.role)) {
+    throw new HttpError(400, "invalid_role");
+  }
+  const db = getDb();
+  const rows = await db.select().from(member).where(eq(member.organizationId, s.orgId));
+  const target = rows.find((m) => m.id === id);
+  if (!target) throw new HttpError(404, "not_found");
+  const admins = rows.filter((m) => isAdminRole(m.role));
+  if (admins.length === 1 && admins[0]?.id === id && !isAdminRole(body.role)) {
+    throw new HttpError(400, "last_admin");
+  }
+  await db.update(member).set({ role: body.role }).where(eq(member.id, id));
+  const [row] = await db.select().from(member).where(eq(member.id, id));
+  return c.json({ member: row });
+});
+
+routes.delete("/api/members/:id", async (c) => {
+  const s = requireAdmin(c);
+  const id = c.req.param("id");
+  const db = getDb();
+  const rows = await db.select().from(member).where(eq(member.organizationId, s.orgId));
+  const target = rows.find((m) => m.id === id);
+  if (!target) throw new HttpError(404, "not_found");
+  const admins = rows.filter((m) => isAdminRole(m.role));
+  if (admins.length === 1 && admins[0]?.id === id) throw new HttpError(400, "last_admin");
+  if (target.userId === s.user.id && isAdminRole(target.role) && admins.length === 1) {
+    throw new HttpError(400, "last_admin");
+  }
+  await db.delete(member).where(eq(member.id, id));
+  return c.json({ ok: true });
 });
 
 routes.get("/api/invitations", async (c) => {
@@ -364,12 +401,13 @@ routes.get("/api/companies/:id", async (c) => {
     const refs = docIds.length
       ? await tx.select().from(sourceRefs).where(inArray(sourceRefs.documentId, docIds))
       : [];
-    const cash = metrics.find((m) => m.metricKey === "cash");
-    const burn = metrics.find((m) => m.metricKey === "burn");
-    const burns = metrics.filter((m) => m.metricKey === "burn").slice(0, 3);
+    const cashS = seriesFor(metrics, "cash");
+    const burnS = seriesFor(metrics, "burn");
+    const cash = cashS[0];
+    const burn = burnS[0];
     const r = runwayMonthsFromBurns(
       cash?.valueNumeric ?? null,
-      burns.map((b) => b.valueNumeric ?? null),
+      burnS.slice(0, 3).map((b) => b.valueNumeric ?? null),
     );
     const kpi = {
       cash: formatDualDisplay({
@@ -530,11 +568,14 @@ routes.post("/api/inbox/:id/confirm", async (c) => {
       const sourceKind = documentKindToCommentarySource(doc?.kind);
       const gate = assertCommentaryLane(lane, sourceKind);
       if (!gate.ok) throw new HttpError(400, gate.code);
+      const periodStart = String(patch.periodStart ?? proposed.periodStart ?? "");
+      const periodEnd = String(patch.periodEnd ?? proposed.periodEnd ?? "");
+      if (!periodStart || !periodEnd) throw new HttpError(400, "period_required");
       await tx.insert(commentary).values({
         orgId: s.orgId,
         companyId: item.companyId!,
-        periodStart: String(patch.periodStart ?? proposed.periodStart ?? "2025-04-01"),
-        periodEnd: String(patch.periodEnd ?? proposed.periodEnd ?? "2026-03-31"),
+        periodStart,
+        periodEnd,
         lane,
         body: String(proposed.body ?? proposed.excerpt ?? ""),
         sourceRefId: item.sourceRefId,
@@ -651,17 +692,16 @@ routes.get("/api/command", async (c) => {
     const refs = await tx.select().from(sourceRefs);
 
     const coverage = cos.map((co) => {
-      const cm = metrics
-        .filter((m) => m.companyId === co.id)
-        .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1));
-      const cash = cm.find((m) => m.metricKey === "cash");
-      const burn = cm.find((m) => m.metricKey === "burn");
+      const cm = metrics.filter((m) => m.companyId === co.id);
+      const cashS = seriesFor(cm, "cash");
+      const burnS = seriesFor(cm, "burn");
+      const cash = cashS[0];
+      const burn = burnS[0];
       const p = pos.find((x) => x.companyId === co.id);
       const mark = p ? mk.filter((m) => m.positionId === p.id).sort((a, b) => (a.asOf < b.asOf ? 1 : -1))[0] : null;
-      const burns = cm.filter((m) => m.metricKey === "burn").slice(0, 3);
       const r = runwayMonthsFromBurns(
         cash?.valueNumeric ?? null,
-        burns.map((b) => b.valueNumeric ?? null),
+        burnS.slice(0, 3).map((b) => b.valueNumeric ?? null),
       );
       return {
         company: co,
@@ -689,7 +729,7 @@ routes.get("/api/command", async (c) => {
           value: r,
           sourceRefId: cash?.sourceRefId && burn?.sourceRefId ? cash.sourceRefId : null,
         }),
-        lastMis: cash?.periodEnd ?? cm[0]?.periodEnd ?? null,
+        lastMis: cash?.periodEnd ?? latestByMetricPeriod(cm)[0]?.periodEnd ?? null,
         ownershipPct: p?.ownershipPct ?? null,
         lastMark: mark?.value ?? null,
         lastMarkAsOf: mark?.asOf ?? null,
@@ -746,12 +786,22 @@ routes.get("/api/command", async (c) => {
 
 routes.get("/api/flags", async (c) => {
   const s = requireOrg(c);
-  const rows = await withOrg(s.orgId, async (tx) => {
-    const flags = await tx.select().from(flagEvents).where(eq(flagEvents.status, "open"));
+  const status = c.req.query("status") ?? "open";
+  const allowed = ["open", "snoozed", "muted", "cleared", "all"];
+  if (!allowed.includes(status)) throw new HttpError(400, "invalid_status");
+  const data = await withOrg(s.orgId, async (tx) => {
+    const flags =
+      status === "all"
+        ? await tx.select().from(flagEvents)
+        : await tx.select().from(flagEvents).where(eq(flagEvents.status, status));
     const cos = await tx.select().from(companies);
-    return flags.map((f) => ({ ...f, companyName: cos.find((c) => c.id === f.companyId)?.name }));
+    const refs = await tx.select().from(sourceRefs);
+    return {
+      flags: flags.map((f) => ({ ...f, companyName: cos.find((co) => co.id === f.companyId)?.name })),
+      sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
+    };
   });
-  return c.json({ flags: rows });
+  return c.json(data);
 });
 
 routes.post("/api/flags/refresh", async (c) => {
@@ -793,6 +843,21 @@ routes.post("/api/flags/:id/mute", async (c) => {
   return c.json({ flag: row });
 });
 
+routes.post("/api/flags/:id/unmute", async (c) => {
+  const s = requireWrite(c);
+  const id = c.req.param("id");
+  const row = await withOrg(s.orgId, async (tx) => {
+    await tx
+      .update(flagEvents)
+      .set({ status: "open", snoozedUntil: null })
+      .where(eq(flagEvents.id, id));
+    const [f] = await tx.select().from(flagEvents).where(eq(flagEvents.id, id));
+    return f;
+  });
+  if (!row) throw new HttpError(404, "not_found");
+  return c.json({ flag: row });
+});
+
 routes.get("/api/nav", async (c) => {
   const s = requireOrg(c);
   const asOf = c.req.query("asOf") ?? new Date().toISOString().slice(0, 10);
@@ -802,6 +867,7 @@ routes.get("/api/nav", async (c) => {
     const mk = await tx.select().from(marks);
     const cos = await tx.select().from(companies);
     const fundRows = await tx.select().from(funds);
+    const refs = await tx.select().from(sourceRefs);
     const rows = pos.map((p) => {
       const history = mk.filter((m) => m.positionId === p.id).sort((a, b) => (a.asOf < b.asOf ? 1 : -1));
       const mark = history.find((m) => m.asOf <= asOf);
@@ -839,7 +905,15 @@ routes.get("/api/nav", async (c) => {
     }));
     const rollup = rollupNav(asOf, currentMarks);
     const bridge = navBridge(asOf, currentMarks, priorMarks);
-    return { asOf, priorAsOf, rollup, bridge, positions: rows, moic: rollup.moic };
+    return {
+      asOf,
+      priorAsOf,
+      rollup,
+      bridge,
+      positions: rows,
+      moic: rollup.moic,
+      sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
+    };
   });
   return c.json(data);
 });
@@ -887,41 +961,44 @@ routes.get("/api/compare", async (c) => {
     .split(",")
     .map((k) => k.trim())
     .filter(Boolean);
-  const companyIds = (c.req.query("companyIds") ?? "")
-    .split(",")
-    .map((k) => k.trim())
-    .filter(Boolean);
+  const companyIdsRaw = c.req.query("companyIds");
+  const companyIds =
+    companyIdsRaw === undefined
+      ? null
+      : companyIdsRaw
+          .split(",")
+          .map((k) => k.trim())
+          .filter(Boolean);
   const periodEnd = c.req.query("periodEnd") ?? "";
   const data = await withOrg(s.orgId, async (tx) => {
     const allCos = await tx.select().from(companies);
-    const cos = companyIds.length ? allCos.filter((c) => companyIds.includes(c.id)) : allCos;
+    const cos = companyIds === null ? allCos : allCos.filter((co) => companyIds.includes(co.id));
     const metrics = await tx.select().from(metricValues);
+    const refs = await tx.select().from(sourceRefs);
     const matrix = cos.map((co) => {
-      const cells: Record<string, ReturnType<typeof factOrDash> & { periodEnd?: string | null }> = {};
+      const cells: Record<string, ReturnType<typeof factOrDash> & { periodEnd?: string | null; sourceRefId?: string | null }> = {};
+      const cm = metrics.filter((m) => m.companyId === co.id);
       for (const key of keys) {
         if (key === "runway_months") {
-          const cash = metrics.filter((m) => m.companyId === co.id && m.metricKey === "cash").sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
-          const burn = metrics.filter((m) => m.companyId === co.id && m.metricKey === "burn").sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
+          const cashS = seriesFor(cm, "cash");
+          const burnS = seriesFor(cm, "burn");
+          const cash = periodEnd ? cashS.find((m) => m.periodEnd === periodEnd) : cashS[0];
           const r = runwayMonthsFromBurns(
             cash?.valueNumeric ?? null,
-            metrics
-              .filter((m) => m.companyId === co.id && m.metricKey === "burn")
-              .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))
-              .slice(0, 3)
-              .map((b) => b.valueNumeric ?? null),
+            burnS.slice(0, 3).map((b) => b.valueNumeric ?? null),
           );
           cells[key] = {
             ...factOrDash({
               value: r,
-              sourceRefId: cash?.sourceRefId && burn?.sourceRefId ? cash.sourceRefId : null,
+              sourceRefId: cash?.sourceRefId && burnS[0]?.sourceRefId ? cash.sourceRefId : null,
             }),
             periodEnd: cash?.periodEnd,
+            sourceRefId: cash?.sourceRefId ?? null,
           };
           continue;
         }
-        const m = metrics
-          .filter((x) => x.companyId === co.id && x.metricKey === key && (!periodEnd || x.periodEnd === periodEnd))
-          .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
+        const series = seriesFor(cm, key);
+        const m = periodEnd ? series.find((x) => x.periodEnd === periodEnd) : series[0];
         cells[key] = {
           ...formatDualDisplay({
             value: m?.valueNumeric ?? null,
@@ -939,7 +1016,13 @@ routes.get("/api/compare", async (c) => {
       return { company: co, cells };
     });
     const periods = [...new Set(metrics.map((m) => m.periodEnd))].sort().reverse();
-    return { metrics: keys, matrix, companies: allCos.map((c) => ({ id: c.id, name: c.name })), periods };
+    return {
+      metrics: keys,
+      matrix,
+      companies: allCos.map((co) => ({ id: co.id, name: co.name })),
+      periods,
+      sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
+    };
   });
   return c.json(data);
 });
@@ -954,15 +1037,22 @@ routes.post("/api/ask", async (c) => {
       .filter((t) => t.length > 1)
       .join(" | ") || "venture";
   let evidence = await withOrg(s.orgId, async (tx) => {
-    const chunks = await tx.execute(sql`
-      select id, document_id, source_ref_id, body,
-             ts_rank(tsv, to_tsquery('english', ${tsQuery})) as rank
-      from document_chunks
-      where org_id = ${s.orgId}
-        and tsv @@ to_tsquery('english', ${tsQuery})
-      order by rank desc
-      limit 8
-    `);
+    let chunkRows: { document_id: string; source_ref_id: string | null; body: string; rank: number }[] = [];
+    try {
+      const chunks = await tx.execute(sql`
+        select id, document_id, source_ref_id, body,
+               ts_rank(tsv, to_tsquery('english', ${tsQuery})) as rank
+        from document_chunks
+        where org_id = ${s.orgId}
+          and tsv @@ to_tsquery('english', ${tsQuery})
+        order by rank desc
+        limit 8
+      `);
+      chunkRows =
+        (chunks as unknown as { document_id: string; source_ref_id: string | null; body: string; rank: number }[]) ?? [];
+    } catch {
+      chunkRows = [];
+    }
     const facts = await tx.select().from(metricValues);
     const refs = await tx.select().from(sourceRefs);
     const factHits = facts
@@ -980,7 +1070,6 @@ routes.post("/api/ask", async (c) => {
         };
       })
       .filter((f) => f.documentId);
-    const chunkRows = (chunks as unknown as { document_id: string; source_ref_id: string | null; body: string; rank: number }[]) ?? [];
     return {
       chunks: chunkRows.map((r) => ({
         documentId: r.document_id,
@@ -1087,7 +1176,7 @@ routes.post("/api/reports", async (c) => {
     const notes = await tx.select().from(commentary);
     const target = body.companyId ? cos.filter((x) => x.id === body.companyId) : cos;
     const pages = target.map((co) => {
-      const cm = metrics.filter((m) => m.companyId === co.id);
+      const cm = latestByMetricPeriod(metrics.filter((m) => m.companyId === co.id));
       const obj = notes.filter((n) => n.companyId === co.id && n.lane === "objective");
       const sub = notes.filter((n) => n.companyId === co.id && n.lane === "subjective");
       return {
@@ -1162,10 +1251,7 @@ routes.get("/api/settings", async (c) => {
 });
 
 routes.post("/api/settings", async (c) => {
-  const s = requireWrite(c);
-  if (!isAdminRole(s.role)) {
-    throw new HttpError(403, "org_admin_required");
-  }
+  const s = requireAdmin(c);
   const body = await c.req.json<{ fyStartMonth?: number; baseCurrency?: string; displayCurrency?: string }>();
   const row = await withOrg(s.orgId, async (tx) => {
     await tx

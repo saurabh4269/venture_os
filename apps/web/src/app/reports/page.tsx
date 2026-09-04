@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shell } from "@/components/Shell";
+import { Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
 
 type Report = { id: string; title: string; kind: string; createdAt: string };
 
 export default function ReportsPage() {
+  const { canWrite } = useBookSession();
   const [rows, setRows] = useState<Report[]>([]);
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState("");
@@ -42,6 +43,7 @@ export default function ReportsPage() {
           {err}
         </p>
       )}
+      {canWrite && (
       <div className="row">
         <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
           <option value="">Select company (required for one-pager)</option>
@@ -58,6 +60,7 @@ export default function ReportsPage() {
           Draft portfolio
         </button>
       </div>
+      )}
       {rows.length === 0 ? (
         <div className="empty" style={{ marginTop: 18 }}>
           No drafts yet.

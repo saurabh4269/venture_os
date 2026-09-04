@@ -1,15 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Fact, Shell } from "@/components/Shell";
-import { api } from "@/lib/api";
+import { api, sourcePathFor } from "@/lib/api";
 
-type Cell = { display: string; isFact: boolean; periodEnd?: string | null; fxNote?: string | null };
+type Cell = {
+  display: string;
+  isFact: boolean;
+  periodEnd?: string | null;
+  fxNote?: string | null;
+  sourceRefId?: string | null;
+};
 type Data = {
   metrics: string[];
   matrix: { company: { id: string; name: string }; cells: Record<string, Cell> }[];
   companies?: { id: string; name: string }[];
   periods?: string[];
+  sourceRefs?: { id: string; documentId: string }[];
 };
 
 const ALL_METRICS = ["net_revenue", "cash", "burn", "gross_margin_pct", "runway_months", "headcount", "plan_revenue"];
@@ -18,15 +26,16 @@ export default function ComparePage() {
   const [data, setData] = useState<Data | null>(null);
   const [metrics, setMetrics] = useState<string[]>(["net_revenue", "cash", "burn", "gross_margin_pct", "runway_months"]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [touched, setTouched] = useState(false);
   const [periodEnd, setPeriodEnd] = useState("");
 
   const qs = useMemo(() => {
     const p = new URLSearchParams();
     p.set("metrics", metrics.join(","));
-    if (selected.length) p.set("companyIds", selected.join(","));
+    if (touched) p.set("companyIds", selected.join(","));
     if (periodEnd) p.set("periodEnd", periodEnd);
     return p.toString();
-  }, [metrics, selected, periodEnd]);
+  }, [metrics, selected, periodEnd, touched]);
 
   useEffect(() => {
     api<Data>(`/api/compare?${qs}`).then(setData);
@@ -36,7 +45,12 @@ export default function ComparePage() {
     setMetrics((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
   }
   function toggleCo(id: string) {
-    setSelected((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+    const allIds = data?.companies?.map((c) => c.id) ?? [];
+    setTouched(true);
+    setSelected((cur) => {
+      const current = !touched || cur.length === 0 ? allIds : cur;
+      return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    });
   }
 
   function exportCsv() {
@@ -55,10 +69,15 @@ export default function ComparePage() {
     a.click();
   }
 
+  const checked = (id: string) => {
+    if (!touched) return true;
+    return selected.includes(id);
+  };
+
   return (
     <Shell>
       <h1>Compare</h1>
-      <p className="lede">Confirmed book only. No imputation, no peer-average fill. Empty cell is —.</p>
+      <p className="lede">Confirmed book only. No imputation, no peer-average fill. Empty cell is —. Uncheck a name to exclude it.</p>
       <div className="row" style={{ margin: "12px 0" }}>
         <label className="field">
           Period
@@ -78,8 +97,7 @@ export default function ComparePage() {
       <div className="row">
         {(data?.companies ?? []).map((c) => (
           <label key={c.id} className="lede">
-            <input type="checkbox" checked={selected.includes(c.id) || selected.length === 0} onChange={() => toggleCo(c.id)} />{" "}
-            {c.name}
+            <input type="checkbox" checked={checked(c.id)} onChange={() => toggleCo(c.id)} /> {c.name}
           </label>
         ))}
       </div>
@@ -105,10 +123,16 @@ export default function ComparePage() {
           <tbody>
             {data.matrix.map((row) => (
               <tr key={row.company.id}>
-                <td>{row.company.name}</td>
+                <td>
+                  <Link href={`/companies/${row.company.id}`}>{row.company.name}</Link>
+                </td>
                 {data.metrics.map((m) => (
                   <td key={m}>
-                    <Fact {...row.cells[m]!} note={row.cells[m]?.fxNote} />
+                    <Fact
+                      {...row.cells[m]!}
+                      note={row.cells[m]?.fxNote}
+                      sourcePath={sourcePathFor(data.sourceRefs, row.cells[m]?.sourceRefId)}
+                    />
                   </td>
                 ))}
               </tr>

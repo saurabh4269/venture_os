@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shell } from "@/components/Shell";
+import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 
@@ -21,6 +21,7 @@ type Invite = {
 };
 
 export default function SettingsPage() {
+  const { isAdmin, canWrite } = useBookSession();
   const [data, setData] = useState<Settings | null>(null);
   const [funds, setFunds] = useState<{ id: string; name: string }[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -88,7 +89,13 @@ export default function SettingsPage() {
       <h1>Organisation</h1>
       <p className="lede">FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists.</p>
 
-      {data?.settings && (
+      {data?.settings && !isAdmin && (
+        <p className="lede">
+          FY starts month {data.settings.fyStartMonth}. Base {data.settings.baseCurrency} · display{" "}
+          {data.settings.displayCurrency}. Org Admin can change this.
+        </p>
+      )}
+      {data?.settings && isAdmin && (
         <form
           className="row"
           onSubmit={async (e) => {
@@ -138,6 +145,7 @@ export default function SettingsPage() {
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
+              {isAdmin && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -145,7 +153,43 @@ export default function SettingsPage() {
               <tr key={m.id}>
                 <td>{m.name ?? "—"}</td>
                 <td>{m.email ?? "—"}</td>
-                <td>{roleLabel(m.role)}</td>
+                <td>
+                  {isAdmin ? (
+                    <select
+                      aria-label={`Role for ${m.email ?? m.name}`}
+                      value={m.role}
+                      onChange={async (e) => {
+                        await api(`/api/members/${m.id}`, {
+                          method: "PATCH",
+                          body: JSON.stringify({ role: e.target.value }),
+                        });
+                        load();
+                      }}
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABEL[r]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    roleLabel(m.role)
+                  )}
+                </td>
+                {isAdmin && (
+                  <td>
+                    <button
+                      type="button"
+                      className="btn ghost sm"
+                      onClick={async () => {
+                        await api(`/api/members/${m.id}`, { method: "DELETE" });
+                        load();
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -157,6 +201,7 @@ export default function SettingsPage() {
         Locked roles: Org Admin, Partner, Analyst, Viewer. Viewer cannot write or confirm. There is no email
         sender yet — copy the accept link.
       </p>
+      {isAdmin ? (
       <form onSubmit={inviteMember} className="row">
         <label className="sr-only" htmlFor="invite-email">
           Invite email
@@ -188,6 +233,9 @@ export default function SettingsPage() {
           {busy ? "Creating…" : "Create invite"}
         </button>
       </form>
+      ) : (
+        <p className="lede">Only Org Admin can create invites.</p>
+      )}
       {inviteErr && (
         <p className="sev-high" role="alert">
           {inviteErr}
@@ -258,6 +306,7 @@ export default function SettingsPage() {
           ))}
         </ul>
       )}
+      {canWrite && (
       <form onSubmit={addFund} className="row">
         <label className="sr-only" htmlFor="fund-name">
           Fund name
@@ -273,6 +322,7 @@ export default function SettingsPage() {
           Add fund
         </button>
       </form>
+      )}
     </Shell>
   );
 }

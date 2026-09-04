@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { dpi, latestByPeriod, moic, runwayMonths, runwayMonthsFromBurns, tvpi, xirr } from "./metrics.js";
+import {
+  dpi,
+  latestByMetricPeriod,
+  latestByPeriod,
+  moic,
+  runwayMonths,
+  runwayMonthsFromBurns,
+  seriesFor,
+  tvpi,
+  xirr,
+} from "./metrics.js";
 import { add, formatMissing, sumComplete, sumPresent } from "./nulls.js";
 
 describe("null semantics", () => {
@@ -58,6 +68,30 @@ describe("runway", () => {
     ]);
     expect(series[0]?.valueNumeric).toBe(1.1);
     expect(series[1]?.valueNumeric).toBe(0.8);
+  });
+
+  it("latestByMetricPeriod keeps cash and burn in the same period", () => {
+    const rows = latestByMetricPeriod([
+      { metricKey: "cash", periodEnd: "2026-08-31", version: 1, valueNumeric: 10 },
+      { metricKey: "burn", periodEnd: "2026-08-31", version: 1, valueNumeric: 2 },
+      { metricKey: "cash", periodEnd: "2026-08-31", version: 2, valueNumeric: 12 },
+    ]);
+    expect(rows.find((r) => r.metricKey === "cash")?.valueNumeric).toBe(12);
+    expect(rows.find((r) => r.metricKey === "burn")?.valueNumeric).toBe(2);
+  });
+
+  it("seriesFor is restatement-safe before a 3-mo burn slice", () => {
+    const burns = seriesFor(
+      [
+        { metricKey: "burn", periodEnd: "2026-08-31", version: 1, valueNumeric: 9 },
+        { metricKey: "burn", periodEnd: "2026-08-31", version: 2, valueNumeric: 2 },
+        { metricKey: "burn", periodEnd: "2026-07-31", version: 1, valueNumeric: 2 },
+        { metricKey: "cash", periodEnd: "2026-08-31", version: 1, valueNumeric: 12 },
+      ],
+      "burn",
+    );
+    expect(burns.map((b) => b.valueNumeric)).toEqual([2, 2]);
+    expect(runwayMonthsFromBurns(12, burns.slice(0, 3).map((b) => b.valueNumeric ?? null))).toBe(6);
   });
 });
 

@@ -2,8 +2,8 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Fact, Shell } from "@/components/Shell";
-import { api, apiUrl, downloadAuthed } from "@/lib/api";
+import { Fact, Shell, useBookSession } from "@/components/Shell";
+import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
 
 type Data = {
   company: { id: string; name: string; stage: string | null; sector: string | null; country: string | null };
@@ -36,6 +36,7 @@ type Data = {
 
 export default function CompanyPage() {
   const { id } = useParams<{ id: string }>();
+  const { canWrite } = useBookSession();
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState("");
   const [lane, setLane] = useState<"objective" | "subjective">("subjective");
@@ -81,10 +82,8 @@ export default function CompanyPage() {
     load();
   }
 
-  function hrefFor(refId?: string | null) {
-    if (!refId || !data) return undefined;
-    const ref = data.sourceRefs.find((r) => r.id === refId);
-    return ref ? apiUrl(`/api/documents/${ref.documentId}/file`) : undefined;
+  function pathFor(refId?: string | null) {
+    return sourcePathFor(data?.sourceRefs, refId);
   }
 
   if (err) {
@@ -115,19 +114,19 @@ export default function CompanyPage() {
           <div className="card">
             <div className="k">Cash</div>
             <div className="v">
-              <Fact {...data.kpi.cash} href={hrefFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
+              <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
             </div>
           </div>
           <div className="card">
             <div className="k">Burn</div>
             <div className="v">
-              <Fact {...data.kpi.burn} href={hrefFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
+              <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
             </div>
           </div>
           <div className="card">
             <div className="k">Runway (3-mo burn)</div>
             <div className="v">
-              <Fact {...data.kpi.runway} href={hrefFor(data.kpi.runway.sourceRefId)} />
+              <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} />
             </div>
           </div>
         </div>
@@ -159,7 +158,7 @@ export default function CompanyPage() {
                     <Fact
                       display={m.valueNumeric == null ? "—" : `${m.valueNumeric} ${m.unit} ${m.currency}`}
                       isFact={Boolean(m.sourceRefId && m.valueNumeric != null)}
-                      href={ref ? apiUrl(`/api/documents/${ref.documentId}/file`) : undefined}
+                      sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
                       note={
                         m.fxRate && m.fxDate && m.fxSource
                           ? `${m.valueEur == null ? "—" : `EUR ${m.valueEur}`} @ ${m.fxRate} on ${m.fxDate} (${m.fxSource})`
@@ -200,6 +199,7 @@ export default function CompanyPage() {
         </div>
       </div>
 
+      {canWrite && (
       <form onSubmit={addNote} style={{ marginTop: 16 }} className="field">
         <label className="field">
           Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
@@ -224,6 +224,7 @@ export default function CompanyPage() {
           Save note
         </button>
       </form>
+      )}
 
       <h2>Flags</h2>
       <ul>
@@ -246,7 +247,7 @@ export default function CompanyPage() {
           </li>
         ))}
       </ul>
-      <Upload companyId={id} onDone={load} />
+      {canWrite && <Upload companyId={id} onDone={load} />}
     </Shell>
   );
 }

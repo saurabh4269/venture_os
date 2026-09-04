@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shell } from "@/components/Shell";
+import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
 type Item = {
@@ -26,7 +26,9 @@ type Item = {
 const STATUSES = ["pending", "confirmed", "edited", "rejected"] as const;
 
 export default function InboxPage() {
+  const { canWrite } = useBookSession();
   const [items, setItems] = useState<Item[]>([]);
+  const [periodEdits, setPeriodEdits] = useState<Record<string, { start: string; end: string }>>({});
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("pending");
   const [unitEdits, setUnitEdits] = useState<Record<string, string>>({});
   const [valueEdits, setValueEdits] = useState<Record<string, string>>({});
@@ -66,8 +68,8 @@ export default function InboxPage() {
           currency: item.proposed.currency,
           valueNumeric,
           metricKey: item.proposed.metricKey,
-          periodStart: item.proposed.periodStart,
-          periodEnd: item.proposed.periodEnd,
+          periodStart: periodEdits[item.id]?.start || item.proposed.periodStart,
+          periodEnd: periodEdits[item.id]?.end || item.proposed.periodEnd,
           note: notes[item.id] || undefined,
         }),
       });
@@ -140,7 +142,7 @@ export default function InboxPage() {
                 <td>{i.kind}</td>
                 <td>
                   {i.proposed.metricKey ?? i.proposed.label}{" "}
-                  {status === "pending" ? (
+                  {status === "pending" && canWrite ? (
                     <input
                       aria-label="Value"
                       style={{ width: 80 }}
@@ -153,11 +155,45 @@ export default function InboxPage() {
                       {i.proposed.currency}
                     </strong>
                   )}
-                  <div className="lede">
-                    {i.proposed.periodStart} – {i.proposed.periodEnd}
-                  </div>
+                  {status === "pending" && canWrite ? (
+                    <div className="row" style={{ marginTop: 4 }}>
+                      <input
+                        type="date"
+                        aria-label="Period start"
+                        value={periodEdits[i.id]?.start ?? i.proposed.periodStart ?? ""}
+                        onChange={(e) =>
+                          setPeriodEdits({
+                            ...periodEdits,
+                            [i.id]: {
+                              start: e.target.value,
+                              end: periodEdits[i.id]?.end ?? i.proposed.periodEnd ?? "",
+                            },
+                          })
+                        }
+                      />
+                      <input
+                        type="date"
+                        aria-label="Period end"
+                        value={periodEdits[i.id]?.end ?? i.proposed.periodEnd ?? ""}
+                        onChange={(e) =>
+                          setPeriodEdits({
+                            ...periodEdits,
+                            [i.id]: {
+                              start: periodEdits[i.id]?.start ?? i.proposed.periodStart ?? "",
+                              end: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="lede">
+                      {i.proposed.periodStart} – {i.proposed.periodEnd}
+                    </div>
+                  )}
                   {(i.kind === "unit_ambiguity" || !i.proposed.unit || i.proposed.unit === "unknown") &&
-                    status === "pending" && (
+                    status === "pending" &&
+                    canWrite && (
                       <select
                         value={unitEdits[i.id] ?? ""}
                         onChange={(e) => setUnitEdits({ ...unitEdits, [i.id]: e.target.value })}
@@ -171,7 +207,7 @@ export default function InboxPage() {
                         <option value="percent">percent</option>
                       </select>
                     )}
-                  {status === "pending" && (
+                  {status === "pending" && canWrite && (
                     <input
                       placeholder="Correction note (if you edit)"
                       value={notes[i.id] ?? ""}
@@ -188,7 +224,7 @@ export default function InboxPage() {
                 </td>
                 <td>{Math.round(i.confidence * 100)}%</td>
                 <td className="row">
-                  {status === "pending" && (
+                  {status === "pending" && canWrite && (
                     <>
                       <button className="btn sm" disabled={busy === i.id} onClick={() => confirm(i)}>
                         Confirm

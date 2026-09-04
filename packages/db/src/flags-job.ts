@@ -1,4 +1,4 @@
-import { detectAll, latestByPeriod } from "@venture-os/core";
+import { detectAll, latestByPeriod, seriesFor } from "@venture-os/core";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { withOrg } from "./client.js";
 import { companies, flagEvents, marks, metricValues, positions } from "./schema.js";
@@ -16,13 +16,12 @@ export async function runFlagJob(orgId: string, companyId?: string) {
         .where(eq(metricValues.companyId, co.id))
         .orderBy(desc(metricValues.periodEnd), desc(metricValues.version));
 
-      const byKey = (key: string) => latestByPeriod(metrics.filter((m) => m.metricKey === key));
-      const cashS = byKey("cash");
-      const burnS = byKey("burn");
-      const gmS = byKey("gross_margin_pct");
-      const revS = byKey("net_revenue");
-      const planS = byKey("plan_revenue");
-      const hcS = byKey("headcount");
+      const cashS = seriesFor(metrics, "cash");
+      const burnS = seriesFor(metrics, "burn");
+      const gmS = seriesFor(metrics, "gross_margin_pct");
+      const revS = seriesFor(metrics, "net_revenue");
+      const planS = seriesFor(metrics, "plan_revenue");
+      const hcS = seriesFor(metrics, "headcount");
 
       const lastMis = latestByPeriod(metrics.filter((m) => m.lane === "objective"))[0];
       const pos = await tx.select().from(positions).where(eq(positions.companyId, co.id));

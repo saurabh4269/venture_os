@@ -8,9 +8,27 @@ export const ROLE_LABEL: Record<Role, string> = {
   viewer: "Viewer",
 };
 
+export function canonicalizeRole(role: string | null | undefined): Role | null {
+  if (!role) return null;
+  if ((ROLES as readonly string[]).includes(role)) return role as Role;
+  if (role === "owner" || role === "admin") return "org_admin";
+  if (role === "member") return "analyst";
+  return null;
+}
+
+export function isWriteRole(role: string | null | undefined): boolean {
+  const r = canonicalizeRole(role);
+  return r === "org_admin" || r === "partner" || r === "analyst";
+}
+
+export function isAdminRole(role: string | null | undefined): boolean {
+  return canonicalizeRole(role) === "org_admin";
+}
+
 export function roleLabel(role: string | null | undefined): string {
+  const r = canonicalizeRole(role);
+  if (r) return ROLE_LABEL[r];
   if (!role) return "—";
-  if ((ROLES as readonly string[]).includes(role)) return ROLE_LABEL[role as Role];
   return role.replaceAll("_", " ");
 }
 

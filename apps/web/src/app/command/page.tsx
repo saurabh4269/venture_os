@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Fact, Shell } from "@/components/Shell";
-import { api, apiUrl } from "@/lib/api";
+import { Fact, Shell, useBookSession } from "@/components/Shell";
+import { api, sourcePathFor } from "@/lib/api";
 
 type Pulse = {
   pulse: {
@@ -33,6 +33,7 @@ type Pulse = {
 };
 
 export default function CommandPage() {
+  const { canWrite } = useBookSession();
   const [data, setData] = useState<Pulse | null>(null);
   const [err, setErr] = useState("");
 
@@ -42,16 +43,13 @@ export default function CommandPage() {
       .catch((e: Error) => setErr(e.message));
   }, []);
 
-  function hrefFor(refId?: string | null) {
-    if (!refId || !data) return undefined;
-    const ref = data.sourceRefs.find((r) => r.id === refId);
-    return ref ? apiUrl(`/api/documents/${ref.documentId}/file`) : undefined;
-  }
-
   return (
     <Shell>
       <h1>Command</h1>
-      <p className="lede">Fund pulse and what needs a look. Headlines are booked facts only. Missing is — , never 0. Runway uses cash / average of the last three reported burns.</p>
+      <p className="lede">
+        Fund pulse and what needs a look. Headlines are booked facts only. Missing is — , never 0. Runway uses cash /
+        average of the last three reported burns. Click a chip to download the source (session cookie).
+      </p>
       {err && <p className="sev-high">{err}</p>}
       {!data && !err && <p className="lede">Loading the book…</p>}
       {data && (
@@ -104,8 +102,14 @@ export default function CommandPage() {
           {data.pulse.companies === 0 && (
             <div className="empty">
               No companies in this organisation.{" "}
-              <Link href="/companies/new">Add a company</Link> and upload the first MIS — about 15 minutes to a live
-              Command row.
+              {canWrite ? (
+                <>
+                  <Link href="/companies/new">Add a company</Link> and upload the first MIS — about 15 minutes to a live
+                  Command row.
+                </>
+              ) : (
+                "Ask an Org Admin to add the first name."
+              )}
             </div>
           )}
 
@@ -134,18 +138,27 @@ export default function CommandPage() {
                     <td>{r.ownershipPct == null ? "—" : `${(r.ownershipPct * 100).toFixed(1)}%`}</td>
                     <td>{r.lastMis ?? "—"}</td>
                     <td>
-                      <Fact {...r.cash} note={r.cash.fxNote} href={hrefFor(r.cash.sourceRefId)} />
+                      <Fact
+                        {...r.cash}
+                        note={r.cash.fxNote}
+                        sourcePath={sourcePathFor(data.sourceRefs, r.cash.sourceRefId)}
+                      />
                     </td>
                     <td>
-                      <Fact {...r.burn} note={r.burn.fxNote} href={hrefFor(r.burn.sourceRefId)} />
+                      <Fact
+                        {...r.burn}
+                        note={r.burn.fxNote}
+                        sourcePath={sourcePathFor(data.sourceRefs, r.burn.sourceRefId)}
+                      />
                     </td>
                     <td>
-                      <Fact {...r.runway} href={hrefFor(r.runway.sourceRefId)} />
+                      <Fact {...r.runway} sourcePath={sourcePathFor(data.sourceRefs, r.runway.sourceRefId)} />
                     </td>
                     <td>
                       <Fact
                         display={r.lastMark == null ? "—" : String(r.lastMark)}
                         isFact={Boolean(r.lastMarkSource && r.lastMark != null)}
+                        sourcePath={sourcePathFor(data.sourceRefs, r.lastMarkSource)}
                       />
                     </td>
                     <td>{r.openFlags}</td>

@@ -28,6 +28,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return undefined as T;
 }
 
+export function sourcePathFor(
+  refs: { id: string; documentId: string }[] | undefined,
+  refId?: string | null,
+): string | undefined {
+  if (!refId || !refs?.length) return undefined;
+  const ref = refs.find((r) => r.id === refId);
+  return ref ? `/api/documents/${ref.documentId}/file` : undefined;
+}
+
 /** Cookie-auth download. Bare <a href> to the API drops the session. */
 export async function downloadAuthed(path: string, filename?: string) {
   const res = await fetch(`${API}${path}`, { credentials: "include" });

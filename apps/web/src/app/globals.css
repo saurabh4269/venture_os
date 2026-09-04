@@ -92,6 +92,10 @@ td { padding: 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
   cursor: pointer;
 }
 .chip.unfact { color: var(--muted); cursor: default; }
+button.chip {
+  font: inherit;
+  color: inherit;
+}
 .btn {
   background: var(--forest);
   color: #f6f3ea;

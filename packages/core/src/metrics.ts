@@ -18,14 +18,40 @@ export function runwayMonthsFromBurns(cash: Num, burns: Num[]): Num {
   return runwayMonths(cash, avg);
 }
 
-/** One current row per period (highest version wins). Sorted periodEnd desc. */
-export function latestByPeriod<T extends { periodEnd: string; version?: number }>(rows: T[]): T[] {
+function periodKey(periodEnd: string | Date): string {
+  return typeof periodEnd === "string" ? periodEnd.slice(0, 10) : periodEnd.toISOString().slice(0, 10);
+}
+
+/** One current row per period (highest version wins). Sorted periodEnd desc. Filter to one metric first. */
+export function latestByPeriod<T extends { periodEnd: string | Date; version?: number }>(rows: T[]): T[] {
   const map = new Map<string, T>();
   for (const r of rows) {
-    const cur = map.get(r.periodEnd);
-    if (!cur || (r.version ?? 0) > (cur.version ?? 0)) map.set(r.periodEnd, r);
+    const key = periodKey(r.periodEnd);
+    const cur = map.get(key);
+    if (!cur || (r.version ?? 0) > (cur.version ?? 0)) map.set(key, r);
   }
-  return [...map.values()].sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1));
+  return [...map.values()].sort((a, b) => (periodKey(a.periodEnd) < periodKey(b.periodEnd) ? 1 : -1));
+}
+
+/** One current row per metric+period. Safe on mixed-key series (reports, company book). */
+export function latestByMetricPeriod<
+  T extends { metricKey: string; periodEnd: string | Date; version?: number },
+>(rows: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const r of rows) {
+    const key = `${r.metricKey}\t${periodKey(r.periodEnd)}`;
+    const cur = map.get(key);
+    if (!cur || (r.version ?? 0) > (cur.version ?? 0)) map.set(key, r);
+  }
+  return [...map.values()].sort((a, b) => (periodKey(a.periodEnd) < periodKey(b.periodEnd) ? 1 : -1));
+}
+
+/** Restatement-safe series for one metric key, newest period first. */
+export function seriesFor<T extends { metricKey: string; periodEnd: string | Date; version?: number }>(
+  rows: T[],
+  key: string,
+): T[] {
+  return latestByPeriod(rows.filter((r) => r.metricKey === key));
 }
 
 /** MOIC = total value / cost. */

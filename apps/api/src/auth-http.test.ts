@@ -169,6 +169,38 @@ describe.skipIf(!url)("auth & org HTTP", () => {
     expect(emails).not.toContain(otherEmail);
   });
 
+  it("lets org_admin change a member role and refuses demoting the last admin", async () => {
+    const listed = await json<{ members: { id: string; email: string | null; role: string }[] }>(
+      await app.request("/api/members", { headers: { cookie: adminCookie } }),
+    );
+    const adminRow = listed.members.find((m) => m.email === adminEmail);
+    const analystRow = listed.members.find((m) => m.email === inviteEmail);
+    expect(adminRow && analystRow).toBeTruthy();
+
+    const demote = await app.request(`/api/members/${adminRow!.id}`, {
+      method: "PATCH",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ role: "viewer" }),
+    });
+    expect(demote.status).toBe(400);
+    expect((await json<{ error: string }>(demote)).error).toBe("last_admin");
+
+    const promote = await app.request(`/api/members/${analystRow!.id}`, {
+      method: "PATCH",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ role: "partner" }),
+    });
+    expect(promote.status).toBe(200);
+    expect((await json<{ member: { role: string } }>(promote)).member.role).toBe("partner");
+
+    const foreign = await app.request(`/api/members/${analystRow!.id}`, {
+      method: "PATCH",
+      headers: { ...origin, cookie: otherCookie },
+      body: JSON.stringify({ role: "viewer" }),
+    });
+    expect(foreign.status).toBe(404);
+  });
+
   it("logs out and then blocks the book", async () => {
     const out = await app.request("/api/logout", {
       method: "POST",

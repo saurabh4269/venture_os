@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Fact, Shell } from "@/components/Shell";
-import { api } from "@/lib/api";
+import { Fact, Shell, useBookSession } from "@/components/Shell";
+import { api, sourcePathFor } from "@/lib/api";
 
 type Nav = {
   asOf: string;
@@ -37,20 +37,24 @@ type Nav = {
     priorMark: number | null;
     priorMarkAsOf: string | null;
   }[];
+  sourceRefs?: { id: string; documentId: string }[];
+};
+
+const emptyForm = {
+  positionId: "",
+  value: "",
+  method: "last_round",
+  rationale: "",
+  fxRate: "",
+  fxDate: "",
+  fxSource: "",
 };
 
 export default function NavPage() {
+  const { canWrite } = useBookSession();
   const [data, setData] = useState<Nav | null>(null);
   const [asOf, setAsOf] = useState(new Date().toISOString().slice(0, 10));
-  const [form, setForm] = useState({
-    positionId: "",
-    value: "",
-    method: "last_round",
-    rationale: "",
-    fxRate: "",
-    fxDate: "",
-    fxSource: "",
-  });
+  const [form, setForm] = useState(emptyForm);
 
   function load() {
     api<Nav>(`/api/nav?asOf=${asOf}`).then(setData);
@@ -61,6 +65,7 @@ export default function NavPage() {
 
   async function addMark(e: React.FormEvent) {
     e.preventDefault();
+    const triple = form.fxRate && form.fxDate && form.fxSource;
     await api("/api/nav/marks", {
       method: "POST",
       body: JSON.stringify({
@@ -69,11 +74,12 @@ export default function NavPage() {
         method: form.method,
         value: form.value === "" ? null : Number(form.value),
         rationale: form.rationale,
-        fxRate: form.fxRate === "" ? undefined : Number(form.fxRate),
-        fxDate: form.fxDate || undefined,
-        fxSource: form.fxSource || undefined,
+        fxRate: triple ? Number(form.fxRate) : undefined,
+        fxDate: triple ? form.fxDate : undefined,
+        fxSource: triple ? form.fxSource : undefined,
       }),
     });
+    setForm(emptyForm);
     load();
   }
 
@@ -83,7 +89,7 @@ export default function NavPage() {
       <p className="lede">
         Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
         rollup is complete. The bridge is period-over-period from booked marks — missing priors stay unexplained, never
-        zero-filled. Approval / period lock is later.
+        zero-filled. Dual EUR only with a complete FX triple. Approval / period lock is later.
       </p>
       <label className="field" style={{ maxWidth: 200 }}>
         As-of
@@ -134,7 +140,7 @@ export default function NavPage() {
                 </thead>
                 <tbody>
                   {data.bridge.lines.map((l) => (
-                    <tr key={l.companyName}>
+                    <tr key={`${l.companyName}-${l.currentAsOf}`}>
                       <td>{l.companyName}</td>
                       <td>{l.priorMark ?? "—"}</td>
                       <td>{l.currentMark ?? "—"}</td>
@@ -166,6 +172,7 @@ export default function NavPage() {
                     <Fact
                       display={p.mark == null ? "—" : String(p.mark)}
                       isFact={Boolean(p.sourceRefId && p.mark != null)}
+                      sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)}
                     />
                   </td>
                   <td>{p.markAsOf ?? "—"}</td>
@@ -174,48 +181,55 @@ export default function NavPage() {
               ))}
             </tbody>
           </table>
-          <form onSubmit={addMark} className="row" style={{ marginTop: 16 }}>
-            <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required>
-              <option value="">Position</option>
-              {data.positions.map((p) => (
-                <option key={p.position.id} value={p.position.id}>
-                  {p.companyName}
-                </option>
-              ))}
-            </select>
-            <input
-              placeholder="Mark value"
-              value={form.value}
-              onChange={(e) => setForm({ ...form, value: e.target.value })}
-            />
-            <input
-              placeholder="Method"
-              value={form.method}
-              onChange={(e) => setForm({ ...form, method: e.target.value })}
-            />
-            <input
-              placeholder="Rationale"
-              value={form.rationale}
-              onChange={(e) => setForm({ ...form, rationale: e.target.value })}
-            />
-            <input
-              placeholder="FX rate"
-              value={form.fxRate}
-              onChange={(e) => setForm({ ...form, fxRate: e.target.value })}
-            />
-            <input
-              type="date"
-              aria-label="FX date"
-              value={form.fxDate}
-              onChange={(e) => setForm({ ...form, fxDate: e.target.value })}
-            />
-            <input
-              placeholder="FX source"
-              value={form.fxSource}
-              onChange={(e) => setForm({ ...form, fxSource: e.target.value })}
-            />
-            <button className="btn sm">Add mark</button>
-          </form>
+          {canWrite && (
+            <form onSubmit={addMark} className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
+              <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required>
+                <option value="">Position</option>
+                {data.positions.map((p) => (
+                  <option key={p.position.id} value={p.position.id}>
+                    {p.companyName}
+                  </option>
+                ))}
+              </select>
+              <input
+                placeholder="Mark value"
+                value={form.value}
+                onChange={(e) => setForm({ ...form, value: e.target.value })}
+              />
+              <input
+                placeholder="Method"
+                value={form.method}
+                onChange={(e) => setForm({ ...form, method: e.target.value })}
+              />
+              <input
+                placeholder="Rationale"
+                value={form.rationale}
+                onChange={(e) => setForm({ ...form, rationale: e.target.value })}
+              />
+              <input
+                placeholder="FX rate"
+                value={form.fxRate}
+                onChange={(e) => setForm({ ...form, fxRate: e.target.value })}
+                aria-label="FX rate"
+              />
+              <input
+                type="date"
+                value={form.fxDate}
+                onChange={(e) => setForm({ ...form, fxDate: e.target.value })}
+                aria-label="FX date"
+              />
+              <input
+                placeholder="FX source"
+                value={form.fxSource}
+                onChange={(e) => setForm({ ...form, fxSource: e.target.value })}
+                aria-label="FX source"
+              />
+              <button className="btn sm">Add mark</button>
+            </form>
+          )}
+          {canWrite && (
+            <p className="lede">EUR conversion is stored only when rate, date, and source are all set. Incomplete triples are refused, not invented.</p>
+          )}
         </>
       )}
     </Shell>

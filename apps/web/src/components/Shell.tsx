@@ -2,10 +2,30 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { createContext, useContext, useEffect, useState } from "react";
+import { api, downloadAuthed } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
-import { roleLabel } from "@/lib/roles";
+import { isAdminRole, isWriteRole, roleLabel } from "@/lib/roles";
+
+type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean };
+const BookSessionContext = createContext<BookSession>({ me: null, canWrite: false, isAdmin: false });
+
+/** Safe above or below <Shell>: pages mount as the parent, so we also read /api/me. */
+export function useBookSession(): BookSession {
+  const ctx = useContext(BookSessionContext);
+  const [me, setMe] = useState<Me | null>(ctx.me);
+  useEffect(() => {
+    if (ctx.me) {
+      setMe(ctx.me);
+      return;
+    }
+    api<Me>("/api/me")
+      .then(setMe)
+      .catch(() => setMe(null));
+  }, [ctx.me]);
+  const role = ctx.me?.role ?? me?.role ?? null;
+  return { me: ctx.me ?? me, canWrite: isWriteRole(role), isAdmin: isAdminRole(role) };
+}
 
 const NAV = [
   { href: "/command", label: "Command" },
@@ -143,7 +163,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
-        {children}
+        <BookSessionContext.Provider
+          value={{ me, canWrite: isWriteRole(me?.role), isAdmin: isAdminRole(me?.role) }}
+        >
+          {children}
+        </BookSessionContext.Provider>
       </div>
     </div>
   );
@@ -152,20 +176,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
 export function Fact({
   display,
   isFact,
-  href,
+  sourcePath,
   note,
 }: {
   display: string;
   isFact: boolean;
-  href?: string;
+  sourcePath?: string;
   note?: string | null;
 }) {
   const chip = !isFact ? (
     <span className="chip unfact">—</span>
-  ) : href ? (
-    <a className="chip" href={href} title="Open source">
+  ) : sourcePath ? (
+    <button type="button" className="chip" title="Open source" onClick={() => downloadAuthed(sourcePath)}>
       {display}
-    </a>
+    </button>
   ) : (
     <span className="chip">{display}</span>
   );
