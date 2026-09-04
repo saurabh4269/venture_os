@@ -913,6 +913,12 @@ routes.get("/api/nav", async (c) => {
       positions: rows,
       moic: rollup.moic,
       sourceRefs: refs.map((r) => ({ id: r.id, documentId: r.documentId })),
+      documents: (await tx.select().from(documents)).map((d) => ({
+        id: d.id,
+        filename: d.filename,
+        kind: d.kind,
+        companyId: d.companyId,
+      })),
     };
   });
   return c.json(data);
@@ -928,11 +934,27 @@ routes.post("/api/nav/marks", async (c) => {
     currency?: string;
     rationale?: string;
     sourceRefId?: string;
+    documentId?: string;
     fxRate?: number;
     fxDate?: string;
     fxSource?: string;
   }>();
   const row = await withOrg(s.orgId, async (tx) => {
+    let sourceRefId = body.sourceRefId ?? null;
+    if (!sourceRefId && body.documentId) {
+      const [doc] = await tx.select().from(documents).where(eq(documents.id, body.documentId));
+      if (!doc) throw new HttpError(404, "document_not_found");
+      const [ref] = await tx
+        .insert(sourceRefs)
+        .values({
+          orgId: s.orgId,
+          documentId: doc.id,
+          locator: { kind: "file" },
+          excerpt: doc.filename,
+        })
+        .returning();
+      sourceRefId = ref?.id ?? null;
+    }
     const [m] = await tx
       .insert(marks)
       .values({
@@ -943,7 +965,7 @@ routes.post("/api/nav/marks", async (c) => {
         value: body.value,
         currency: body.currency ?? "INR",
         rationale: body.rationale,
-        sourceRefId: body.sourceRefId,
+        sourceRefId,
         fxRate: body.fxRate,
         fxDate: body.fxDate,
         fxSource: body.fxSource,
@@ -1039,12 +1061,16 @@ routes.post("/api/ask", async (c) => {
   let evidence = await withOrg(s.orgId, async (tx) => {
     let chunkRows: { document_id: string; source_ref_id: string | null; body: string; rank: number }[] = [];
     try {
+      const companyClause = body.companyId
+        ? sql`and document_id in (select id from documents where company_id = ${body.companyId} and org_id = ${s.orgId})`
+        : sql``;
       const chunks = await tx.execute(sql`
         select id, document_id, source_ref_id, body,
                ts_rank(tsv, to_tsquery('english', ${tsQuery})) as rank
         from document_chunks
         where org_id = ${s.orgId}
           and tsv @@ to_tsquery('english', ${tsQuery})
+          ${companyClause}
         order by rank desc
         limit 8
       `);

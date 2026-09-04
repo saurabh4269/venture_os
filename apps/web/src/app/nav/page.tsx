@@ -26,7 +26,7 @@ type Nav = {
     }[];
   };
   positions: {
-    position: { id: string; costBasis: number | null; ownershipPct: number | null };
+    position: { id: string; companyId?: string; costBasis: number | null; ownershipPct: number | null };
     companyName: string;
     fundName: string;
     cost: number | null;
@@ -38,6 +38,7 @@ type Nav = {
     priorMarkAsOf: string | null;
   }[];
   sourceRefs?: { id: string; documentId: string }[];
+  documents?: { id: string; filename: string; kind: string; companyId: string | null }[];
 };
 
 const emptyForm = {
@@ -48,6 +49,7 @@ const emptyForm = {
   fxRate: "",
   fxDate: "",
   fxSource: "",
+  documentId: "",
 };
 
 export default function NavPage() {
@@ -77,6 +79,7 @@ export default function NavPage() {
         fxRate: triple ? Number(form.fxRate) : undefined,
         fxDate: triple ? form.fxDate : undefined,
         fxSource: triple ? form.fxSource : undefined,
+        documentId: form.documentId || undefined,
       }),
     });
     setForm(emptyForm);
@@ -224,6 +227,23 @@ export default function NavPage() {
                 onChange={(e) => setForm({ ...form, fxSource: e.target.value })}
                 aria-label="FX source"
               />
+              <select
+                value={form.documentId}
+                onChange={(e) => setForm({ ...form, documentId: e.target.value })}
+                aria-label="Mark memo"
+              >
+                <option value="">Memo (optional — chip stays — without a file)</option>
+                {(data.documents ?? [])
+                  .filter((d) => {
+                    const pos = data.positions.find((p) => p.position.id === form.positionId);
+                    return !pos?.position.companyId || d.companyId === pos.position.companyId;
+                  })
+                  .map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.filename} ({d.kind.replaceAll("_", " ")})
+                    </option>
+                  ))}
+              </select>
               <button className="btn sm">Add mark</button>
             </form>
           )}

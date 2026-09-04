@@ -201,6 +201,58 @@ describe.skipIf(!url)("auth & org HTTP", () => {
     expect(foreign.status).toBe(404);
   });
 
+  it("requires companyId on one-pager and returns company-scoped sourceRefs", async () => {
+    const created = await app.request("/api/companies", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ name: `Co ${stamp}`, sector: "saas", stage: "Seed", country: "IN" }),
+    });
+    expect(created.status).toBe(200);
+    const co = await json<{ company: { id: string } }>(created);
+    const get = await app.request(`/api/companies/${co.company.id}`, { headers: { cookie: adminCookie } });
+    expect(get.status).toBe(200);
+    const detail = await json<{ sourceRefs: unknown[]; kpi: { cash: { display: string } } }>(get);
+    expect(Array.isArray(detail.sourceRefs)).toBe(true);
+    expect(detail.kpi.cash.display).toBe("—");
+
+    const rpt = await app.request("/api/reports", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ kind: "one_pager" }),
+    });
+    expect(rpt.status).toBe(400);
+    expect((await json<{ error: string }>(rpt)).error).toBe("company_id_required");
+  });
+
+  it("forbids viewer writes", async () => {
+    const vEmail = `viewer-${stamp}@alpha.test`;
+    const inv = await app.request("/api/invitations", {
+      method: "POST",
+      headers: { ...origin, cookie: adminCookie },
+      body: JSON.stringify({ email: vEmail, role: "viewer" }),
+    });
+    expect(inv.status).toBe(200);
+    const invBody = await json<{ invitation: { id: string } }>(inv);
+    const signup = await app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: origin,
+      body: JSON.stringify({ email: vEmail, password: "password123", name: "View" }),
+    });
+    const cookie = cookieFrom(signup);
+    const acc = await app.request(`/api/invitations/${invBody.invitation.id}/accept`, {
+      method: "POST",
+      headers: { ...origin, cookie },
+    });
+    expect(acc.status).toBe(200);
+    const write = await app.request("/api/funds", {
+      method: "POST",
+      headers: { ...origin, cookie },
+      body: JSON.stringify({ name: "Should fail" }),
+    });
+    expect(write.status).toBe(403);
+    expect((await json<{ error: string }>(write)).error).toBe("viewer_cannot_write");
+  });
+
   it("logs out and then blocks the book", async () => {
     const out = await app.request("/api/logout", {
       method: "POST",

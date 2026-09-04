@@ -59,14 +59,21 @@ export async function runParseJob(orgId: string, documentId: string): Promise<{ 
           locator: p.locator,
           proposedBy: "system",
         });
+        await tx.insert(documentChunks).values({
+          orgId,
+          documentId,
+          sourceRefId: refId,
+          body: p.excerpt,
+        });
       }
 
-      const text = proposals.map((p) => p.excerpt).join("\n") || doc.filename;
-      await tx.insert(documentChunks).values({
-        orgId,
-        documentId,
-        body: text,
-      });
+      if (proposals.length === 0) {
+        await tx.insert(documentChunks).values({
+          orgId,
+          documentId,
+          body: doc.filename,
+        });
+      }
       await tx.execute(
         // FTS vector — raw SQL on last inserted chunks for this document
         (await import("drizzle-orm")).sql`
