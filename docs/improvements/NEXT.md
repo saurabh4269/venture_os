@@ -28,7 +28,7 @@
 6. **Growth / burn-multiple derived compare columns** — not in the metric enum.
 7. **Redis-backed rate-limit / session rotation / SSO**.
 8. **SOC2 audit-log viewer**.
-9. **Playwright on Compose / axe in CI / viewer storageState**.
+9. **Playwright on Compose / axe in CI / viewer storageState**. Invite copy-link smoke is in CI.
 10. **Live Fly/Vercel smoke after a real release** (needs operator credentials).
 
 ## Explicitly deferred (need OAuth or Phase 6)

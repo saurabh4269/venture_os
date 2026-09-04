@@ -104,5 +104,5 @@
 
 ## Residual
 
-- Forced-colors / table captions / OAuth `aria-describedby` (connectors stay disabled + **not connected**).
+- Forced-colors / table captions. Connect disabled buttons now `aria-describedby` the honest **not connected** copy.
 - No axe job yet.

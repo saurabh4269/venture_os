@@ -54,11 +54,11 @@
 
 **Should:** Re-fetch `/api/me` + `router.refresh()`.
 
-### 9. P1 — Invite list 403 for non-admin
+### 9. P1 — Invite copy-link e2e + list 403 for non-admin
 
-**Wrong:** Settings always GET `/api/invitations`.
+**Wrong:** Settings always GET `/api/invitations`. SMTP deferred.
 
-**Should:** Catch 403; only Org Admin sees copy-links (pass 32).
+**Should:** Catch 403; only Org Admin sees copy-links (pass 32). Playwright `e2e/helpers/invite.ts` creates a copy-link, asserts public GET is masked, accepts in a fresh context.
 
 ### 10. P2 — CI had no e2e job
 
