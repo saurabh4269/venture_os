@@ -36,6 +36,7 @@
 ## How to continue
 
 1. Open `cursor/<slug>-a53d` off latest `main` after merge.
-2. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1.
-3. `pnpm typecheck && pnpm test` before push.
-4. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts.
+2. Next platform residuals live in `docs/improvements/queue-2/` (preview origins / same-origin BFF, Playwright smoke, production secret fail-closed). Do not reopen 23–30 P0s.
+3. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1.
+4. `pnpm typecheck && pnpm test` before push.
+5. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts.
