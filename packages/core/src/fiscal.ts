@@ -49,6 +49,16 @@ function iso(d: Date): string {
 }
 
 export function parsePeriodHint(text: string, fyStart = DEFAULT_FY_START) {
+  const fyMonth = text.match(/FY\s*'?(\d{2,4})\s*M(\d{1,2})/i);
+  if (fyMonth) {
+    let endYear = Number(fyMonth[1]);
+    if (endYear < 100) endYear += 2000;
+    const monthIndex = Number(fyMonth[2]); // 1 = April when fyStart=4
+    const startMonth = fyStart + monthIndex - 1;
+    const y = endYear - 1 + Math.floor((startMonth - 1) / 12);
+    const m = ((startMonth - 1) % 12) + 1;
+    return { ...monthBounds(y, m), grain: "month" as const };
+  }
   const fy = text.match(/FY\s*'?(\d{2,4})/i);
   if (fy) {
     let endYear = Number(fy[1]);

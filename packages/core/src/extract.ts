@@ -34,7 +34,10 @@ export function extractFromRows(
   fyStartMonth = 4,
 ): ExtractedProposal[] {
   const out: ExtractedProposal[] = [];
-  let period = parsePeriodHint(sheet, fyStartMonth);
+  const header = (rows[0] ?? []).map((c) => String(c ?? "")).join(" ");
+  let period = parsePeriodHint(`${sheet} ${header}`, fyStartMonth);
+  const headerUnit = detectUnit(`${header} ${sheet}`);
+  const headerCurrency = detectCurrency(`${header} ${sheet}`);
   for (let r = 0; r < Math.min(rows.length, 80); r++) {
     const row = rows[r] ?? [];
     const label = String(row[0] ?? "").trim();
@@ -42,15 +45,17 @@ export function extractFromRows(
     const periodHint = parsePeriodHint(label, fyStartMonth);
     if (periodHint) period = periodHint;
     const def = matchMetricAlias(label);
-    const headerCtx = `${label} ${sheet}`;
+    const headerCtx = `${label} ${header} ${sheet}`;
     const unitDetect = detectUnit(headerCtx);
-    const currency = detectCurrency(headerCtx);
+    const resolvedUnit = unitDetect === "unknown" ? headerUnit : unitDetect;
+    const currency =
+      detectCurrency(headerCtx) === "unknown" ? headerCurrency : detectCurrency(headerCtx);
     for (let c = 1; c < Math.min(row.length, 16); c++) {
       const valueNumeric = parseNumber(row[c]);
       if (valueNumeric === null && row[c] !== 0) continue;
       const cell = `${colName(c)}${r + 1}`;
       const excerpt = `${label} → ${row[c]}`;
-      if (unitDetect === "ambiguous" || (def?.unitFamily === "money" && unitDetect === "unknown")) {
+      if (resolvedUnit === "ambiguous" || (def?.unitFamily === "money" && resolvedUnit === "unknown")) {
         out.push({
           kind: "unit_ambiguity",
           metricKey: def?.key,
@@ -69,7 +74,7 @@ export function extractFromRows(
         continue;
       }
       if (!def) continue;
-      const unit: Unit = unitDetect === "unknown" ? def.defaultUnit : unitDetect;
+      const unit: Unit = resolvedUnit === "unknown" ? def.defaultUnit : resolvedUnit;
       out.push({
         kind: "metric",
         metricKey: def.key,
@@ -80,7 +85,7 @@ export function extractFromRows(
         periodStart: period?.start,
         periodEnd: period?.end,
         grain: period?.grain ?? "month",
-        confidence: unitDetect === "unknown" ? 0.55 : 0.82,
+        confidence: resolvedUnit === "unknown" ? 0.55 : 0.82,
         locator: { sheet, cell, excerpt },
         excerpt,
         lane: "objective",

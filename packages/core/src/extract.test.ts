@@ -16,6 +16,9 @@ describe("extract", () => {
     expect(cash?.valueNumeric).toBe(4.2);
     expect(rev?.valueNumeric).toBe(12.4);
     expect(burn).toBeUndefined();
+    expect(cash?.unit).toBe("crore");
+    expect(cash?.currency).toBe("INR");
+    expect(cash?.periodStart).toBeTruthy();
   });
 
   it("sends mixed unit headers to unit_ambiguity instead of guessing", () => {

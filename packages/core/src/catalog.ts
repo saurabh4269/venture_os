@@ -146,7 +146,14 @@ export function metricByKey(key: string): MetricDef | undefined {
 
 export function matchMetricAlias(raw: string): MetricDef | undefined {
   const n = raw.toLowerCase().replace(/[_:]+/g, " ").replace(/\s+/g, " ").trim();
-  return METRIC_CATALOG.find(
-    (m) => m.label.toLowerCase() === n || m.aliases.some((a) => n === a || n.includes(a)),
+  const exact = METRIC_CATALOG.find(
+    (m) => m.label.toLowerCase() === n || m.aliases.some((a) => n === a),
   );
+  if (exact) return exact;
+  const scored = METRIC_CATALOG.flatMap((m) =>
+    m.aliases
+      .filter((a) => n.includes(a))
+      .map((a) => ({ m, len: a.length })),
+  ).sort((a, b) => b.len - a.len);
+  return scored[0]?.m;
 }

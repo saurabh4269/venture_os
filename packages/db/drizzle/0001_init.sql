@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS "account" (
   id text PRIMARY KEY,
   account_id text NOT NULL,
   provider_id text NOT NULL,
+  issuer text,
   user_id text NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   access_token text,
   refresh_token text,
@@ -53,6 +54,7 @@ CREATE TABLE IF NOT EXISTS "organization" (
   slug text NOT NULL UNIQUE,
   logo text,
   created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz,
   metadata text
 );
 
