@@ -9,7 +9,7 @@ Later QA passes drop dated notes here. Do not rewrite history in `gap-matrix.md`
 3. Tick or annotate the matching row in `docs/02_GAP_MATRIX.md` (This-repo column).
 4. If a decision changed, add a row to `docs/DECISION.md` instead of editing old rows.
 
-Passes 01–16 are in this folder (`pass-01-auth-org.md` … `pass-16-ask-compare-inbox-nav.md`).
+Passes 01–18 are in this folder (`pass-01-auth-org.md` … `pass-18-route-guards.md`).
 
 ## Do not use this folder for
 
