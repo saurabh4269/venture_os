@@ -108,3 +108,4 @@ On `POST /api/nav/lock` the API writes a versioned JSON pack to the object store
 - Second signature / LP sign-off.
 - Per-fund official pack.
 - Snapshot PDF pretty-print.
+- `hashNavPackSnapshot` lives on `@venture-os/core/server` so Next client bundles never pull `node:crypto`.

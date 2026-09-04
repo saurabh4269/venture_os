@@ -142,6 +142,40 @@ export function assertMarkWritable(periodStatus: string | null | undefined):
   return { ok: true };
 }
 
+export type EurRollup = {
+  total: Num;
+  conversionRefused: boolean;
+  fxNote: string | null;
+};
+
+/**
+ * Headline EUR only when every sourced mark has a complete FX triple and a stored EUR.
+ * One incomplete triple refuses the whole headline — we do not invent a blended rate.
+ */
+export function rollupEur(
+  rows: Array<{
+    mark: Num;
+    sourceRefId?: string | null;
+    valueEur?: Num;
+    fxRate?: number | null;
+    fxDate?: string | null;
+    fxSource?: string | null;
+  }>,
+): EurRollup {
+  const sourced = rows.filter((r) => isPresent(r.mark) && r.sourceRefId);
+  if (sourced.length === 0) {
+    return { total: null, conversionRefused: false, fxNote: null };
+  }
+  const complete = sourced.every(
+    (r) => isPresent(r.fxRate ?? null) && r.fxDate && r.fxSource && isPresent(r.valueEur ?? null),
+  );
+  if (!complete) {
+    return { total: null, conversionRefused: true, fxNote: "EUR — (no FX triple)" };
+  }
+  const total = sourced.reduce((acc, r) => acc + (r.valueEur as number), 0);
+  return { total, conversionRefused: false, fxNote: null };
+}
+
 export function datedPositionIrr(args: {
   investedAt?: string | null;
   cost: Num;

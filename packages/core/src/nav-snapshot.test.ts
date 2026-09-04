@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { rollupNav } from "./nav.js";
-import { buildNavPackSnapshot, hashNavPackSnapshot, rollupEur } from "./nav-snapshot.js";
+import { rollupEur } from "./nav.js";
+import { buildNavPackSnapshot, hashNavPackSnapshot } from "./nav-snapshot.js";
 
 describe("rollupEur", () => {
   it("refuses a headline when any sourced mark lacks a complete FX triple", () => {

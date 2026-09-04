@@ -6,7 +6,6 @@ import {
   assertCommentaryLane,
   assertMarkWritable,
   buildMonthlyPackRow,
-  buildNavPackSnapshot,
   buildOnePagerMetrics,
   citationsFrom,
   datedPositionIrr,
@@ -16,7 +15,6 @@ import {
   FLAG_CATALOG,
   FLAG_THRESHOLD_BOUNDS,
   formatDualDisplay,
-  hashNavPackSnapshot,
   lastCalendarQuarterEnd,
   latestByMetricPeriod,
   metricByKey,
@@ -37,6 +35,7 @@ import {
   validateFlagPolicyThresholds,
   xirr,
 } from "@venture-os/core";
+import { buildNavPackSnapshot, hashNavPackSnapshot } from "@venture-os/core/server";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
 import {
   invitationExpired,
