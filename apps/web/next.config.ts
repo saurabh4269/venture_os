@@ -9,6 +9,12 @@ const security = [
 
 const config: NextConfig = {
   transpilePackages: ["@venture-os/core", "@venture-os/schema", "@venture-os/ui", "@venture-os/config"],
+  webpack: (webpackConfig) => {
+    webpackConfig.resolve.extensionAlias = {
+      ".js": [".ts", ".tsx", ".js"],
+    };
+    return webpackConfig;
+  },
   async headers() {
     return [{ source: "/:path*", headers: security }];
   },

@@ -58,11 +58,13 @@
 
 **Should:** Ping Redis. `ok` = Postgres liveness; `ready` = Postgres + Redis. `gitSha` from `GIT_SHA`.
 
-### 9. P1 — CI never built web
+### 9. P1 — CI never built web (and Next could not resolve ESM `.js` in workspace TS)
 
 **Wrong:** migrate + unit + typecheck only.
 
 **Should:** `WEB_URL` / `BETTER_AUTH_URL` / `API_URL` / `GIT_SHA`; web build; Playwright smoke; Redis service.
+
+**Also:** Next webpack `extensionAlias` so workspace packages that import `./foo.js` (TypeScript ESM) resolve during `next build`.
 
 ### 10. P1 — Shared preview DB + SEED_DEMO
 

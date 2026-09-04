@@ -195,7 +195,7 @@ export default function NewCompanyPage() {
       )}
 
       {step === 3 && (
-        <div className="empty" style={{ marginTop: 16 }}>
+        <div className="empty" style={{ marginTop: 16 }} data-testid="extract-status">
           Extract {parseStatus || "queued"}. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue,
           GM). Nothing auto-posts. Then this name appears on Command with provenance.
         </div>

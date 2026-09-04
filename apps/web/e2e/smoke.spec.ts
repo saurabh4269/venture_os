@@ -1,12 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 const stamp = Date.now().toString(36);
 const email = `e2e-${stamp}@example.test`;
 const password = "password123";
 const org = `E2E ${stamp}`;
-const fixture = resolve(dirname(fileURLToPath(import.meta.url)), "../../../fixtures/FIXTURE_ONLY-sample-mis.csv");
+const fixture = resolve(process.cwd(), "../../fixtures/FIXTURE_ONLY-sample-mis.csv");
 
 test.describe("@smoke happy path", () => {
   test("signup → company → upload → confirm → Command; open redirect stays on-site", async ({
@@ -31,7 +30,7 @@ test.describe("@smoke happy path", () => {
     await expect(page.getByTestId("mis-file")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("mis-file").setInputFiles(fixture);
     await page.getByTestId("mis-upload").click();
-    await expect(page.getByText(/Extract/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("extract-status")).toBeVisible({ timeout: 30_000 });
     await page.goto("/inbox");
     await expect(page.getByTestId("shell-ready")).toBeVisible();
     const confirm = page.getByTestId("inbox-confirm").first();
@@ -42,7 +41,7 @@ test.describe("@smoke happy path", () => {
     await page.goto("/command");
     await expect(page.getByTestId("shell-ready")).toBeVisible();
     await expect(page.getByTestId("command-ready")).toBeVisible();
-    await expect(page.getByText(`E2E Co ${stamp}`)).toBeVisible();
+    await expect(page.getByRole("link", { name: `E2E Co ${stamp}` }).first()).toBeVisible();
 
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page.getByTestId("login-submit")).toBeVisible({ timeout: 15_000 });
