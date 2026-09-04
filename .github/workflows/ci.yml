@@ -38,6 +38,7 @@ jobs:
       BETTER_AUTH_URL: http://localhost:4000
       WEB_URL: http://localhost:3000
       API_URL: http://localhost:4000
+      NEXT_PUBLIC_API_URL: ""
       REDIS_URL: redis://localhost:6379
       S3_ENDPOINT: fs
       GIT_SHA: ${{ github.sha }}
@@ -54,22 +55,25 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
       - run: pnpm --filter @venture-os/web build
-      - name: Start api + web
-        run: |
-          pnpm --filter @venture-os/api start &
-          for i in $(seq 1 40); do
-            if curl -sf http://localhost:4000/health | grep -q '"postgres":"up"'; then break; fi
-            sleep 1
-          done
-          pnpm --filter @venture-os/web start &
-          for i in $(seq 1 40); do
-            if curl -sf http://localhost:3000 >/dev/null; then break; fi
-            sleep 1
-          done
       - run: pnpm --filter @venture-os/web exec playwright install chromium --with-deps
-      - run: pnpm test:e2e
-        env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
+      - name: Start api + web and run Playwright
+        run: |
+          set -euo pipefail
+          pnpm --filter @venture-os/api start &
+          ready=
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:4000/health | grep -q '"postgres":"up"'; then ready=1; break; fi
+            sleep 1
+          done
+          test -n "$ready" || { echo "api never became healthy"; exit 1; }
+          pnpm --filter @venture-os/web start &
+          ready=
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:3000 >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          test -n "$ready" || { echo "web never became healthy"; exit 1; }
+          PLAYWRIGHT_BASE_URL=http://localhost:3000 pnpm test:e2e
 
   image:
     runs-on: ubuntu-latest

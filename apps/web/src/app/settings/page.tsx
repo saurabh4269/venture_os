@@ -312,7 +312,7 @@ export default function SettingsPage() {
       )}
 
       <h2>Connectors</h2>
-      <p className="lede">
+      <p className="lede" id="connector-honest">
         Primary path: Microsoft OneDrive (not connected) → use{" "}
         <Link href="/vault">Vault upload</Link>. Subjective auto-draft waits on Granola. Ownership edits stay manual
         until Affinity connects. We will not show a last-sync time. Domain auto-join and SMTP are not connected.
@@ -331,7 +331,13 @@ export default function SettingsPage() {
               <td>{connectorLabel(c.kind)}</td>
               <td>{c.status === "not_connected" ? "not connected" : c.status}</td>
               <td>
-                <button type="button" className="btn ghost sm" disabled title="OAuth is not connected">
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  disabled
+                  title="OAuth is not connected"
+                  aria-describedby="connector-honest"
+                >
                   Connect
                 </button>
               </td>
