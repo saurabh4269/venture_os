@@ -105,7 +105,7 @@ export function detectMarkStale(
   if (!lastMarkAsOf) {
     return {
       flagKey: "mark_stale",
-      severity: "med",
+      severity: "low",
       evidence: { lastMarkAsOf: null, reason: "no_mark" },
     };
   }

@@ -292,13 +292,17 @@ export const fxRates = pgTable("fx_rates", {
   source: text("source").notNull(),
 });
 
-export const connectors = pgTable("connectors", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  orgId: orgId(),
-  kind: text("kind").notNull(),
-  status: text("status").notNull().default("not_connected"),
-  config: jsonb("config").notNull().default({}),
-});
+export const connectors = pgTable(
+  "connectors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    kind: text("kind").notNull(),
+    status: text("status").notNull().default("not_connected"),
+    config: jsonb("config").notNull().default({}),
+  },
+  (t) => [uniqueIndex("connectors_org_kind_uidx").on(t.orgId, t.kind)],
+);
 
 export const documentChunks = pgTable(
   "document_chunks",

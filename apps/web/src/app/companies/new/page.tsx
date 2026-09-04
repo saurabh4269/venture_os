@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -19,12 +19,29 @@ export default function NewCompanyPage() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [parseStatus, setParseStatus] = useState("");
+  const [funds, setFunds] = useState<{ id: string; name: string }[]>([]);
+  const [fundId, setFundId] = useState("");
+
+  useEffect(() => {
+    api<{ funds: { id: string; name: string }[] }>("/api/funds")
+      .then((r) => setFunds(r.funds))
+      .catch(() => setFunds([]));
+  }, []);
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     const res = await api<{ company: { id: string } }>("/api/companies", {
       method: "POST",
-      body: JSON.stringify({ name, sector, stage, country, fyStartMonth: fy, unitHint, currencyHint: "INR" }),
+      body: JSON.stringify({
+        name,
+        sector,
+        stage,
+        country,
+        fyStartMonth: fy,
+        unitHint,
+        currencyHint: "INR",
+        fundId: fundId || undefined,
+      }),
     });
     setCompanyId(res.company.id);
     setStep(2);
@@ -117,6 +134,17 @@ export default function NewCompanyPage() {
               <option value="crore">INR crore</option>
               <option value="lakh">INR lakh</option>
               <option value="million">USD/EUR million</option>
+            </select>
+          </label>
+          <label className="field">
+            Fund
+            <select value={fundId} onChange={(e) => setFundId(e.target.value)}>
+              <option value="">Main fund (create if missing)</option>
+              {funds.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
             </select>
           </label>
           <div>

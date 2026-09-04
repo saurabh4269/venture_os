@@ -78,6 +78,15 @@ button { cursor: pointer; }
 .card .k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .card .v { font-family: var(--font-serif), Georgia, serif; font-size: 26px; margin-top: 4px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.table-scroll table { min-width: 720px; }
+.table-scroll th:first-child,
+.table-scroll td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--paper);
+  z-index: 1;
+}
 th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 8px; border-bottom: 1px solid var(--rule); }
 td { padding: 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
 .chip {

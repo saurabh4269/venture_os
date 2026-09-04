@@ -18,6 +18,7 @@ export default function ReportsPage() {
   const [companyId, setCompanyId] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState<"one_pager" | "portfolio" | "">("");
+  const [periodEnd, setPeriodEnd] = useState("");
 
   function load() {
     api<{ reports: Report[] }>("/api/reports").then((r) => setRows(r.reports));
@@ -37,7 +38,7 @@ export default function ReportsPage() {
     try {
       await api("/api/reports", {
         method: "POST",
-        body: JSON.stringify({ kind, companyId: companyId || undefined }),
+        body: JSON.stringify({ kind, companyId: companyId || undefined, periodEnd: periodEnd || undefined }),
       });
       load();
     } catch (e) {
@@ -61,6 +62,7 @@ export default function ReportsPage() {
       )}
       {canWrite && (
       <div className="row">
+        <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period end" />
         <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
           <option value="">Select company (required for one-pager)</option>
           {cos.map((c) => (

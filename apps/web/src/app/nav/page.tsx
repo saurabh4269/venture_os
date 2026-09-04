@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { defaultPriorAsOf } from "@venture-os/core";
+import { defaultPriorAsOf, lastCalendarQuarterEnd } from "@venture-os/core";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
@@ -80,10 +80,11 @@ function pctIrr(n: number | null | undefined) {
 export default function NavPage() {
   const { canWrite } = useBookSession();
   const [data, setData] = useState<Nav | null>(null);
-  const [asOf, setAsOf] = useState(new Date().toISOString().slice(0, 10));
-  const [priorAsOf, setPriorAsOf] = useState(defaultPriorAsOf(new Date().toISOString().slice(0, 10)));
+  const [asOf, setAsOf] = useState(lastCalendarQuarterEnd());
+  const [priorAsOf, setPriorAsOf] = useState(defaultPriorAsOf(lastCalendarQuarterEnd()));
   const [fundId, setFundId] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [clearMark, setClearMark] = useState(false);
   const [err, setErr] = useState("");
 
   const qs = useMemo(() => {
@@ -104,6 +105,10 @@ export default function NavPage() {
 
   async function addMark(e: React.FormEvent) {
     e.preventDefault();
+    if (form.value === "" && !clearMark) {
+      setErr("Enter a mark value, or confirm clear to store a null mark. We will not silently wipe NAV.");
+      return;
+    }
     const triple = form.fxRate && form.fxDate && form.fxSource;
     await api("/api/nav/marks", {
       method: "POST",
@@ -120,6 +125,7 @@ export default function NavPage() {
       }),
     });
     setForm(emptyForm);
+    setClearMark(false);
     load();
   }
 
@@ -260,6 +266,7 @@ export default function NavPage() {
                 <th>As-of</th>
                 <th>Method</th>
                 <th>IRR</th>
+                <th>Rationale</th>
               </tr>
             </thead>
             <tbody>
@@ -279,6 +286,7 @@ export default function NavPage() {
                   <td>{p.markAsOf ?? "—"}</td>
                   <td>{p.method ?? "—"}</td>
                   <td>{pctIrr(p.irr)}</td>
+                  <td className="lede">{p.rationale || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -349,6 +357,10 @@ export default function NavPage() {
                     </option>
                   ))}
               </select>
+              <label className="lede">
+                <input type="checkbox" checked={clearMark} onChange={(e) => setClearMark(e.target.checked)} /> Confirm
+                clear (null mark)
+              </label>
               <button className="btn sm">Add mark</button>
             </form>
           )}

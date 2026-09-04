@@ -1,9 +1,18 @@
-# Next — remaining after passes 01–21
+# Next — remaining after passes 01–22
 
 **Branch / PR:** `cursor/qa-fix-pass-batch-1-851c` · https://github.com/saurabh4269/venture_os/pull/2  
 **Queue source:** `docs/improvements/queue/` (static review of `main`)
 
 Queued P0s **and** the remaining P1 sweep in those files are implemented on this branch (pass 21). Do not re-open them as “unfixed on main.”
+
+## Closed in pass 22
+
+- NAV as-of defaults to last calendar quarter-end; empty mark requires clear confirmation; rationale column.
+- Vault kind/period filter; book confirmedBy/At.
+- Reports optional `periodEnd`; non-ASCII filename suffix.
+- Compare URL state + sticky first column; Flags → Compare deep link.
+- Settings connectors never return `config` / `lastSyncAt`; unique `(org_id, kind)`.
+- Onboard fund picker. `mark_stale` never-marked is `low`.
 
 ## Closed in pass 21
 

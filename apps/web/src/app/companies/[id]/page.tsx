@@ -34,9 +34,19 @@ type Data = {
     fxRate: number | null;
     fxDate: string | null;
     fxSource: string | null;
+    confirmedBy?: string | null;
+    confirmedAt?: string | null;
   }[];
   commentary: { id: string; lane: string; body: string; periodEnd: string }[];
-  documents: { id: string; filename: string; kind: string; createdAt?: string; sha256?: string | null }[];
+  documents: {
+    id: string;
+    filename: string;
+    kind: string;
+    createdAt?: string;
+    sha256?: string | null;
+    periodStart?: string | null;
+    periodEnd?: string | null;
+  }[];
   flags: { id: string; flagKey: string; severity: string; evidence: Record<string, unknown> }[];
   sourceRefs: { id: string; documentId: string; excerpt: string | null; locator?: { sheet?: string; cell?: string } }[];
   positions?: {
@@ -81,6 +91,7 @@ export default function CompanyPage() {
   const [periodEnd, setPeriodEnd] = useState("");
   const [editing, setEditing] = useState(false);
   const [draftMsg, setDraftMsg] = useState("");
+  const [vaultKind, setVaultKind] = useState("");
 
   function load() {
     api<Data>(`/api/companies/${id}`)
@@ -334,6 +345,7 @@ export default function CompanyPage() {
               <th>Locator</th>
               <th>Lane</th>
               <th>Ver.</th>
+              <th>Confirmed</th>
             </tr>
           </thead>
           <tbody>
@@ -368,6 +380,10 @@ export default function CompanyPage() {
                   </td>
                   <td>{m.lane}</td>
                   <td>{m.version}</td>
+                  <td className="lede">
+                    {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
+                    {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
+                  </td>
                 </tr>
               );
             })}
@@ -440,13 +456,27 @@ export default function CompanyPage() {
 
       <h2>Vault</h2>
       <p className="lede">DOCX is not supported yet — upload XLSX, XLS, CSV, or PDF.</p>
+      <label className="field" style={{ maxWidth: 220 }}>
+        Kind
+        <select value={vaultKind} onChange={(e) => setVaultKind(e.target.value)} aria-label="Vault kind">
+          <option value="">All kinds</option>
+          {[...new Set(data.documents.map((d) => d.kind))].map((k) => (
+            <option key={k} value={k}>
+              {k.replaceAll("_", " ")}
+            </option>
+          ))}
+        </select>
+      </label>
       <ul>
-        {data.documents.map((d) => (
+        {data.documents
+          .filter((d) => !vaultKind || d.kind === vaultKind)
+          .map((d) => (
           <li key={d.id}>
             <button type="button" className="chip" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
               {d.filename}
             </button>{" "}
             · {d.kind}
+            {d.periodEnd ? ` · period ${d.periodEnd}` : ""}
             {d.createdAt ? ` · ${new Date(d.createdAt).toLocaleString()}` : ""}
             {d.sha256 ? ` · sha ${d.sha256.slice(0, 10)}` : ""}
           </li>

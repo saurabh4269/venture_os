@@ -195,7 +195,9 @@ export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xls
 }
 
 function slug(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "report";
+  const ascii = s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const tail = [...s].reduce((n, ch) => n + ch.charCodeAt(0), 0).toString(36);
+  return `${ascii || "report"}-${tail}`;
 }
 
 /** Multi-page text PDF. Does not silently drop lines after 60. */

@@ -282,6 +282,14 @@ describe.skipIf(!url)("auth & org HTTP", () => {
       "runway_months",
     ]);
 
+    const settings = await json<{ connectors: Record<string, unknown>[] }>(
+      await app.request("/api/settings", { headers: { cookie: adminCookie } }),
+    );
+    for (const c of settings.connectors) {
+      expect(c.lastSyncAt).toBeUndefined();
+      expect(c.config).toBeUndefined();
+    }
+
     const nav = await json<{ irr: number | null }>(
       await app.request("/api/nav", { headers: { cookie: adminCookie } }),
     );

@@ -155,7 +155,18 @@ export default function FlagsPage() {
             {data.flags.map((f) => (
               <tr key={f.id}>
                 <td>
-                  {f.companyId ? <Link href={`/companies/${f.companyId}`}>{f.companyName ?? "—"}</Link> : (f.companyName ?? "—")}
+                  {f.companyId ? (
+                    <>
+                      <Link href={`/companies/${f.companyId}`}>{f.companyName ?? "—"}</Link>
+                      <div>
+                        <Link className="lede" href={`/compare?companyIds=${f.companyId}`}>
+                          Compare
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    (f.companyName ?? "—")
+                  )}
                 </td>
                 <td>{flagLabel(f.flagKey)}</td>
                 <td className={`sev-${f.severity}`}>{f.severity}</td>

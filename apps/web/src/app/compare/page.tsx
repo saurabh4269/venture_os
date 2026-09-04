@@ -51,6 +51,25 @@ export default function ComparePage() {
   const [sortKey, setSortKey] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const m = p.get("metrics");
+    if (m) setMetrics(m.split(",").map((x) => x.trim()).filter(Boolean));
+    const ids = p.get("companyIds");
+    if (ids !== null) {
+      setTouched(true);
+      setSelected(ids.split(",").map((x) => x.trim()).filter(Boolean));
+    }
+    const pe = p.get("periodEnd") ?? p.get("period");
+    if (pe) setPeriodEnd(pe);
+    const st = p.get("stage");
+    if (st) setStage(st);
+    const se = p.get("sector");
+    if (se) setSector(se);
+    setHydrated(true);
+  }, []);
 
   const qs = useMemo(() => {
     const p = new URLSearchParams();
@@ -63,13 +82,16 @@ export default function ComparePage() {
   }, [metrics, selected, periodEnd, touched, stage, sector]);
 
   useEffect(() => {
+    if (!hydrated) return;
     setLoading(true);
     setErr("");
     api<Data>(`/api/compare?${qs}`)
       .then(setData)
       .catch((e: Error) => setErr(e.message))
       .finally(() => setLoading(false));
-  }, [qs]);
+    const next = `${window.location.pathname}?${qs}`;
+    window.history.replaceState(null, "", next);
+  }, [qs, hydrated]);
 
   function toggleMetric(m: string) {
     setMetrics((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]));
@@ -197,6 +219,7 @@ export default function ComparePage() {
       ) : (
         !loading &&
         data && (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -232,6 +255,7 @@ export default function ComparePage() {
             ))}
           </tbody>
         </table>
+        </div>
         )
       )}
     </Shell>

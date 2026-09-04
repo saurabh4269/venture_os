@@ -1308,8 +1308,9 @@ routes.get("/api/reports", async (c) => {
 
 routes.post("/api/reports", async (c) => {
   const s = requireWrite(c);
-  const body = await c.req.json<{ kind: "one_pager" | "portfolio"; companyId?: string }>();
+  const body = await c.req.json<{ kind: "one_pager" | "portfolio"; companyId?: string; periodEnd?: string }>();
   if (body.kind === "one_pager" && !body.companyId) throw new HttpError(400, "company_id_required");
+  const pinPeriod = body.periodEnd?.slice(0, 10) || "";
   const draft = await withOrg(s.orgId, async (tx) => {
     const cos = await tx.select().from(companies);
     const metrics = await tx.select().from(metricValues);
@@ -1317,7 +1318,9 @@ routes.post("/api/reports", async (c) => {
     const openFlags = await tx.select().from(flagEvents).where(eq(flagEvents.status, "open"));
     const target = body.companyId ? cos.filter((x) => x.id === body.companyId) : cos;
     const pages = target.map((co) => {
-      const raw = objectiveBook(metrics.filter((m) => m.companyId === co.id));
+      const raw = objectiveBook(
+        metrics.filter((m) => m.companyId === co.id && (!pinPeriod || m.periodEnd === pinPeriod)),
+      );
       const curated =
         body.kind === "one_pager" ? buildOnePagerMetrics(raw) : latestByMetricPeriod(raw).map(toReportMetric);
       const obj = notes.filter((n) => n.companyId === co.id && n.lane === "objective");
@@ -1389,7 +1392,11 @@ routes.get("/api/settings", async (c) => {
       ]);
       conns = await tx.select().from(connectors);
     }
-    return { settings, connectors: conns, flagPolicy: FLAG_CATALOG };
+    return {
+      settings,
+      connectors: conns.map((c) => ({ kind: c.kind, status: c.status })),
+      flagPolicy: FLAG_CATALOG,
+    };
   });
   return c.json(data);
 });

@@ -3,6 +3,7 @@ import {
   detectBurnUp,
   detectCashUnreported,
   detectGmCompression,
+  detectMarkStale,
   detectMisLate,
   detectPlanVariance,
   detectRunwayShort,
@@ -63,6 +64,13 @@ describe("flag detectors", () => {
     expect(hit?.evidence.currentCash).toBeNull();
     expect(detectCashUnreported(4.2, 0)).toBeNull(); // 0 is a reported number
     expect(detectCashUnreported(null, null)).toBeNull();
+  });
+
+  it("mark_stale is low when never marked and silent inside the stale window", () => {
+    const asOf = new Date("2026-09-04T00:00:00Z");
+    expect(detectMarkStale(null, asOf)?.severity).toBe("low");
+    expect(detectMarkStale("2026-08-01", asOf, 100)).toBeNull();
+    expect(detectMarkStale("2026-01-01", asOf, 100)?.flagKey).toBe("mark_stale");
   });
 
   it("spend_without_revenue needs both burn up and flat/down revenue — missing is not 0 growth", () => {
