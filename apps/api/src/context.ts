@@ -1,4 +1,5 @@
 import type { Context, Next } from "hono";
+import { isAdminRole, isConfirmRole, isWriteRole } from "@venture-os/config";
 import { ensureOrgDefaults, getDb, member } from "@venture-os/db";
 import { eq } from "drizzle-orm";
 import { auth } from "./auth.js";
@@ -31,6 +32,9 @@ export async function sessionMiddleware(c: Context, next: Next) {
   const memberships = await db.select().from(member).where(eq(member.userId, result.user.id));
   let orgId =
     (result.session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null;
+  if (orgId && !memberships.some((m) => m.organizationId === orgId)) {
+    orgId = null;
+  }
   if (!orgId) orgId = memberships[0]?.organizationId ?? null;
   const role = memberships.find((m) => m.organizationId === orgId)?.role ?? memberships[0]?.role ?? null;
   if (orgId) {
@@ -62,7 +66,13 @@ export function requireOrg(c: Context): AppSession & { orgId: string } {
 
 export function requireWrite(c: Context) {
   const s = requireOrg(c);
-  if (s.role === "viewer") throw new HttpError(403, "viewer_cannot_write");
+  if (!isWriteRole(s.role)) throw new HttpError(403, "viewer_cannot_write");
+  return s;
+}
+
+export function requireAdmin(c: Context) {
+  const s = requireOrg(c);
+  if (!isAdminRole(s.role)) throw new HttpError(403, "org_admin_required");
   return s;
 }
 
@@ -76,5 +86,5 @@ export class HttpError extends Error {
 }
 
 export function canConfirm(role: string | null) {
-  return role === "org_admin" || role === "partner" || role === "analyst" || role === "owner" || role === "admin";
+  return isConfirmRole(role);
 }

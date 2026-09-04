@@ -4,7 +4,7 @@ Later QA passes drop dated notes here. Do not rewrite history in `gap-matrix.md`
 
 ## Process
 
-1. Create `docs/improvements/YYYY-MM-DD-slug.md`.
+1. Create `docs/improvements/pass-NN-<workflow-slug>.md` (or `YYYY-MM-DD-slug.md` for merge notes).
 2. State: what was wrong, evidence (test, screenshot, brief clause), what changed, residual risk.
 3. Tick or annotate the matching row in `docs/02_GAP_MATRIX.md` (This-repo column).
 4. If a decision changed, add a row to `docs/DECISION.md` instead of editing old rows.

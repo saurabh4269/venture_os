@@ -1,5 +1,24 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { api } from "@/lib/api";
+import type { Me } from "@/lib/auth-client";
 
 export default function Home() {
-  redirect("/command");
+  const router = useRouter();
+  useEffect(() => {
+    api<Me>("/api/me")
+      .then((m) => {
+        if (!m.user) router.replace("/login");
+        else if (m.needsOrg || !m.orgId) router.replace("/onboard");
+        else router.replace("/command");
+      })
+      .catch(() => router.replace("/login"));
+  }, [router]);
+  return (
+    <div className="auth">
+      <p className="lede">Opening the book…</p>
+    </div>
+  );
 }

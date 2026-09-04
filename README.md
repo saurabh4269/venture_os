@@ -54,6 +54,8 @@ pnpm dev
 
 `pnpm dev` runs web (:3000), api (:4000), and worker via Turborepo.
 
+If Compose is unavailable, install Postgres 16 + Redis 7 on the host, copy `.env.example` → `.env`, set `S3_ENDPOINT=fs`, then `pnpm db:migrate` and `pnpm dev`. Create the `venture_os` database and the `venture` superuser before migrate; `0002_app_role.sql` creates `venture_os_app` (no BYPASSRLS).
+
 ---
 
 ## OpenAI
@@ -72,7 +74,7 @@ If the key is unset: parse still works; Ask still retrieves and **refuses to inv
 
 ## Demo for a VC
 
-1. Open `/signup`. Create your user + organisation (you are Org Admin).
+1. Open `/signup`. Create your user + organisation (you are Org Admin). A user with no org lands on `/onboard`. Invites are copy-link from **Settings → People** (`/invite?id=`). Email delivery is not connected.
 2. **Settings → Add fund** (or skip — the first company creates “Main fund”).
 3. **Companies → Add company**. Complete the 15-minute path: profile → upload `fixtures/FIXTURE_ONLY-sample-mis.csv` (or any MIS xlsx/pdf).
 4. **Inbox** — confirm rows. Ambiguous units must be set by you. Nothing auto-posts.

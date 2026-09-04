@@ -19,6 +19,7 @@ import {
   tokenize,
 } from "@venture-os/core";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
+import { isAdminRole, loadEnv, ROLES, slugifyOrg } from "@venture-os/config";
 import { AskRequestSchema, ConfirmInboxSchema, CreateCompanySchema } from "@venture-os/schema";
 import {
   askQueries,
@@ -31,7 +32,9 @@ import {
   funds,
   getDb,
   inboxItems,
+  invitation,
   marks,
+  member,
   metricValues,
   orgSettings,
   organization,
@@ -41,9 +44,11 @@ import {
   runParseJob,
   sha256,
   sourceRefs,
+  user,
   withOrg,
 } from "@venture-os/db";
-import { canConfirm, HttpError, requireOrg, requireUser, requireWrite } from "./context.js";
+import { auth } from "./auth.js";
+import { canConfirm, HttpError, requireAdmin, requireOrg, requireUser, requireWrite } from "./context.js";
 import { enqueueFlags, enqueueParse } from "./queues.js";
 import { buildExports } from "./reports-export.js";
 
@@ -63,20 +68,25 @@ routes.get("/health", async (c) => {
 
 routes.get("/api/me", async (c) => {
   const s = c.get("session");
-  if (!s?.user?.id) return c.json({ user: null, org: null });
+  if (!s?.user?.id) return c.json({ user: null, org: null, role: null, orgId: null, needsOrg: false });
   const db = getDb();
   let org = null;
   if (s.orgId) {
     const rows = await db.select().from(organization).where(eq(organization.id, s.orgId));
     org = rows[0] ?? null;
   }
-  return c.json({ user: s.user, org, role: s.role, orgId: s.orgId });
+  return c.json({
+    user: s.user,
+    org,
+    role: s.role,
+    orgId: s.orgId,
+    needsOrg: !s.orgId,
+  });
 });
 
 routes.get("/api/orgs", async (c) => {
   const s = requireUser(c);
   const db = getDb();
-  const { member } = await import("@venture-os/db");
   const rows = await db.select().from(member).where(eq(member.userId, s.user.id));
   const ids = rows.map((r) => r.organizationId);
   const orgs = ids.length
@@ -91,23 +101,171 @@ routes.get("/api/orgs", async (c) => {
   });
 });
 
+routes.post("/api/orgs", async (c) => {
+  const s = requireUser(c);
+  const body = await c.req.json<{ name?: string; slug?: string }>();
+  const name = (body.name ?? "").trim();
+  if (!name) throw new HttpError(400, "org_name_required");
+  let slug = (body.slug ?? slugifyOrg(name)).trim();
+  if (!slug) slug = `org-${Date.now().toString(36)}`;
+  try {
+    const created = await auth.api.createOrganization({
+      headers: c.req.raw.headers,
+      body: { name, slug },
+    });
+    await auth.api.setActiveOrganization({
+      headers: c.req.raw.headers,
+      body: { organizationId: created.id },
+    });
+    return c.json({ org: created });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "org_create_failed";
+    if (/already exists|unique|slug/i.test(msg)) throw new HttpError(409, "org_slug_taken");
+    throw new HttpError(400, msg);
+  }
+});
+
 routes.post("/api/orgs/select", async (c) => {
-  requireUser(c);
+  const s = requireUser(c);
   const body = await c.req.json<{ organizationId: string }>();
-  const { auth } = await import("./auth.js");
-  const setActive = (
-    auth.api as typeof auth.api & {
-      setActiveOrganization: (args: {
-        headers: Headers;
-        body: { organizationId: string };
-      }) => Promise<unknown>;
-    }
-  ).setActiveOrganization;
-  await setActive({
+  if (!body.organizationId) throw new HttpError(400, "organization_id_required");
+  const db = getDb();
+  const [membership] = await db
+    .select()
+    .from(member)
+    .where(and(eq(member.userId, s.user.id), eq(member.organizationId, body.organizationId)));
+  if (!membership) throw new HttpError(403, "not_a_member");
+  await auth.api.setActiveOrganization({
     headers: c.req.raw.headers,
     body: { organizationId: body.organizationId },
   });
+  return c.json({ ok: true, orgId: body.organizationId, role: membership.role });
+});
+
+routes.post("/api/logout", async (c) => {
+  requireUser(c);
+  await auth.api.signOut({ headers: c.req.raw.headers });
   return c.json({ ok: true });
+});
+
+routes.get("/api/members", async (c) => {
+  const s = requireOrg(c);
+  const db = getDb();
+  const rows = await db.select().from(member).where(eq(member.organizationId, s.orgId));
+  const ids = rows.map((r) => r.userId);
+  const users = ids.length ? await db.select().from(user).where(inArray(user.id, ids)) : [];
+  return c.json({
+    members: rows.map((m) => {
+      const u = users.find((x) => x.id === m.userId);
+      return {
+        id: m.id,
+        userId: m.userId,
+        role: m.role,
+        email: u?.email ?? null,
+        name: u?.name ?? null,
+        createdAt: m.createdAt,
+      };
+    }),
+  });
+});
+
+routes.get("/api/invitations", async (c) => {
+  const s = requireOrg(c);
+  const db = getDb();
+  const rows = await db.select().from(invitation).where(eq(invitation.organizationId, s.orgId));
+  const env = loadEnv();
+  return c.json({
+    invitations: rows.map((i) => ({
+      id: i.id,
+      email: i.email,
+      role: i.role,
+      status: i.status,
+      expiresAt: i.expiresAt,
+      acceptUrl: `${env.WEB_URL}/invite?id=${i.id}`,
+    })),
+  });
+});
+
+routes.get("/api/invitations/:id", async (c) => {
+  const id = c.req.param("id");
+  const db = getDb();
+  const [row] = await db.select().from(invitation).where(eq(invitation.id, id));
+  if (!row) throw new HttpError(404, "invitation_not_found");
+  const [org] = await db.select().from(organization).where(eq(organization.id, row.organizationId));
+  return c.json({
+    invitation: {
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      status: row.status,
+      expiresAt: row.expiresAt,
+      orgName: org?.name ?? "Organisation",
+    },
+  });
+});
+
+routes.post("/api/invitations", async (c) => {
+  requireAdmin(c);
+  const body = await c.req.json<{ email?: string; role?: string }>();
+  const email = (body.email ?? "").trim().toLowerCase();
+  const role = body.role ?? "analyst";
+  if (!email || !email.includes("@")) throw new HttpError(400, "email_required");
+  if (!(ROLES as readonly string[]).includes(role)) throw new HttpError(400, "invalid_role");
+  try {
+    const created = (await auth.api.createInvitation({
+      headers: c.req.raw.headers,
+      body: { email, role: role as "org_admin" | "partner" | "analyst" | "viewer" },
+    })) as { id: string };
+    const env = loadEnv();
+    return c.json({
+      invitation: created,
+      acceptUrl: `${env.WEB_URL}/invite?id=${created.id}`,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "invite_failed";
+    throw new HttpError(400, msg);
+  }
+});
+
+routes.post("/api/invitations/:id/accept", async (c) => {
+  const s = requireUser(c);
+  const id = c.req.param("id");
+  const db = getDb();
+  const [row] = await db.select().from(invitation).where(eq(invitation.id, id));
+  if (!row) throw new HttpError(404, "invitation_not_found");
+  if (row.status !== "pending") throw new HttpError(400, "invitation_not_pending");
+  if (row.email.toLowerCase() !== s.user.email.toLowerCase()) {
+    throw new HttpError(403, "invitation_email_mismatch");
+  }
+  try {
+    await auth.api.acceptInvitation({
+      headers: c.req.raw.headers,
+      body: { invitationId: id },
+    });
+    await auth.api.setActiveOrganization({
+      headers: c.req.raw.headers,
+      body: { organizationId: row.organizationId },
+    });
+    return c.json({ ok: true, orgId: row.organizationId, role: row.role });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "accept_failed";
+    throw new HttpError(400, msg);
+  }
+});
+
+routes.post("/api/invitations/:id/reject", async (c) => {
+  requireUser(c);
+  const id = c.req.param("id");
+  try {
+    await auth.api.rejectInvitation({
+      headers: c.req.raw.headers,
+      body: { invitationId: id },
+    });
+    return c.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "reject_failed";
+    throw new HttpError(400, msg);
+  }
 });
 
 routes.get("/api/funds", async (c) => {
@@ -839,7 +997,7 @@ routes.get("/api/settings", async (c) => {
 
 routes.post("/api/settings", async (c) => {
   const s = requireWrite(c);
-  if (s.role !== "org_admin" && s.role !== "owner" && s.role !== "admin") {
+  if (!isAdminRole(s.role)) {
     throw new HttpError(403, "org_admin_required");
   }
   const body = await c.req.json<{ fyStartMonth?: number; baseCurrency?: string; displayCurrency?: string }>();

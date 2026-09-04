@@ -56,7 +56,7 @@ Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
 
 | Phase | Status |
 | --- | --- |
-| 0 Platform | Shipped (auth, RLS, CI, empty shell) |
+| 0 Platform | Shipped (auth, RLS, CI, empty shell). Pass 01: locked-role AC, invite accept, org onboard, membership-checked select |
 | 1 Book | Shipped (upload → parse → inbox → book) |
 | 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements) |
 | 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge, Compare); NAV **approval** later |
@@ -99,7 +99,7 @@ If Redis is up and the worker is down, parse jobs sit queued — start the worke
 
 ### Demo for a VC
 
-1. Sign up → create org (you are Org Admin).
+1. Sign up → create org (you are Org Admin). If org create fails, `/onboard` finishes it. Invites: Settings → copy link → `/invite?id=`.
 2. Companies → Add company → upload an MIS `.xlsx` / `.csv` (or run opt-in seed).
 3. Inbox → confirm rows (edit units if needed). Nothing auto-posts to the book.
 4. Command / Flags / NAV / Compare / Ask / Reports now read the **book**.

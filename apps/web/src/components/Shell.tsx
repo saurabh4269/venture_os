@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { authClient } from "@/lib/auth-client";
+import { authClient, type Me } from "@/lib/auth-client";
+import { roleLabel } from "@/lib/roles";
 
 const NAV = [
   { href: "/command", label: "Command" },
@@ -19,36 +20,67 @@ const NAV = [
   { href: "/settings", label: "Settings" },
 ];
 
-type Me = {
-  user: { id: string; name: string; email: string } | null;
-  org: { id: string; name: string; metadata?: string | null } | null;
-  role: string | null;
-};
-
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [orgs, setOrgs] = useState<{ id: string; name: string; fixtureOnly?: boolean }[]>([]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    api<Me>("/api/me")
-      .then((m) => {
+    let cancelled = false;
+    Promise.all([
+      api<Me>("/api/me"),
+      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
+        orgs: [],
+      })),
+    ])
+      .then(([m, o]) => {
+        if (cancelled) return;
         setMe(m);
-        if (!m.user) router.replace("/login");
+        setOrgs(o.orgs);
+        if (!m.user) {
+          router.replace(`/login?next=${encodeURIComponent(path)}`);
+          return;
+        }
+        if (m.needsOrg || !m.orgId) {
+          router.replace("/onboard");
+          return;
+        }
+        setReady(true);
       })
-      .catch(() => router.replace("/login"));
-    api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs")
-      .then((r) => setOrgs(r.orgs))
-      .catch(() => undefined);
-  }, [router]);
+      .catch(() => {
+        if (!cancelled) router.replace(`/login?next=${encodeURIComponent(path)}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router, path]);
 
   async function switchOrg(id: string) {
+    if (!id || id === me?.org?.id) return;
     await api("/api/orgs/select", { method: "POST", body: JSON.stringify({ organizationId: id }) });
     window.location.reload();
   }
 
+  async function signOut() {
+    try {
+      await api("/api/logout", { method: "POST", body: "{}" });
+    } catch {
+      await authClient.signOut();
+    }
+    router.push("/login");
+  }
+
   const fixture = me?.org?.metadata?.includes("fixtureOnly") || me?.org?.name.includes("FIXTURE");
+
+  if (!ready) {
+    return (
+      <div className="auth">
+        <p className="lede">Checking your organisation…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
@@ -57,7 +89,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           Venture OS
           <span>the book</span>
         </div>
-        <nav className="nav">
+        <nav className="nav" aria-label="Primary">
           <div className="sec">Morning</div>
           {NAV.slice(0, 3).map((n) => (
             <Link key={n.href} href={n.href} className={path.startsWith(n.href) ? "active" : ""}>
@@ -79,36 +111,36 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         <div style={{ marginTop: "auto", fontSize: 12, color: "var(--muted)" }}>
           <div>{me?.user?.name}</div>
-          <div>{me?.role?.replace("_", " ")}</div>
-          <button
-            className="btn ghost sm"
-            style={{ marginTop: 8 }}
-            onClick={() => authClient.signOut().then(() => router.push("/login"))}
-          >
+          <div>{roleLabel(me?.role)}</div>
+          <button className="btn ghost sm" type="button" style={{ marginTop: 8 }} onClick={signOut}>
             Sign out
           </button>
         </div>
       </aside>
       <div className="main">
         {fixture && (
-          <div className="banner">
+          <div className="banner" role="status">
             FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
           </div>
         )}
         <div className="top">
           <div />
           <div className="row">
-            <select
-              value={me?.org?.id ?? ""}
-              onChange={(e) => switchOrg(e.target.value)}
-              aria-label="Organisation"
-            >
-              {orgs.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
+            {orgs.length === 0 ? (
+              <Link href="/onboard">Create organisation</Link>
+            ) : (
+              <select
+                value={me?.org?.id ?? ""}
+                onChange={(e) => switchOrg(e.target.value)}
+                aria-label="Organisation"
+              >
+                {orgs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
         {children}

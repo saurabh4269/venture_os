@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { loadEnv } from "@venture-os/config";
 import { sql } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, describe, expect, it } from "vitest";
 import { companies, organization } from "./schema.js";
 import { drizzle } from "drizzle-orm/postgres-js";
 
+loadEnv();
 const url = process.env.DATABASE_URL;
 
 describe.skipIf(!url)("RLS org isolation", () => {

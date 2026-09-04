@@ -71,3 +71,51 @@ export const DISPLAY_CURRENCY = "EUR";
 export const WRITE_ROLES: Role[] = ["org_admin", "partner", "analyst"];
 export const ADMIN_ROLES: Role[] = ["org_admin"];
 export const CONFIRM_ROLES: Role[] = ["org_admin", "partner", "analyst"];
+
+/** Better Auth historically used owner/admin; treat as org_admin aliases. */
+const ROLE_ALIASES: Record<string, Role> = {
+  owner: "org_admin",
+  admin: "org_admin",
+  member: "analyst",
+};
+
+export function canonicalizeRole(role: string | null | undefined): Role | null {
+  if (!role) return null;
+  if ((ROLES as readonly string[]).includes(role)) return role as Role;
+  return ROLE_ALIASES[role] ?? null;
+}
+
+export function isRole(role: string | null | undefined): role is Role {
+  return canonicalizeRole(role) !== null;
+}
+
+export function isWriteRole(role: string | null | undefined): boolean {
+  const r = canonicalizeRole(role);
+  return r !== null && WRITE_ROLES.includes(r);
+}
+
+export function isAdminRole(role: string | null | undefined): boolean {
+  const r = canonicalizeRole(role);
+  return r !== null && ADMIN_ROLES.includes(r);
+}
+
+export function isConfirmRole(role: string | null | undefined): boolean {
+  const r = canonicalizeRole(role);
+  return r !== null && CONFIRM_ROLES.includes(r);
+}
+
+export function roleLabel(role: string | null | undefined): string {
+  const r = canonicalizeRole(role);
+  if (r) return ROLE_LABEL[r];
+  if (!role) return "—";
+  return role.replaceAll("_", " ");
+}
+
+export function slugifyOrg(name: string): string {
+  const s = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return s;
+}

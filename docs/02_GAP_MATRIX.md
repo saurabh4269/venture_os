@@ -15,8 +15,8 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 
 | # | Requirement (brief) | Demo | This repo | Production work remaining |
 | --- | --- | --- | --- | --- |
-| 1 | Org auth / user logins | **missing** | **done** | Session hardening / SSO later |
-| 2 | Multi-tenant orgs / domain join | **missing** | **partial** | Domain verification / auto-join still missing; invites + RLS shipped |
+| 1 | Org auth / user logins | **missing** | **done** | Session hardening / SSO later. Pass 01: locked-role AC, logout, 401 gate, onboard |
+| 2 | Multi-tenant orgs / domain join | **missing** | **partial** | Domain verification / auto-join still missing; invites are copy-link (no SMTP); membership-checked org select + accept/reject shipped (Pass 01) |
 | 3 | Durable database book | **missing** (JSON seed) | **done** | — |
 | 4 | OneDrive API ingest | **missing** | **missing** | Settings stub: **not connected**. No invented Graph fields |
 | 5 | Affinity API (ownership, CRM) | **missing** | **missing** | Settings stub: **not connected** |

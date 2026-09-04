@@ -50,6 +50,8 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 - [x] New clone → `pnpm i` → migrate → web + api + worker start locally.
 - [x] User can sign up / join org; unauthenticated routes blocked.
+- [x] Locked roles (`org_admin` / `partner` / `analyst` / `viewer`) are real Better Auth AC roles; Org Admin can invite; viewer cannot write (Pass 01).
+- [x] Org select refuses non-members (403). Invite accept matches email. Copy-link until SMTP exists.
 - [x] Direct SQL as role without `org_id` session cannot read another org rows (RLS proof test).
 - [x] No corpus-JSON loaded as production path.
 - [x] Empty shell renders; every number surface shows empty / “—” not illustrative demo NAV.
