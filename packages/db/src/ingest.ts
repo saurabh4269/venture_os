@@ -107,7 +107,7 @@ async function extractBuffer(
     // ExcelJS supports xlsx; csv via CSV read
     if (filename.endsWith(".csv")) {
       const text = buf.toString("utf8");
-      const rows = text.split(/\r?\n/).map((l) => l.split(","));
+      const rows = text.split(/\r?\n/).filter((l) => l.length).map(parseCsvLine);
       return extractFromRows(rows, "csv", fy);
     }
     await wb.xlsx.load(buf as unknown as ArrayBuffer);
@@ -139,6 +139,32 @@ async function pdfToText(buf: Buffer): Promise<string> {
   } catch {
     return buf.toString("utf8").replace(/[^\x09\x0a\x0d\x20-\x7e]/g, " ");
   }
+}
+
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]!;
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') {
+        cur += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+      continue;
+    }
+    if (ch === "," && !quoted) {
+      out.push(cur.trim());
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
 }
 
 export { matchMetricAlias };

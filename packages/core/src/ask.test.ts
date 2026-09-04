@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASK_REFUSAL, citationsFrom, decideAsk } from "./ask.js";
+import { ASK_REFUSAL, citationsFrom, decideAsk, inventedNumbers } from "./ask.js";
 
 describe("Ask refuse", () => {
   it("refuses when the corpus and book are empty", () => {
@@ -7,6 +7,25 @@ describe("Ask refuse", () => {
     expect(d.ok).toBe(false);
     if (!d.ok) expect(d.reason).toBe("empty_corpus");
     expect(ASK_REFUSAL).toMatch(/will not guess/i);
+  });
+
+  it("refuses when retrieved text does not overlap the question tokens", () => {
+    const d = decideAsk(
+      {
+        chunks: [
+          {
+            documentId: "00000000-0000-0000-0000-000000000002",
+            sourceRefId: null,
+            excerpt: "Board pack cover page only",
+            rank: 1,
+          },
+        ],
+        facts: [],
+      },
+      ["cash", "runway"],
+    );
+    expect(d.ok).toBe(false);
+    if (!d.ok) expect(d.reason).toBe("no_overlap");
   });
 
   it("accepts when a resolving fact exists", () => {
@@ -37,5 +56,10 @@ describe("Ask refuse", () => {
     });
     expect(cites[0]?.documentId).toBe("00000000-0000-0000-0000-000000000002");
     expect(cites[0]?.sourceRefId).toBe("00000000-0000-0000-0000-000000000001");
+  });
+
+  it("flags numerals that do not appear in evidence", () => {
+    expect(inventedNumbers("Cash is 99 crore", "cash 4.2 crore")).toEqual(["99"]);
+    expect(inventedNumbers("Cash is 4.2 crore", "cash 4.2 crore")).toEqual([]);
   });
 });

@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Fact, Shell } from "@/components/Shell";
-import { api, apiUrl } from "@/lib/api";
+import { api, apiUrl, downloadAuthed } from "@/lib/api";
 
 type Data = {
   company: { id: string; name: string; stage: string | null; sector: string | null; country: string | null };
@@ -13,6 +13,7 @@ type Data = {
     valueNumeric: number | null;
     unit: string;
     currency: string;
+    periodStart: string;
     periodEnd: string;
     sourceRefId: string;
     version: number;
@@ -25,17 +26,39 @@ type Data = {
   commentary: { id: string; lane: string; body: string; periodEnd: string }[];
   documents: { id: string; filename: string; kind: string }[];
   flags: { id: string; flagKey: string; severity: string; evidence: unknown }[];
-  sourceRefs: { id: string; documentId: string; excerpt: string | null }[];
+  sourceRefs: { id: string; documentId: string; excerpt: string | null; locator?: { sheet?: string; cell?: string } }[];
+  kpi?: {
+    cash: { display: string; isFact: boolean; fxNote?: string | null; sourceRefId?: string | null };
+    burn: { display: string; isFact: boolean; fxNote?: string | null; sourceRefId?: string | null };
+    runway: { display: string; isFact: boolean; sourceRefId?: string | null };
+  };
 };
 
 export default function CompanyPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<Data | null>(null);
+  const [err, setErr] = useState("");
   const [lane, setLane] = useState<"objective" | "subjective">("subjective");
   const [body, setBody] = useState("");
+  const last = data?.metrics[0];
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
 
   function load() {
-    api<Data>(`/api/companies/${id}`).then(setData);
+    api<Data>(`/api/companies/${id}`)
+      .then((d) => {
+        setData(d);
+        const m = d.metrics[0];
+        if (m) {
+          setPeriodStart((p) => p || m.periodStart);
+          setPeriodEnd((p) => p || m.periodEnd);
+        } else {
+          const today = new Date().toISOString().slice(0, 10);
+          setPeriodStart((p) => p || today.slice(0, 8) + "01");
+          setPeriodEnd((p) => p || today);
+        }
+      })
+      .catch((e: Error) => setErr(e.message));
   }
   useEffect(() => {
     load();
@@ -47,8 +70,8 @@ export default function CompanyPage() {
       method: "POST",
       body: JSON.stringify({
         companyId: id,
-        periodStart: "2025-08-01",
-        periodEnd: "2025-08-31",
+        periodStart: periodStart || last?.periodStart,
+        periodEnd: periodEnd || last?.periodEnd,
         lane,
         body,
         sourceKind: "human",
@@ -58,6 +81,19 @@ export default function CompanyPage() {
     load();
   }
 
+  function hrefFor(refId?: string | null) {
+    if (!refId || !data) return undefined;
+    const ref = data.sourceRefs.find((r) => r.id === refId);
+    return ref ? apiUrl(`/api/documents/${ref.documentId}/file`) : undefined;
+  }
+
+  if (err) {
+    return (
+      <Shell>
+        <p className="sev-high">{err}</p>
+      </Shell>
+    );
+  }
   if (!data) {
     return (
       <Shell>
@@ -74,6 +110,29 @@ export default function CompanyPage() {
         overridden
       </p>
 
+      {data.kpi && (
+        <div className="cards">
+          <div className="card">
+            <div className="k">Cash</div>
+            <div className="v">
+              <Fact {...data.kpi.cash} href={hrefFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
+            </div>
+          </div>
+          <div className="card">
+            <div className="k">Burn</div>
+            <div className="v">
+              <Fact {...data.kpi.burn} href={hrefFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
+            </div>
+          </div>
+          <div className="card">
+            <div className="k">Runway (3-mo burn)</div>
+            <div className="v">
+              <Fact {...data.kpi.runway} href={hrefFor(data.kpi.runway.sourceRefId)} />
+            </div>
+          </div>
+        </div>
+      )}
+
       <h2>Book</h2>
       {data.metrics.length === 0 ? (
         <div className="empty">No confirmed facts. Upload MIS and confirm Inbox.</div>
@@ -84,6 +143,7 @@ export default function CompanyPage() {
               <th>Metric</th>
               <th>Value</th>
               <th>Period</th>
+              <th>Locator</th>
               <th>Lane</th>
               <th>Ver.</th>
             </tr>
@@ -91,14 +151,13 @@ export default function CompanyPage() {
           <tbody>
             {data.metrics.map((m) => {
               const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
+              const loc = ref?.locator;
               return (
                 <tr key={m.id}>
                   <td>{m.metricKey}</td>
                   <td>
                     <Fact
-                      display={
-                        m.valueNumeric == null ? "—" : `${m.valueNumeric} ${m.unit} ${m.currency}`
-                      }
+                      display={m.valueNumeric == null ? "—" : `${m.valueNumeric} ${m.unit} ${m.currency}`}
                       isFact={Boolean(m.sourceRefId && m.valueNumeric != null)}
                       href={ref ? apiUrl(`/api/documents/${ref.documentId}/file`) : undefined}
                       note={
@@ -111,6 +170,10 @@ export default function CompanyPage() {
                     />
                   </td>
                   <td>{m.periodEnd}</td>
+                  <td className="lede">
+                    {loc?.sheet} {loc?.cell}
+                    {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
+                  </td>
                   <td>{m.lane}</td>
                   <td>{m.version}</td>
                 </tr>
@@ -140,12 +203,22 @@ export default function CompanyPage() {
       <form onSubmit={addNote} style={{ marginTop: 16 }} className="field">
         <label className="field">
           Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
-          cannot be confirmed as subjective. Transcript drafts need Granola (not connected).
+          cannot be confirmed as subjective. Period defaults to the latest booked period, not a hardcoded month.
           <select value={lane} onChange={(e) => setLane(e.target.value as "objective" | "subjective")}>
             <option value="objective">Objective</option>
             <option value="subjective">Subjective</option>
           </select>
         </label>
+        <div className="row">
+          <label className="field">
+            Period start
+            <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} required />
+          </label>
+          <label className="field">
+            Period end
+            <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} required />
+          </label>
+        </div>
         <textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={3} />
         <button className="btn sm" type="submit">
           Save note
@@ -156,7 +229,7 @@ export default function CompanyPage() {
       <ul>
         {data.flags.map((f) => (
           <li key={f.id} className={`sev-${f.severity}`}>
-            {f.flagKey} · {f.severity}
+            {f.flagKey.replaceAll("_", " ")} · {f.severity}
           </li>
         ))}
         {data.flags.length === 0 && <li className="lede">No open flags.</li>}
@@ -166,7 +239,10 @@ export default function CompanyPage() {
       <ul>
         {data.documents.map((d) => (
           <li key={d.id}>
-            <a href={apiUrl(`/api/documents/${d.id}/file`)}>{d.filename}</a> · {d.kind}
+            <button type="button" className="chip" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
+              {d.filename}
+            </button>{" "}
+            · {d.kind}
           </li>
         ))}
       </ul>
@@ -176,19 +252,40 @@ export default function CompanyPage() {
 }
 
 function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }) {
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   async function send(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    await api(`/api/companies/${companyId}/documents`, { method: "POST", body: fd });
-    onDone();
+    setBusy(true);
+    setMsg("");
+    try {
+      const fd = new FormData(e.currentTarget);
+      await api(`/api/companies/${companyId}/documents`, { method: "POST", body: fd });
+      setMsg("Queued. Confirm extracts in Inbox — nothing auto-posts.");
+      onDone();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <form onSubmit={send} className="row" style={{ marginTop: 8 }}>
-      <input type="hidden" name="kind" value="mis" />
-      <input type="file" name="file" required accept=".xlsx,.xls,.csv,.pdf" />
-      <button className="btn sm" type="submit">
-        Upload to vault
+      <label className="sr-only" htmlFor="kind">
+        Document kind
+      </label>
+      <select id="kind" name="kind" defaultValue="mis">
+        <option value="mis">MIS</option>
+        <option value="board_pack">Board pack</option>
+        <option value="transcript">Transcript</option>
+        <option value="mark_memo">Mark memo</option>
+        <option value="other">Other</option>
+      </select>
+      <input type="file" name="file" required accept=".xlsx,.xls,.csv,.pdf" aria-label="File" />
+      <button className="btn sm" type="submit" disabled={busy}>
+        {busy ? "Uploading…" : "Upload to vault"}
       </button>
+      {msg && <span className="lede">{msg}</span>}
     </form>
   );
 }

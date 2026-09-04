@@ -128,6 +128,8 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Compare does not treat null as 0.
 - [x] Empty org shows empty states, not demo companies.
 - [x] Period-over-period NAV bridge from booked marks (approval / period lock still later).
+- [x] Runway uses last-three-month average burn; flag mute/snooze survive refresh; plan variance is below-plan only (Pass 07/04).
+- [x] Compare pickers (company / metric / period) + CSV; NAV MOIC from rollup only; bridge by position (Pass 08/10).
 
 ---
 
@@ -144,6 +146,8 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 ### Acceptance criteria
 
 - [x] Ask with insufficient evidence returns explicit not-available / refuse — eval case in CI.
+- [x] Ask refuses on token non-overlap and on invented numerals (Pass 05).
+- [x] One-pager requires companyId; exports use session credentials (Pass 09).
 - [x] Citation resolves to real chunk/page/cell; fake locators fail tests.
 - [x] Subjective commentary pipeline rejects MIS-only input (no transcript → no subjective draft).
 - [ ] Report job does not run inside serverless HTTP; artifacts land in R2/S3. *(export is on-demand from book facts today; worker queue stub exists)*

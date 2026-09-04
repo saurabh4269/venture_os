@@ -7,13 +7,18 @@ export function factOrDash(args: {
   sourceRefId?: string | null;
   unit?: Unit;
   currency?: Currency;
-}): { display: string; isFact: boolean } {
-  if (!args.sourceRefId) return { display: "—", isFact: false };
-  if (!isPresent(args.value)) return { display: "—", isFact: false };
+}): { display: string; isFact: boolean; sourceRefId: string | null } {
+  const sourceRefId = args.sourceRefId ?? null;
+  if (!args.sourceRefId) return { display: "—", isFact: false, sourceRefId };
+  if (!isPresent(args.value)) return { display: "—", isFact: false, sourceRefId };
   if (args.unit && args.currency) {
-    return { display: formatMoney(args.value, args.unit, args.currency), isFact: true };
+    return { display: formatMoney(args.value, args.unit, args.currency), isFact: true, sourceRefId };
   }
-  return { display: formatMissing(args.value, (v) => v.toLocaleString("en-IN")), isFact: true };
+  return {
+    display: formatMissing(args.value, (v) => v.toLocaleString("en-IN")),
+    isFact: true,
+    sourceRefId,
+  };
 }
 
 export function pct(n: Num): string {
@@ -33,6 +38,7 @@ export type DualDisplay = {
   converted: string;
   conversionRefused: boolean;
   fxNote: string | null;
+  sourceRefId: string | null;
 };
 
 /**

@@ -72,14 +72,14 @@ export type NavBridge = {
  * (missing ≠ 0). Unexplained names are listed, never filled with a guessed prior.
  */
 export function navBridge(currentAsOf: string, current: PositionMark[], prior: PositionMark[]): NavBridge {
-  const priorByCompany = new Map(prior.map((r) => [r.companyId, r]));
+  const priorByPosition = new Map(prior.map((r) => [r.positionId, r]));
   const lines: BridgeLine[] = [];
   const unexplained: NavBridge["unexplained"] = [];
   const deltas: Num[] = [];
   let priorAsOf: string | null = null;
 
   for (const row of current) {
-    const prev = priorByCompany.get(row.companyId);
+    const prev = priorByPosition.get(row.positionId) ?? prior.find((p) => p.companyId === row.companyId);
     if (prev?.markAsOf && (!priorAsOf || prev.markAsOf > priorAsOf)) priorAsOf = prev.markAsOf;
     const priorMark = prev?.mark ?? null;
     const currentMark = row.mark;

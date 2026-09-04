@@ -9,11 +9,12 @@ import {
   documentKindToCommentarySource,
   factOrDash,
   formatDualDisplay,
-  moic,
+  inventedNumbers,
   navBridge,
   defaultPriorAsOf,
   rollupNav,
   runwayMonths,
+  runwayMonthsFromBurns,
   toEur,
   toInrCrore,
   tokenize,
@@ -38,6 +39,7 @@ import {
   metricValues,
   orgSettings,
   organization,
+  parseJobs,
   positions,
   reports,
   runFlagJob,
@@ -358,8 +360,44 @@ routes.get("/api/companies/:id", async (c) => {
       .select()
       .from(flagEvents)
       .where(and(eq(flagEvents.companyId, id), eq(flagEvents.status, "open")));
-    const refs = await tx.select().from(sourceRefs).where(eq(sourceRefs.orgId, s.orgId));
-    return { company: co, metrics, commentary: notes, documents: docs, flags, sourceRefs: refs };
+    const docIds = docs.map((d) => d.id);
+    const refs = docIds.length
+      ? await tx.select().from(sourceRefs).where(inArray(sourceRefs.documentId, docIds))
+      : [];
+    const cash = metrics.find((m) => m.metricKey === "cash");
+    const burn = metrics.find((m) => m.metricKey === "burn");
+    const burns = metrics.filter((m) => m.metricKey === "burn").slice(0, 3);
+    const r = runwayMonthsFromBurns(
+      cash?.valueNumeric ?? null,
+      burns.map((b) => b.valueNumeric ?? null),
+    );
+    const kpi = {
+      cash: formatDualDisplay({
+        value: cash?.valueNumeric ?? null,
+        sourceRefId: cash?.sourceRefId,
+        unit: cash?.unit as never,
+        currency: cash?.currency as never,
+        valueEur: cash?.valueEur ?? null,
+        fxRate: cash?.fxRate ?? null,
+        fxDate: cash?.fxDate ?? null,
+        fxSource: cash?.fxSource ?? null,
+      }),
+      burn: formatDualDisplay({
+        value: burn?.valueNumeric ?? null,
+        sourceRefId: burn?.sourceRefId,
+        unit: burn?.unit as never,
+        currency: burn?.currency as never,
+        valueEur: burn?.valueEur ?? null,
+        fxRate: burn?.fxRate ?? null,
+        fxDate: burn?.fxDate ?? null,
+        fxSource: burn?.fxSource ?? null,
+      }),
+      runway: factOrDash({
+        value: r,
+        sourceRefId: cash?.sourceRefId && burn?.sourceRefId ? cash.sourceRefId : null,
+      }),
+    };
+    return { company: co, metrics, commentary: notes, documents: docs, flags, sourceRefs: refs, kpi };
   });
   if (!data) throw new HttpError(404, "company_not_found");
   return c.json(data);
@@ -372,8 +410,15 @@ routes.post("/api/companies/:id/documents", async (c) => {
   const file = form["file"];
   if (!(file instanceof File)) throw new HttpError(400, "file_required");
   const buf = Buffer.from(await file.arrayBuffer());
+  if (!buf.length) throw new HttpError(400, "empty_file");
+  if (buf.length > 25 * 1024 * 1024) throw new HttpError(400, "file_too_large");
+  const name = file.name.toLowerCase();
+  if (![".xlsx", ".xls", ".csv", ".pdf"].some((ext) => name.endsWith(ext))) {
+    throw new HttpError(400, "unsupported_type");
+  }
   const kind = String(form["kind"] ?? "mis");
-  const key = `${s.orgId}/${companyId}/${Date.now()}-${file.name}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 180);
+  const key = `${s.orgId}/${companyId}/${Date.now()}-${safeName}`;
   const store = createObjectStore();
   await store.put(key, buf, file.type || "application/octet-stream");
   const doc = await withOrg(s.orgId, async (tx) => {
@@ -383,7 +428,7 @@ routes.post("/api/companies/:id/documents", async (c) => {
         orgId: s.orgId,
         companyId,
         kind,
-        filename: file.name,
+        filename: safeName,
         storageKey: key,
         mime: file.type || "application/octet-stream",
         sha256: sha256(buf),
@@ -398,8 +443,39 @@ routes.post("/api/companies/:id/documents", async (c) => {
 
 routes.get("/api/documents", async (c) => {
   const s = requireOrg(c);
-  const rows = await withOrg(s.orgId, (tx) => tx.select().from(documents));
-  return c.json({ documents: rows });
+  const data = await withOrg(s.orgId, async (tx) => {
+    const rows = await tx.select().from(documents);
+    const jobs = await tx.select().from(parseJobs);
+    const cos = await tx.select().from(companies);
+    return rows.map((d) => {
+      const job = jobs.filter((j) => j.documentId === d.id).sort((a, b) => {
+        const at = a.startedAt?.getTime() ?? 0;
+        const bt = b.startedAt?.getTime() ?? 0;
+        return bt - at;
+      })[0];
+      return {
+        ...d,
+        companyName: cos.find((x) => x.id === d.companyId)?.name ?? null,
+        parseStatus: job?.status ?? "queued",
+        parseError: job?.error ?? null,
+      };
+    });
+  });
+  return c.json({ documents: data });
+});
+
+routes.get("/api/documents/:id", async (c) => {
+  const s = requireOrg(c);
+  const id = c.req.param("id");
+  const data = await withOrg(s.orgId, async (tx) => {
+    const [doc] = await tx.select().from(documents).where(eq(documents.id, id));
+    if (!doc) return null;
+    const jobs = await tx.select().from(parseJobs).where(eq(parseJobs.documentId, id));
+    const job = jobs.sort((a, b) => (b.startedAt?.getTime() ?? 0) - (a.startedAt?.getTime() ?? 0))[0] ?? null;
+    return { document: doc, parse: job };
+  });
+  if (!data) throw new HttpError(404, "not_found");
+  return c.json(data);
 });
 
 routes.get("/api/documents/:id/file", async (c) => {
@@ -582,7 +658,11 @@ routes.get("/api/command", async (c) => {
       const burn = cm.find((m) => m.metricKey === "burn");
       const p = pos.find((x) => x.companyId === co.id);
       const mark = p ? mk.filter((m) => m.positionId === p.id).sort((a, b) => (a.asOf < b.asOf ? 1 : -1))[0] : null;
-      const r = runwayMonths(cash?.valueNumeric ?? null, burn?.valueNumeric ?? null);
+      const burns = cm.filter((m) => m.metricKey === "burn").slice(0, 3);
+      const r = runwayMonthsFromBurns(
+        cash?.valueNumeric ?? null,
+        burns.map((b) => b.valueNumeric ?? null),
+      );
       return {
         company: co,
         cash: formatDualDisplay({
@@ -643,8 +723,19 @@ routes.get("/api/command", async (c) => {
         moic: rollup.moic,
       },
       needsALook: {
-        flags: flags.slice(0, 20),
-        inbox: inbox.slice(0, 20),
+        flags: flags.slice(0, 20).map((f) => ({
+          id: f.id,
+          flagKey: f.flagKey,
+          severity: f.severity,
+          companyId: f.companyId,
+          companyName: cos.find((x) => x.id === f.companyId)?.name ?? "—",
+        })),
+        inbox: inbox.slice(0, 20).map((i) => ({
+          id: i.id,
+          companyId: i.companyId,
+          companyName: cos.find((x) => x.id === i.companyId)?.name ?? "—",
+          kind: i.kind,
+        })),
       },
       coverage,
       sourceRefs: refs,
@@ -667,6 +758,39 @@ routes.post("/api/flags/refresh", async (c) => {
   const s = requireWrite(c);
   const result = await runFlagJob(s.orgId);
   return c.json(result);
+});
+
+routes.post("/api/flags/:id/snooze", async (c) => {
+  const s = requireWrite(c);
+  const id = c.req.param("id");
+  const body = (await c.req.json().catch(() => ({}))) as { until?: string; note?: string };
+  const until = body.until ? new Date(body.until) : new Date(Date.now() + 14 * 86400000);
+  const row = await withOrg(s.orgId, async (tx) => {
+    await tx
+      .update(flagEvents)
+      .set({ status: "snoozed", snoozedUntil: until, note: body.note ?? null })
+      .where(eq(flagEvents.id, id));
+    const [f] = await tx.select().from(flagEvents).where(eq(flagEvents.id, id));
+    return f;
+  });
+  if (!row) throw new HttpError(404, "not_found");
+  return c.json({ flag: row });
+});
+
+routes.post("/api/flags/:id/mute", async (c) => {
+  const s = requireWrite(c);
+  const id = c.req.param("id");
+  const body = (await c.req.json().catch(() => ({}))) as { note?: string };
+  const row = await withOrg(s.orgId, async (tx) => {
+    await tx
+      .update(flagEvents)
+      .set({ status: "muted", note: body.note ?? null })
+      .where(eq(flagEvents.id, id));
+    const [f] = await tx.select().from(flagEvents).where(eq(flagEvents.id, id));
+    return f;
+  });
+  if (!row) throw new HttpError(404, "not_found");
+  return c.json({ flag: row });
 });
 
 routes.get("/api/nav", async (c) => {
@@ -715,7 +839,7 @@ routes.get("/api/nav", async (c) => {
     }));
     const rollup = rollupNav(asOf, currentMarks);
     const bridge = navBridge(asOf, currentMarks, priorMarks);
-    return { asOf, priorAsOf, rollup, bridge, positions: rows, moic: moic(rollup.nav.total, rollup.cost.total) };
+    return { asOf, priorAsOf, rollup, bridge, positions: rows, moic: rollup.moic };
   });
   return c.json(data);
 });
@@ -759,9 +883,18 @@ routes.post("/api/nav/marks", async (c) => {
 
 routes.get("/api/compare", async (c) => {
   const s = requireOrg(c);
-  const keys = (c.req.query("metrics") ?? "net_revenue,cash,burn,gross_margin_pct,runway_months").split(",");
+  const keys = (c.req.query("metrics") ?? "net_revenue,cash,burn,gross_margin_pct,runway_months")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+  const companyIds = (c.req.query("companyIds") ?? "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean);
+  const periodEnd = c.req.query("periodEnd") ?? "";
   const data = await withOrg(s.orgId, async (tx) => {
-    const cos = await tx.select().from(companies);
+    const allCos = await tx.select().from(companies);
+    const cos = companyIds.length ? allCos.filter((c) => companyIds.includes(c.id)) : allCos;
     const metrics = await tx.select().from(metricValues);
     const matrix = cos.map((co) => {
       const cells: Record<string, ReturnType<typeof factOrDash> & { periodEnd?: string | null }> = {};
@@ -769,7 +902,14 @@ routes.get("/api/compare", async (c) => {
         if (key === "runway_months") {
           const cash = metrics.filter((m) => m.companyId === co.id && m.metricKey === "cash").sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
           const burn = metrics.filter((m) => m.companyId === co.id && m.metricKey === "burn").sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
-          const r = runwayMonths(cash?.valueNumeric ?? null, burn?.valueNumeric ?? null);
+          const r = runwayMonthsFromBurns(
+            cash?.valueNumeric ?? null,
+            metrics
+              .filter((m) => m.companyId === co.id && m.metricKey === "burn")
+              .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))
+              .slice(0, 3)
+              .map((b) => b.valueNumeric ?? null),
+          );
           cells[key] = {
             ...factOrDash({
               value: r,
@@ -780,7 +920,7 @@ routes.get("/api/compare", async (c) => {
           continue;
         }
         const m = metrics
-          .filter((x) => x.companyId === co.id && x.metricKey === key)
+          .filter((x) => x.companyId === co.id && x.metricKey === key && (!periodEnd || x.periodEnd === periodEnd))
           .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
         cells[key] = {
           ...formatDualDisplay({
@@ -798,7 +938,8 @@ routes.get("/api/compare", async (c) => {
       }
       return { company: co, cells };
     });
-    return { metrics: keys, matrix };
+    const periods = [...new Set(metrics.map((m) => m.periodEnd))].sort().reverse();
+    return { metrics: keys, matrix, companies: allCos.map((c) => ({ id: c.id, name: c.name })), periods };
   });
   return c.json(data);
 });
@@ -807,8 +948,12 @@ routes.post("/api/ask", async (c) => {
   const s = requireOrg(c);
   const body = AskRequestSchema.parse(await c.req.json());
   const tokens = tokenize(body.question);
-  const tsQuery = tokens.join(" | ") || "venture";
-  const evidence = await withOrg(s.orgId, async (tx) => {
+  const tsQuery =
+    tokens
+      .map((t) => t.replace(/[^a-z0-9]/gi, ""))
+      .filter((t) => t.length > 1)
+      .join(" | ") || "venture";
+  let evidence = await withOrg(s.orgId, async (tx) => {
     const chunks = await tx.execute(sql`
       select id, document_id, source_ref_id, body,
              ts_rank(tsv, to_tsquery('english', ${tsQuery})) as rank
@@ -847,7 +992,7 @@ routes.post("/api/ask", async (c) => {
     };
   });
 
-  const decision = decideAsk(evidence);
+  const decision = decideAsk(evidence, tokens);
   if (!decision.ok) {
     const refused = {
       answer: ASK_REFUSAL,
@@ -892,6 +1037,26 @@ routes.post("/api/ask", async (c) => {
     // Key missing: still return grounded extract, not an invention.
   }
 
+  const invented = inventedNumbers(answer, context);
+  if (invented.length) {
+    const refused = {
+      answer: ASK_REFUSAL,
+      refused: true,
+      citations: cites,
+    };
+    await withOrg(s.orgId, (tx) =>
+      tx.insert(askQueries).values({
+        orgId: s.orgId,
+        question: body.question,
+        answer: refused.answer,
+        refused: true,
+        citations: cites,
+        createdBy: s.user.id,
+      }),
+    );
+    return c.json(refused);
+  }
+
   const payload = { answer, refused: false, citations: cites };
   await withOrg(s.orgId, (tx) =>
     tx.insert(askQueries).values({
@@ -915,6 +1080,7 @@ routes.get("/api/reports", async (c) => {
 routes.post("/api/reports", async (c) => {
   const s = requireWrite(c);
   const body = await c.req.json<{ kind: "one_pager" | "portfolio"; companyId?: string }>();
+  if (body.kind === "one_pager" && !body.companyId) throw new HttpError(400, "company_id_required");
   const draft = await withOrg(s.orgId, async (tx) => {
     const cos = await tx.select().from(companies);
     const metrics = await tx.select().from(metricValues);

@@ -1,23 +1,7 @@
-import { detectAll } from "@venture-os/core";
-import { and, desc, eq } from "drizzle-orm";
+import { detectAll, latestByPeriod } from "@venture-os/core";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { withOrg } from "./client.js";
 import { companies, flagEvents, marks, metricValues, positions } from "./schema.js";
-
-function latest(
-  rows: { metricKey: string; periodEnd: string; valueNumeric: number | null; sourceRefId: string }[],
-  key: string,
-) {
-  const hit = rows.find((r) => r.metricKey === key);
-  return hit?.valueNumeric ?? null;
-}
-
-function prior(
-  rows: { metricKey: string; periodEnd: string; valueNumeric: number | null }[],
-  key: string,
-) {
-  const matches = rows.filter((r) => r.metricKey === key);
-  return matches[1]?.valueNumeric ?? null;
-}
 
 export async function runFlagJob(orgId: string, companyId?: string) {
   return withOrg(orgId, async (tx) => {
@@ -32,7 +16,15 @@ export async function runFlagJob(orgId: string, companyId?: string) {
         .where(eq(metricValues.companyId, co.id))
         .orderBy(desc(metricValues.periodEnd), desc(metricValues.version));
 
-      const lastMis = metrics.find((m) => m.lane === "objective");
+      const byKey = (key: string) => latestByPeriod(metrics.filter((m) => m.metricKey === key));
+      const cashS = byKey("cash");
+      const burnS = byKey("burn");
+      const gmS = byKey("gross_margin_pct");
+      const revS = byKey("net_revenue");
+      const planS = byKey("plan_revenue");
+      const hcS = byKey("headcount");
+
+      const lastMis = latestByPeriod(metrics.filter((m) => m.lane === "objective"))[0];
       const pos = await tx.select().from(positions).where(eq(positions.companyId, co.id));
       let lastMark: string | null = null;
       if (pos[0]) {
@@ -44,18 +36,56 @@ export async function runFlagJob(orgId: string, companyId?: string) {
         lastMark = mk[0]?.asOf ?? null;
       }
 
+      const burnAvg =
+        burnS.slice(0, 3).filter((b) => b.valueNumeric != null).length === 0
+          ? null
+          : burnS
+              .slice(0, 3)
+              .map((b) => b.valueNumeric)
+              .filter((v): v is number => v != null)
+              .reduce((a, b) => a + b, 0) /
+            burnS.slice(0, 3).filter((b) => b.valueNumeric != null).length;
+
       const hits = detectAll({
-        cash: latest(metrics, "cash"),
-        burn: latest(metrics, "burn"),
-        priorBurn: prior(metrics, "burn"),
-        gm: latest(metrics, "gross_margin_pct"),
-        priorGm: prior(metrics, "gross_margin_pct"),
-        revenue: latest(metrics, "net_revenue"),
-        planRevenue: latest(metrics, "plan_revenue"),
+        cash: cashS[0]?.valueNumeric ?? null,
+        burn: burnS[0]?.valueNumeric ?? null,
+        runwayBurn: burnAvg,
+        priorBurn: burnS[1]?.valueNumeric ?? null,
+        gm: gmS[0]?.valueNumeric ?? null,
+        priorGm: gmS[1]?.valueNumeric ?? null,
+        revenue: revS[0]?.valueNumeric ?? null,
+        priorRevenue: revS[1]?.valueNumeric ?? null,
+        planRevenue: planS[0]?.valueNumeric ?? null,
+        headcount: hcS[0]?.valueNumeric ?? null,
+        priorHeadcount: hcS[1]?.valueNumeric ?? null,
         lastMisPeriodEnd: lastMis?.periodEnd ?? null,
         lastMarkAsOf: lastMark,
-        priorCash: prior(metrics, "cash"),
+        priorCash: cashS[1]?.valueNumeric ?? null,
+        companyCreatedAt: co.createdAt,
       });
+
+      const held = await tx
+        .select()
+        .from(flagEvents)
+        .where(
+          and(
+            eq(flagEvents.companyId, co.id),
+            inArray(flagEvents.status, ["snoozed", "muted"]),
+          ),
+        );
+      const now = Date.now();
+      const skip = new Set(
+        held
+          .filter((h) => {
+            if (h.status === "muted") return true;
+            if (h.status === "snoozed") {
+              const until = h.snoozedUntil;
+              return until ? until.getTime() > now : true;
+            }
+            return false;
+          })
+          .map((h) => h.flagKey),
+      );
 
       await tx
         .update(flagEvents)
@@ -63,10 +93,11 @@ export async function runFlagJob(orgId: string, companyId?: string) {
         .where(and(eq(flagEvents.companyId, co.id), eq(flagEvents.status, "open")));
 
       for (const hit of hits) {
-        const refs = metrics
-          .filter((m) => m.metricKey === "cash" || m.metricKey === "burn" || m.metricKey === hit.flagKey)
+        if (skip.has(hit.flagKey)) continue;
+        const refs = [...cashS, ...burnS, ...revS]
           .slice(0, 3)
-          .map((m) => m.sourceRefId);
+          .map((m) => m.sourceRefId)
+          .filter(Boolean);
         await tx.insert(flagEvents).values({
           orgId,
           companyId: co.id,

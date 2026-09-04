@@ -64,6 +64,9 @@ export const FlagKeySchema = z.enum([
   "plan_variance",
   "mark_stale",
   "cash_unreported",
+  "revenue_down",
+  "headcount_drop",
+  "call_concern",
 ]);
 export type FlagKey = z.infer<typeof FlagKeySchema>;
 

@@ -27,3 +27,32 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.headers.get("content-type")?.includes("application/json")) return res.json() as Promise<T>;
   return undefined as T;
 }
+
+/** Cookie-auth download. Bare <a href> to the API drops the session. */
+export async function downloadAuthed(path: string, filename?: string) {
+  const res = await fetch(`${API}${path}`, { credentials: "include" });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const name =
+    filename ??
+    res.headers.get("content-disposition")?.match(/filename="([^"]+)"/)?.[1] ??
+    "download";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.rel = "noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

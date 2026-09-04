@@ -89,10 +89,44 @@ export default function SettingsPage() {
       <p className="lede">FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists.</p>
 
       {data?.settings && (
-        <p>
-          FY start month {data.settings.fyStartMonth} · {data.settings.baseCurrency} / {data.settings.displayCurrency}
-        </p>
+        <form
+          className="row"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            await api("/api/settings", {
+              method: "POST",
+              body: JSON.stringify({
+                fyStartMonth: Number(fd.get("fyStartMonth")),
+                baseCurrency: String(fd.get("baseCurrency")),
+                displayCurrency: String(fd.get("displayCurrency")),
+              }),
+            });
+            load();
+          }}
+        >
+          <label className="field">
+            FY start month
+            <input name="fyStartMonth" type="number" min={1} max={12} defaultValue={data.settings.fyStartMonth} />
+          </label>
+          <label className="field">
+            Base
+            <input name="baseCurrency" defaultValue={data.settings.baseCurrency} />
+          </label>
+          <label className="field">
+            Display
+            <input name="displayCurrency" defaultValue={data.settings.displayCurrency} />
+          </label>
+          <button className="btn sm" type="submit">
+            Save FY
+          </button>
+        </form>
       )}
+      <h2>Mapping</h2>
+      <p className="lede">
+        Firm metric dictionary and company mapping profiles are stubs. We will not invent OneDrive folder IDs or
+        Affinity field names. Unit/currency hints live on each company profile.
+      </p>
 
       <h2>People</h2>
       {members.length === 0 ? (

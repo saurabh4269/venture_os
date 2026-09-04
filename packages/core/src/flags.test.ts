@@ -3,6 +3,7 @@ import {
   detectBurnUp,
   detectCashUnreported,
   detectGmCompression,
+  detectMisLate,
   detectPlanVariance,
   detectRunwayShort,
 } from "./flags.js";
@@ -38,10 +39,21 @@ describe("flag detectors", () => {
     expect(detectGmCompression(0.32, 0.4, 0.03)?.flagKey).toBe("gm_compression");
   });
 
-  it("plan variance requires both actual and plan", () => {
+  it("plan variance requires both actual and plan, and only fires below plan", () => {
     expect(detectPlanVariance(8, null)).toBeNull();
     expect(detectPlanVariance(8, 10, 0.15)?.flagKey).toBe("plan_variance");
     expect(detectPlanVariance(9, 10, 0.15)).toBeNull();
+    expect(detectPlanVariance(12, 10, 0.15)).toBeNull();
+  });
+
+  it("mis_late grants grace to a newly created company with no MIS yet", () => {
+    const asOf = new Date("2026-09-04T00:00:00Z");
+    expect(
+      detectMisLate(null, asOf, 45, { companyCreatedAt: "2026-09-01T00:00:00Z" }),
+    ).toBeNull();
+    expect(detectMisLate(null, asOf, 45, { companyCreatedAt: "2026-01-01T00:00:00Z" })?.flagKey).toBe(
+      "mis_late",
+    );
   });
 
   it("cash_unreported fires when prior cash exists and current is missing — not zero", () => {

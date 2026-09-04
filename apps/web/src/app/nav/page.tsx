@@ -42,7 +42,15 @@ type Nav = {
 export default function NavPage() {
   const [data, setData] = useState<Nav | null>(null);
   const [asOf, setAsOf] = useState(new Date().toISOString().slice(0, 10));
-  const [form, setForm] = useState({ positionId: "", value: "", method: "last_round", rationale: "" });
+  const [form, setForm] = useState({
+    positionId: "",
+    value: "",
+    method: "last_round",
+    rationale: "",
+    fxRate: "",
+    fxDate: "",
+    fxSource: "",
+  });
 
   function load() {
     api<Nav>(`/api/nav?asOf=${asOf}`).then(setData);
@@ -61,6 +69,9 @@ export default function NavPage() {
         method: form.method,
         value: form.value === "" ? null : Number(form.value),
         rationale: form.rationale,
+        fxRate: form.fxRate === "" ? undefined : Number(form.fxRate),
+        fxDate: form.fxDate || undefined,
+        fxSource: form.fxSource || undefined,
       }),
     });
     load();
@@ -152,7 +163,10 @@ export default function NavPage() {
                   <td>{p.fundName}</td>
                   <td>{p.cost ?? "—"}</td>
                   <td>
-                    <Fact display={p.mark == null ? "—" : String(p.mark)} isFact={Boolean(p.sourceRefId && p.mark != null)} />
+                    <Fact
+                      display={p.mark == null ? "—" : String(p.mark)}
+                      isFact={Boolean(p.sourceRefId && p.mark != null)}
+                    />
                   </td>
                   <td>{p.markAsOf ?? "—"}</td>
                   <td>{p.method ?? "—"}</td>
@@ -183,6 +197,22 @@ export default function NavPage() {
               placeholder="Rationale"
               value={form.rationale}
               onChange={(e) => setForm({ ...form, rationale: e.target.value })}
+            />
+            <input
+              placeholder="FX rate"
+              value={form.fxRate}
+              onChange={(e) => setForm({ ...form, fxRate: e.target.value })}
+            />
+            <input
+              type="date"
+              aria-label="FX date"
+              value={form.fxDate}
+              onChange={(e) => setForm({ ...form, fxDate: e.target.value })}
+            />
+            <input
+              placeholder="FX source"
+              value={form.fxSource}
+              onChange={(e) => setForm({ ...form, fxSource: e.target.value })}
             />
             <button className="btn sm">Add mark</button>
           </form>

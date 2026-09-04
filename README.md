@@ -79,7 +79,7 @@ If the key is unset: parse still works; Ask still retrieves and **refuses to inv
 3. **Companies → Add company**. Complete the 15-minute path: profile → upload `fixtures/FIXTURE_ONLY-sample-mis.csv` (or any MIS xlsx/pdf).
 4. **Inbox** — confirm rows. Ambiguous units must be set by you. Nothing auto-posts.
 5. **Command / Flags / NAV / Compare / Ask / Reports** now read the **book**.
-6. Click a number — it opens the source file when a `source_ref` exists. Missing shows **—**. Dual EUR display appears only with `fx_rate` + `fx_date` + source.
+6. Click a number — it opens the source file when a `source_ref` exists (downloads use the session cookie). Missing shows **—**. Dual EUR display appears only with `fx_rate` + `fx_date` + source. Runway is cash / average of the last three reported burns. Flags can be snoozed or muted (survives recompute). One-pagers require a company. Invites are copy-link from Settings (no SMTP).
 
 ### Optional labelled fixture (never production)
 

@@ -48,12 +48,35 @@ export function tokenize(q: string): string[] {
     .filter((t) => t.length > 1 && !STOP.has(t));
 }
 
-/** Refuse unless we have at least one retrieved chunk or book fact. */
-export function decideAsk(evidence: AskEvidence): AskDecision {
-  if (evidence.chunks.length === 0 && evidence.facts.length === 0) {
-    return { ok: false, reason: "empty_corpus" };
+export function filterEvidenceByTokens(evidence: AskEvidence, tokens: string[]): AskEvidence {
+  if (!tokens.length) return evidence;
+  const hit = (excerpt: string) => {
+    const low = excerpt.toLowerCase();
+    return tokens.some((t) => low.includes(t));
+  };
+  return {
+    chunks: evidence.chunks.filter((c) => hit(c.excerpt)),
+    facts: evidence.facts.filter((f) => hit(f.excerpt)),
+  };
+}
+
+/** Refuse unless we have at least one retrieved chunk or book fact that overlaps the question. */
+export function decideAsk(evidence: AskEvidence, tokens: string[] = []): AskDecision {
+  const scoped = filterEvidenceByTokens(evidence, tokens);
+  if (scoped.chunks.length === 0 && scoped.facts.length === 0) {
+    return { ok: false, reason: evidence.chunks.length === 0 && evidence.facts.length === 0 ? "empty_corpus" : "no_overlap" };
   }
-  return { ok: true, evidence };
+  return { ok: true, evidence: scoped };
+}
+
+export function numbersIn(text: string): string[] {
+  return [...text.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => m[0]!);
+}
+
+/** Any numeral in the answer that does not appear in evidence is an invention. */
+export function inventedNumbers(answer: string, evidenceText: string): string[] {
+  const allowed = new Set(numbersIn(evidenceText));
+  return numbersIn(answer).filter((n) => !allowed.has(n));
 }
 
 export const ASK_REFUSAL =

@@ -16,6 +16,8 @@ export default function NewCompanyPage() {
   const [unitHint, setUnitHint] = useState("crore");
   const [companyId, setCompanyId] = useState("");
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [parseStatus, setParseStatus] = useState("");
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -34,11 +36,35 @@ export default function NewCompanyPage() {
       setMsg("Upload an XLSX or PDF, or skip and confirm later.");
       return;
     }
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("kind", "mis");
-    await api(`/api/companies/${companyId}/documents`, { method: "POST", body: fd });
-    setStep(3);
+    setBusy(true);
+    setMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", "mis");
+      const res = await api<{ document: { id: string } }>(`/api/companies/${companyId}/documents`, {
+        method: "POST",
+        body: fd,
+      });
+      setStep(3);
+      pollParse(res.document.id);
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pollParse(documentId: string) {
+    for (let i = 0; i < 20; i++) {
+      const r = await api<{ parse: { status: string; error?: string | null } | null }>(
+        `/api/documents/${documentId}`,
+      ).catch(() => null);
+      const st = r?.parse?.status ?? "queued";
+      setParseStatus(st + (r?.parse?.error ? ` — ${r.parse.error}` : ""));
+      if (st === "done" || st === "error") return;
+      await new Promise((ok) => setTimeout(ok, 800));
+    }
   }
 
   return (
@@ -94,8 +120,8 @@ export default function NewCompanyPage() {
           <p className="lede">OneDrive folder connect is not connected. Upload the first MIS / board pack.</p>
           <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" />
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn" type="submit">
-              Upload and extract
+            <button className="btn" type="submit" disabled={busy}>
+              {busy ? "Uploading…" : "Upload and extract"}
             </button>
             <button className="btn ghost" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
               Skip for now
@@ -107,8 +133,8 @@ export default function NewCompanyPage() {
 
       {step === 3 && (
         <div className="empty" style={{ marginTop: 16 }}>
-          Extract queued. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue, GM). Then this
-          name appears on Command with provenance.
+          Extract {parseStatus || "queued"}. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue,
+          GM). Nothing auto-posts. Then this name appears on Command with provenance.
         </div>
       )}
     </Shell>
