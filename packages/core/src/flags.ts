@@ -171,6 +171,28 @@ export function detectHeadcountDrop(current: Num, prior: Num, threshold = 0.1): 
   };
 }
 
+/** Org overrides keyed by catalog key. Missing key → catalog default. Invalid numbers ignored. */
+export type FlagThresholds = Partial<Record<FlagKey, number>>;
+
+export function resolveFlagThresholds(overrides?: FlagThresholds | null): Record<FlagKey, number> {
+  const out = {} as Record<FlagKey, number>;
+  for (const item of FLAG_CATALOG) {
+    const raw = overrides?.[item.key];
+    out[item.key] = typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : item.defaultThreshold;
+  }
+  return out;
+}
+
+export function parseFlagPolicyJson(raw: unknown): FlagThresholds {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: FlagThresholds = {};
+  for (const item of FLAG_CATALOG) {
+    const v = (raw as Record<string, unknown>)[item.key];
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) out[item.key] = v;
+  }
+  return out;
+}
+
 export function detectAll(input: {
   cash: Num;
   burn: Num;
@@ -188,18 +210,20 @@ export function detectAll(input: {
   priorCash: Num;
   asOf?: Date;
   companyCreatedAt?: Date | string | null;
+  policy?: FlagThresholds | null;
 }): FlagHit[] {
   const asOf = input.asOf ?? new Date();
+  const t = resolveFlagThresholds(input.policy);
   return [
-    detectRunwayShort(input.cash, input.runwayBurn ?? input.burn),
-    detectBurnUp(input.burn, input.priorBurn),
-    detectGmCompression(input.gm, input.priorGm),
-    detectPlanVariance(input.revenue, input.planRevenue),
-    detectRevenueDown(input.revenue, input.priorRevenue),
-    detectSpendWithoutRevenue(input.burn, input.priorBurn, input.revenue, input.priorRevenue),
-    detectHeadcountDrop(input.headcount, input.priorHeadcount),
-    detectMisLate(input.lastMisPeriodEnd, asOf, 45, { companyCreatedAt: input.companyCreatedAt }),
-    detectMarkStale(input.lastMarkAsOf, asOf),
+    detectRunwayShort(input.cash, input.runwayBurn ?? input.burn, t.runway_short),
+    detectBurnUp(input.burn, input.priorBurn, t.burn_up),
+    detectGmCompression(input.gm, input.priorGm, t.gm_compression),
+    detectPlanVariance(input.revenue, input.planRevenue, t.plan_variance),
+    detectRevenueDown(input.revenue, input.priorRevenue, t.revenue_down),
+    detectSpendWithoutRevenue(input.burn, input.priorBurn, input.revenue, input.priorRevenue, t.spend_without_revenue),
+    detectHeadcountDrop(input.headcount, input.priorHeadcount, t.headcount_drop),
+    detectMisLate(input.lastMisPeriodEnd, asOf, t.mis_late, { companyCreatedAt: input.companyCreatedAt }),
+    detectMarkStale(input.lastMarkAsOf, asOf, t.mark_stale),
     detectCashUnreported(input.priorCash, input.cash),
   ].filter((x): x is FlagHit => x !== null);
 }

@@ -12,6 +12,11 @@ async function main() {
   const env = loadEnv();
   const url = process.env.MIGRATE_DATABASE_URL || env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is required");
+  if (/venture_os_app/.test(url) && !process.env.MIGRATE_DATABASE_URL) {
+    console.error(
+      "Migrate is using DATABASE_URL that looks like the app role (venture_os_app). GRANT/CREATE can fail. Set MIGRATE_DATABASE_URL to the owner/superuser DSN.",
+    );
+  }
   const sql = postgres(url, { max: 1 });
   await sql`create table if not exists _migrations (id text primary key, applied_at timestamptz not null default now())`;
   const dir = join(here, "..", "drizzle");

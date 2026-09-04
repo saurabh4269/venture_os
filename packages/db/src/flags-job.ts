@@ -1,10 +1,12 @@
-import { detectAll, latestByPeriod, seriesFor } from "@venture-os/core";
+import { detectAll, latestByPeriod, parseFlagPolicyJson, seriesFor } from "@venture-os/core";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { withOrg } from "./client.js";
-import { companies, flagEvents, marks, metricValues, positions } from "./schema.js";
+import { companies, flagEvents, marks, metricValues, orgSettings, positions } from "./schema.js";
 
 export async function runFlagJob(orgId: string, companyId?: string) {
   return withOrg(orgId, async (tx) => {
+    const [settings] = await tx.select().from(orgSettings);
+    const policy = parseFlagPolicyJson(settings?.flagPolicy);
     const cos = companyId
       ? await tx.select().from(companies).where(eq(companies.id, companyId))
       : await tx.select().from(companies);
@@ -58,6 +60,7 @@ export async function runFlagJob(orgId: string, companyId?: string) {
         lastMarkAsOf: lastMark,
         priorCash: cashS[1]?.valueNumeric ?? null,
         companyCreatedAt: co.createdAt,
+        policy,
       });
 
       const held = await tx

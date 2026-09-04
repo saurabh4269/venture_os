@@ -56,6 +56,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] No corpus-JSON loaded as production path.
 - [x] Empty shell renders; every number surface shows empty / “—” not illustrative demo NAV.
 - [x] Heavy parse/flag jobs run in `worker` (inline fallback only if Redis is down).
+- [x] CI builds web and runs a Playwright signup→confirm smoke (Pass 33). Same-origin BFF (Pass 31).
 
 ---
 
@@ -116,7 +117,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 - Portfolio dashboard (stage, ownership, valuation, NAV, MOIC/IRR, cash, burn, runway, last round) — filterable; drill-to-source.
 - Quarterly NAV: versioned marks, bridge, history; deterministic math in code.
-- Flag engine v1 from agreed catalog + evidence payload; firm thresholds stub.
+- Flag engine v1 from agreed catalog + evidence payload; firm thresholds in `org_settings.flag_policy`.
 - Cross-company compare on chosen metrics; period/stage normalized; null-safe.
 
 ### Acceptance criteria
@@ -127,7 +128,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Flags only from catalog; each flag carries evidence refs.
 - [x] Compare does not treat null as 0.
 - [x] Empty org shows empty states, not demo companies.
-- [x] Period-over-period NAV bridge from booked marks (approval / period lock still later).
+- [x] Period-over-period NAV bridge from booked marks (Pass 23: as-of lock / unlock with reason).
 - [x] Runway uses last-three-month average burn; flag mute/snooze survive refresh; plan variance is below-plan only (Pass 07/04).
 - [x] Compare pickers (company / metric / period) + CSV; NAV MOIC from rollup only; bridge by position (Pass 08/10).
 
@@ -150,7 +151,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] One-pager requires companyId; exports use session credentials (Pass 09).
 - [x] Citation resolves to real chunk/page/cell; fake locators fail tests.
 - [x] Subjective commentary pipeline rejects MIS-only input (no transcript → no subjective draft).
-- [ ] Report job does not run inside serverless HTTP; artifacts land in R2/S3. *(export is on-demand from book facts today; worker queue stub exists)*
+- [x] Report job does not run inside serverless HTTP; artifacts land in the object store when Redis is up; inline fallback if Redis is down (Pass 25).
 - [x] Report headlines match book queries bit-for-bit for fixture org.
 
 ---

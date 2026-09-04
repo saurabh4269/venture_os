@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 /** Better Auth tables — field names match the Drizzle adapter / CLI generate output. */
 
@@ -116,4 +116,6 @@ export const orgSettings = pgTable("org_settings", {
   fyStartMonth: integer("fy_start_month").notNull().default(4),
   baseCurrency: text("base_currency").notNull().default("INR"),
   displayCurrency: text("display_currency").notNull().default("EUR"),
+  /** Firm flag thresholds keyed by catalog key. Missing key → catalog default. */
+  flagPolicy: jsonb("flag_policy").notNull().default({}),
 });

@@ -226,7 +226,12 @@ export default function InboxPage() {
                 <td className="row">
                   {status === "pending" && canWrite && (
                     <>
-                      <button className="btn sm" disabled={busy === i.id} onClick={() => confirm(i)}>
+                      <button
+                        className="btn sm"
+                        disabled={busy === i.id}
+                        onClick={() => confirm(i)}
+                        data-testid="inbox-confirm"
+                      >
                         Confirm
                       </button>
                       <button className="btn ghost sm" disabled={busy === i.id} onClick={() => reject(i.id)}>

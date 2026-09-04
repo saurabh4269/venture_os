@@ -14,6 +14,7 @@ export default function AskPage() {
   const [q, setQ] = useState("");
   const [res, setRes] = useState<Res | null>(null);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState("");
 
@@ -26,6 +27,7 @@ export default function AskPage() {
   async function send(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setErr("");
     try {
       setRes(
         await api<Res>("/api/ask", {
@@ -33,6 +35,8 @@ export default function AskPage() {
           body: JSON.stringify({ question: q, companyId: companyId || undefined }),
         }),
       );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Ask failed");
     } finally {
       setBusy(false);
     }
@@ -57,18 +61,27 @@ export default function AskPage() {
             ))}
           </select>
         </label>
-        <textarea
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          rows={3}
-          placeholder="What was last confirmed cash?"
-          required
-          minLength={3}
-        />
+        <label className="field" htmlFor="ask-q">
+          Question
+          <textarea
+            id="ask-q"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            rows={3}
+            placeholder="What was last confirmed cash?"
+            required
+            minLength={3}
+          />
+        </label>
         <button className="btn" disabled={busy}>
-          {busy ? "Searching…" : "Ask"}
+          {busy ? "Searching the book…" : "Ask"}
         </button>
       </form>
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
       {res && (
         <div style={{ marginTop: 20 }}>
           {res.refused && <div className="banner">{res.answer}</div>}

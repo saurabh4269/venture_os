@@ -1,6 +1,6 @@
 import { Queue, Worker } from "bullmq";
 import { loadEnv } from "@venture-os/config";
-import { runFlagJob, runParseJob } from "@venture-os/db";
+import { runFlagJob, runParseJob, runReportJob } from "@venture-os/db";
 
 const env = loadEnv();
 const connection = () => {
@@ -57,8 +57,10 @@ async function start() {
   const report = new Worker(
     "report",
     async (job) => {
-      log("report_job", { jobId: job.id, ...job.data });
-      return { ok: true };
+      log("report_start", { jobId: job.id, ...job.data });
+      const r = await runReportJob(job.data.orgId, job.data.reportId);
+      log("report_done", { jobId: job.id, ...r });
+      return r;
     },
     { connection: connection() },
   );

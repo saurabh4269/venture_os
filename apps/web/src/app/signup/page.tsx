@@ -88,6 +88,7 @@ function SignupForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
+            data-testid="signup-name"
             required
           />
         </label>
@@ -100,6 +101,7 @@ function SignupForm() {
             onChange={(e) => setEmail(e.target.value)}
             type="email"
             autoComplete="username"
+            data-testid="signup-email"
             required
           />
         </label>
@@ -113,6 +115,7 @@ function SignupForm() {
             type="password"
             autoComplete="new-password"
             minLength={8}
+            data-testid="signup-password"
             required
           />
         </label>
@@ -126,6 +129,7 @@ function SignupForm() {
             type="password"
             autoComplete="new-password"
             minLength={8}
+            data-testid="signup-confirm"
             required
           />
         </label>
@@ -139,6 +143,7 @@ function SignupForm() {
               onChange={(e) => setOrg(e.target.value)}
               placeholder="e.g. V3 Ventures"
               autoComplete="organization"
+              data-testid="signup-org"
               required
             />
             {org && (
@@ -154,7 +159,7 @@ function SignupForm() {
             {err}
           </div>
         )}
-        <button className="btn" type="submit" disabled={busy}>
+        <button className="btn" type="submit" disabled={busy} data-testid="signup-submit">
           {busy ? "Working…" : inviteId ? "Create user" : "Create organisation"}
         </button>
       </form>

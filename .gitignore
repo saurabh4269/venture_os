@@ -22,3 +22,6 @@ apps/worker/dist
 uploads
 .pnpm-store
 dump.rdb
+apps/web/test-results
+apps/web/playwright-report
+apps/web/blob-report

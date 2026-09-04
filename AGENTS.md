@@ -59,7 +59,7 @@ Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
 | 0 Platform | Shipped (auth, RLS, CI, empty shell). Pass 01: locked-role AC, invite accept, org onboard, membership-checked select |
 | 1 Book | Shipped (upload → parse → inbox → book) |
 | 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements) |
-| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge, Compare); NAV **approval** later. Passes 04/07/08/10: 3-mo runway, mute/snooze, position bridge, compare pickers |
+| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge + period lock, Compare). Passes 23–24: lock/unlock, firm flag policy |
 | 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX from the book). Pass 05/09: overlap + invented-number refuse; one-pager requires companyId |
 | 5 Live connectors | Stub only — UI says **not connected** |
 | 6 LP room + billing | Out of scope |

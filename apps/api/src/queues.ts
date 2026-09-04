@@ -30,9 +30,18 @@ export function getReportQueue() {
   return reportQueue;
 }
 
+async function withRedisTimeout<T>(work: Promise<T>, ms = 1500): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error("redis_timeout")), ms);
+    }),
+  ]);
+}
+
 export async function enqueueParse(orgId: string, documentId: string) {
   try {
-    await getParseQueue().add("parse-document", { orgId, documentId });
+    await withRedisTimeout(getParseQueue().add("parse-document", { orgId, documentId }));
     return "queued";
   } catch (err) {
     log("warn", "redis_unavailable_inline_parse", { err: String(err) });
@@ -44,9 +53,26 @@ export async function enqueueParse(orgId: string, documentId: string) {
 
 export async function enqueueFlags(orgId: string, companyId?: string) {
   try {
-    await getFlagsQueue().add("detect-flags", { orgId, companyId });
+    await withRedisTimeout(getFlagsQueue().add("detect-flags", { orgId, companyId }));
   } catch {
     const { runFlagJob } = await import("@venture-os/db");
     await runFlagJob(orgId, companyId);
+  }
+}
+
+export async function enqueueReport(orgId: string, reportId: string) {
+  try {
+    await Promise.race([
+      getReportQueue().add("render-report", { orgId, reportId }),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("redis_timeout")), 1500);
+      }),
+    ]);
+    return "queued";
+  } catch (err) {
+    log("warn", "redis_unavailable_inline_report", { err: String(err) });
+    const { runReportJob } = await import("@venture-os/db");
+    await runReportJob(orgId, reportId);
+    return "inline";
   }
 }

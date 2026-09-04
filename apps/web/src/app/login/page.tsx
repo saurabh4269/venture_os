@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { safeNextPath } from "@venture-os/config/paths";
 import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { friendlyAuthError } from "@/lib/roles";
@@ -10,7 +11,7 @@ import { friendlyAuthError } from "@/lib/roles";
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/command";
+  const next = safeNextPath(params.get("next"));
   const [email, setEmail] = useState(params.get("email") ?? "");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -19,7 +20,7 @@ function LoginForm() {
   useEffect(() => {
     api<Me>("/api/me")
       .then((m) => {
-        if (m.user && (m.orgId || !m.needsOrg)) router.replace(next.startsWith("/") ? next : "/command");
+        if (m.user && (m.orgId || !m.needsOrg)) router.replace(next);
         else if (m.user) router.replace("/onboard");
       })
       .catch(() => undefined);
@@ -37,7 +38,7 @@ function LoginForm() {
       }
       const me = await api<Me>("/api/me");
       if (me.needsOrg || !me.orgId) router.push("/onboard");
-      else router.push(next.startsWith("/") ? next : "/command");
+      else router.push(next);
     } catch (ex) {
       setErr(friendlyAuthError(ex instanceof Error ? ex.message : "Could not sign in"));
     } finally {
@@ -59,6 +60,7 @@ function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             type="email"
             autoComplete="username"
+            data-testid="login-email"
             required
           />
         </label>
@@ -71,18 +73,16 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             autoComplete="current-password"
+            data-testid="login-password"
             required
           />
         </label>
-        <div className="sr-only" aria-live="polite">
-          {err}
-        </div>
         {err && (
           <div className="sev-high" role="alert">
             {err}
           </div>
         )}
-        <button className="btn" type="submit" disabled={busy}>
+        <button className="btn" type="submit" disabled={busy} data-testid="login-submit">
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </form>

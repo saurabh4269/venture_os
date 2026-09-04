@@ -1,6 +1,5 @@
 # Render — alternative to Fly for api + worker. Free/hobby friendly.
-# Secrets (DATABASE_URL, REDIS_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY, S3_*)
-# are set in the Render dashboard — never committed.
+# Secrets are set in the dashboard — never committed. sync: false = operator fills in.
 
 services:
   - type: web
@@ -13,6 +12,34 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: MIGRATE_DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: WEB_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: WEB_ORIGIN_PATTERNS
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: GIT_SHA
+        sync: false
 
   - type: worker
     name: venture-os-worker
@@ -20,3 +47,20 @@ services:
     plan: free
     buildCommand: corepack enable && pnpm i
     startCommand: pnpm --filter @venture-os/worker start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false

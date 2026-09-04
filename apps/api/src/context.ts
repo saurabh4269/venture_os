@@ -1,5 +1,5 @@
 import type { Context, Next } from "hono";
-import { isAdminRole, isConfirmRole, isWriteRole } from "@venture-os/config";
+import { isAdminRole, isConfirmRole, isLockRole, isWriteRole } from "@venture-os/config";
 import { ensureOrgDefaults, getDb, member } from "@venture-os/db";
 import { eq } from "drizzle-orm";
 import { auth } from "./auth.js";
@@ -11,7 +11,7 @@ export type AppUser = {
 };
 
 export type AppSession = {
-  user: AppUser;
+  user: AppUser | null;
   orgId: string | null;
   role: string | null;
 };
@@ -25,7 +25,7 @@ declare module "hono" {
 export async function sessionMiddleware(c: Context, next: Next) {
   const result = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!result?.user) {
-    c.set("session", { user: null as unknown as AppUser, orgId: null, role: null });
+    c.set("session", { user: null, orgId: null, role: null });
     return next();
   }
   const db = getDb();
@@ -52,16 +52,16 @@ export async function sessionMiddleware(c: Context, next: Next) {
   return next();
 }
 
-export function requireUser(c: Context): AppSession {
+export function requireUser(c: Context): AppSession & { user: AppUser } {
   const s = c.get("session");
   if (!s?.user?.id) throw new HttpError(401, "sign_in_required");
-  return s;
+  return s as AppSession & { user: AppUser };
 }
 
-export function requireOrg(c: Context): AppSession & { orgId: string } {
+export function requireOrg(c: Context): AppSession & { user: AppUser; orgId: string } {
   const s = requireUser(c);
   if (!s.orgId) throw new HttpError(400, "select_or_create_an_org");
-  return s as AppSession & { orgId: string };
+  return s as AppSession & { user: AppUser; orgId: string };
 }
 
 export function requireWrite(c: Context) {
@@ -73,6 +73,12 @@ export function requireWrite(c: Context) {
 export function requireAdmin(c: Context) {
   const s = requireOrg(c);
   if (!isAdminRole(s.role)) throw new HttpError(403, "org_admin_required");
+  return s;
+}
+
+export function requireLock(c: Context) {
+  const s = requireOrg(c);
+  if (!isLockRole(s.role)) throw new HttpError(403, "partner_or_admin_required");
   return s;
 }
 

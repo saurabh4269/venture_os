@@ -1,8 +1,9 @@
 import { createAuthClient } from "better-auth/react";
 import { organizationClient } from "better-auth/client/plugins";
 
+/** Undefined baseURL → current origin (same-origin BFF). */
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || undefined,
   plugins: [organizationClient()],
 });
 

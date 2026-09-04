@@ -15,7 +15,7 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 
 | # | Requirement (brief) | Demo | This repo | Production work remaining |
 | --- | --- | --- | --- | --- |
-| 1 | Org auth / user logins | **missing** | **done** | Session hardening / SSO later. Pass 01: locked-role AC, logout, 401 gate, onboard |
+| 1 | Org auth / user logins | **missing** | **done** | SSO / Redis limiter later. Pass 31–32: same-origin BFF, preview origin patterns, production secret fail-closed, invite mask, security headers |
 | 2 | Multi-tenant orgs / domain join | **missing** | **partial** | Domain / SMTP still missing; copy-link invites; role change + remove + last-admin guard (Pass 14) |
 | 3 | Durable database book | **missing** (JSON seed) | **done** | — |
 | 4 | OneDrive API ingest | **missing** | **missing** | Settings stub: **not connected**. No invented Graph fields |
@@ -33,16 +33,16 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Cookie-auth `Fact` chips on Command/company/compare/NAV/flags (Pass 12); no bbox OCR |
 | 17 | Live dashboard | **mock** | **done** | Command reads the book; Needs-a-look list; 3-mo runway; 0 flags is 0 |
 | 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay `—` |
-| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + position bridge; priorAsOf + fund filter + method enum (Pass 21); approval later |
+| 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + bridge + period lock/unlock with audit (Pass 23). Multi-approver / frozen pack later |
 | 20 | Objective commentary from MIS | **missing** | **partial** | Separate lane; human + inbox confirm |
 | 21 | Subjective commentary from calls | **missing** | **partial** | Lane rejects MIS-only source; Granola still **not connected** |
-| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Curated one-pager; XLSX commentary+FX; multi-page PDF; cookie-auth download (Pass 21) |
-| 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; company-scoped chunks; per-proposal locators; refuse without overlap; numeric post-check |
-| 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + below-plan; mute/snooze/unmute tabs; grace; restatement-safe reads on all surfaces (Pass 13/15) |
+| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Monthly pack lanes + worker artifact (Pass 25); curated one-pager; cookie-auth download |
+| 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; refuse without overlap; `refuseUnsourcedDigits` + golden harness (Pass 26) |
+| 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + evidence; firm `flag_policy` jsonb (Pass 24); mute/snooze; restatement-safe reads |
 | 25 | Cross-company compare | **mock** | **done** | Stage/sector peer filter; catalog labels; hide-empty; objective-lane only (Pass 21) |
-| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + parse poll + upload guards; connector IDs wait for OAuth |
+| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + timed script (Pass 28); Playwright smoke signup→confirm (Pass 33); connector IDs wait for OAuth |
 | 27 | Claude as reasoning layer (brief) | Demo uses **OpenAI** Luna | **done** | Pluggable `LlmProvider`; default OpenAI (D5) |
-| 28 | SOC2-ready audit / security | **missing** | **missing** | RLS + roles only so far |
+| 28 | SOC2-ready audit / security | **missing** | **partial** | RLS + lock/policy isolation; invite mask + admin list; origin patterns; headers; secret fail-closed (Pass 30–32). Audit viewer / SSO later |
 | 29 | Billing / plans for other VCs | **missing** | **missing** | Out of scope this phase |
 | 30 | LP data room (ILPA-style) | **missing** | **missing** | Phase 6 |
 

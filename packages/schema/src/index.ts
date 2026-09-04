@@ -183,3 +183,19 @@ export const AskResponseSchema = z.object({
   ),
 });
 export type AskResponse = z.infer<typeof AskResponseSchema>;
+
+export const NavPeriodStatusSchema = z.enum(["unofficial", "locked"]);
+export const LockNavPeriodSchema = z.object({
+  asOf: z.string().min(8).max(10),
+});
+export const UnlockNavPeriodSchema = z.object({
+  asOf: z.string().min(8).max(10),
+  reason: z.string().min(3).max(500),
+});
+
+export const FlagPolicySchema = z.object({
+  thresholds: z.record(FlagKeySchema, z.number().nonnegative()),
+});
+export type FlagPolicyInput = z.infer<typeof FlagPolicySchema>;
+
+export const ReportKindSchema = z.enum(["one_pager", "portfolio", "monthly_pack"]);

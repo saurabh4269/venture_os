@@ -16,10 +16,20 @@ type ReportMetric = {
 
 type ReportPage = {
   name: string;
+  stage?: string | null;
   metrics: ReportMetric[];
   objective: string[];
   subjective: string[];
   flags?: { flagKey: string; severity: string; label?: string }[];
+};
+
+type MonthlyRow = {
+  name: string;
+  stage?: string | null;
+  periodEnd?: string;
+  metrics: ReportMetric[];
+  objective: string[];
+  subjective: string[];
 };
 
 type ReportRow = {
@@ -30,9 +40,53 @@ type ReportRow = {
 };
 
 export async function buildExports(report: ReportRow, fmt: "pdf" | "pptx" | "xlsx") {
-  const pages = ((report.body as { pages?: ReportPage[] }).pages ?? []) as ReportPage[];
+  const payload = report.body as { pages?: ReportPage[]; rows?: MonthlyRow[]; periodEnd?: string };
+  const pages = (payload.pages ?? []) as ReportPage[];
   if (fmt === "xlsx") {
     const wb = new ExcelJS.Workbook();
+    if (report.kind === "monthly_pack" || payload.rows?.length) {
+      const monthly = wb.addWorksheet("Monthly");
+      monthly.addRow(["Venture OS monthly pack — confirmed book facts. Missing = —. Lanes not blended."]);
+      monthly.addRow([report.title, String(report.createdAt), payload.periodEnd ?? ""]);
+      monthly.addRow([]);
+      monthly.addRow([
+        "Company",
+        "Stage",
+        "Period end",
+        "Net revenue",
+        "Gross margin",
+        "Cash",
+        "Burn",
+        "Runway",
+        "Objective",
+        "Subjective",
+      ]);
+      const rows =
+        payload.rows ??
+        pages.map((p) => ({
+          name: p.name,
+          stage: p.stage,
+          periodEnd: p.metrics.find((m) => m.periodEnd)?.periodEnd ?? "",
+          metrics: p.metrics,
+          objective: p.objective,
+          subjective: p.subjective,
+        }));
+      for (const r of rows) {
+        const byKey = Object.fromEntries(r.metrics.map((m) => [m.key, m]));
+        monthly.addRow([
+          r.name,
+          r.stage ?? "—",
+          r.periodEnd || "—",
+          byKey.net_revenue?.value ?? "—",
+          byKey.gross_margin_pct?.value ?? "—",
+          byKey.cash?.value ?? "—",
+          byKey.burn?.value ?? "—",
+          byKey.runway_months?.value ?? "—",
+          r.objective.join(" / ") || "—",
+          r.subjective.join(" / ") || "—",
+        ]);
+      }
+    }
     const sheet = wb.addWorksheet("Book");
     sheet.addRow(["Venture OS report — confirmed book facts only"]);
     sheet.addRow([report.title, String(report.createdAt)]);

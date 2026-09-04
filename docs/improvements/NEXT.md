@@ -1,48 +1,48 @@
-# Next — remaining after passes 01–22
+# Next — remaining after passes 23–34
 
-**Branch / PR:** `cursor/qa-fix-pass-batch-1-851c` · https://github.com/saurabh4269/venture_os/pull/2  
-**Queue source:** `docs/improvements/queue/` (static review of `main`)
+**Branch / PR:** `cursor/prod-hardening-passes-23-a53d`  
+**Prior:** passes 01–22 on `main` @ `925c284` (PR #2)
 
-Queued P0s **and** the remaining P1 sweep in those files are implemented on this branch (pass 21). Do not re-open them as “unfixed on main.”
+## Closed in this batch
 
-## Closed in pass 22
-
-- NAV as-of defaults to last calendar quarter-end; empty mark requires clear confirmation; rationale column.
-- Vault kind/period filter; book confirmedBy/At.
-- Reports optional `periodEnd`; non-ASCII filename suffix.
-- Compare URL state + sticky first column; Flags → Compare deep link.
-- Settings connectors never return `config` / `lastSyncAt`; unique `(org_id, kind)`.
-- Onboard fund picker. `mark_stale` never-marked is `low`.
-
-## Closed in pass 21
-
-- Company profile editor, booked positions, dual-display book, vault SHA/DOCX, upload parse + Inbox, one-pager shortcut, flag evidence.
-- Settings fund fields, connector labels + disabled Connect + vault fallback, honest OneDrive/Granola/Affinity copy, read-only flag-policy table.
-- Curated one-pager, XLSX commentary+FX, paginated PPTX/PDF, reports createdAt + busy.
-- Compare stage/sector, hide-empty, catalog labels, loading/error, objective-lane filter.
-- NAV priorAsOf, fund filter, ownership, method enum, unmarked prefill, `en-IN`, dated-only IRR.
-- Flags severity/company/key filters, recompute busy/error, `detectedAt`.
+- **23 NAV period lock** — unofficial vs locked as-of; Partner/Org Admin lock; unlock requires reason; write → `409 period_locked`; audit fields; RLS.
+- **24 Flag policy** — `org_settings.flag_policy` jsonb; Settings editor; Flags job uses firm thresholds.
+- **25 Monthly pack** — objective + subjective columns; stronger XLSX; worker `runReportJob` artifact (inline fallback).
+- **26 Ask eval** — `refuseUnsourcedDigits` + golden harness (`ask.eval.test.ts`).
+- **27 Deep UX** — skip-link, focus, nav IA, loading/error on Settings/Reports/Ask/NAV.
+- **28 Onboarding** — timed script `docs/improvements/onboarding-15min.md`; wizard error/busy + sample file pointer.
+- **29 Deploy docs** — Vercel + Neon + Upstash + Fly/Render with real `.env.example` names.
+- **30 Security** — origin allow-list, invite 410, auth rate-limit stub, RLS regression on new tables.
+- **31 Deploy + preview** — same-origin BFF, `WEB_ORIGIN_PATTERNS`, production Dockerfile, Fly warm + migrate + worker, Redis+/SHA health, CI web build + e2e.
+- **32 Security + session** — `safeNextPath`, production secret fail-closed, invite mask + admin list, cookie Secure helper, security headers, idempotent logout, org-create cap.
+- **33 E2E friction** — Playwright smoke (signup→upload→confirm→Command); Shell fetch-once; drop `passWithNoTests`.
+- **34 a11y Shell** — `<main>`, gate testids, Fact “open source”, mobile nav disclosure, Command alerts.
 
 ## Still later (do not invent)
 
-1. **NAV period lock / approval** — gap #19. Write role can still change an unofficial as-of.
-2. **Firm flag-policy persistence** — Settings shows catalog defaults only; writing thresholds needs `org_settings` jsonb + migration.
-3. **Reports monthly pack + worker artifacts** — on-demand draft is real; scheduled pack is not.
-4. **Ask eval harness** — citation fidelity beyond unit tests.
-5. **INR Cr canonical compare column** — native unit stays primary; INR Cr is shown on the cell note when `toInrCrore` can convert (pass 22). Dual EUR still needs an FX triple.
-6. **Growth / burn-multiple derived compare columns** — not in the metric enum; do not invent.
+1. **NAV multi-approver / pack snapshot** — single lock row is official; no second signature, no frozen artifact of the locked pack.
+2. **Per-company / per-fund flag policy** — firm jsonb only.
+3. **Scheduled monthly pack + email** — on-demand + worker artifact only. No cron.
+4. **Live Ask eval vs seeded org** — goldens are evidence-string unit tests. No `SEED_DEMO` in CI.
+5. **INR Cr canonical compare column** — cell note when convertible (pass 22). Dual EUR still needs an FX triple.
+6. **Growth / burn-multiple derived compare columns** — not in the metric enum.
+7. **Redis-backed rate-limit / session rotation / SSO**.
+8. **SOC2 audit-log viewer**.
+9. **Playwright on Compose / axe in CI / viewer storageState**. Invite copy-link smoke is in CI.
+10. **Live Fly/Vercel smoke after a real release** (needs operator credentials).
 
-## Explicitly deferred (need OAuth or Phase 2)
+## Explicitly deferred (need OAuth or Phase 6)
 
 - OneDrive / Affinity / Granola — stub + **not connected**. Never invent folder IDs or `lastSyncAt`.
 - SMTP / domain auto-join.
-- SOC2 audit log viewer.
 - LP / ILPA room.
 - PDF bbox / cell highlight inside the file (locator text is shown).
+- Billing.
 
 ## How to continue
 
-1. Keep this branch or open `cursor/<slug>-851c` off latest `main` after merge.
-2. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1.
-3. `pnpm typecheck && pnpm test` before push.
-4. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts.
+1. Open `cursor/<slug>-a53d` off latest `main` after merge.
+2. Queue-2 P0s are closed in passes 31–34. Do not reopen 23–30 P0s.
+3. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1.
+4. `pnpm typecheck && pnpm test` before push. CI also builds web and runs Playwright.
+5. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts.

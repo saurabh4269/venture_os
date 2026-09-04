@@ -104,9 +104,9 @@ CI (`.github/workflows/ci.yml`) runs the same against a Postgres service, includ
 
 ## What is real vs stubbed
 
-**Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog detectors), NAV rollup + period-over-period bridge, Compare, Ask (FTS + refuse), Reports + PDF/PPTX/XLSX downloads, onboarding wizard, RLS, Vitest.
+**Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog + firm policy), NAV rollup + period-over-period bridge + as-of lock, Compare, Ask (FTS + refuse + digit harness), Reports + monthly pack + PDF/PPTX/XLSX, onboarding wizard, RLS, Vitest.
 
-**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV approval workflow, LP/ILPA room, billing, perfect OCR, domain auto-join.
+**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV multi-approver, LP/ILPA room, billing, perfect OCR, domain auto-join, SMTP.
 
 ---
 
@@ -124,3 +124,27 @@ docs/             official numbered pack (do not fork a second tree)
 ```
 
 Early live hosting notes: [`docs/cost-hosting.md`](docs/cost-hosting.md). Deploy stubs: `apps/web/vercel.json`, `fly.toml`, `render.yaml`.
+
+---
+
+## Free-tier preview (Vercel + Neon + Upstash + Fly/Render)
+
+Names only — copy from [`.env.example`](.env.example). **Do not invent connector secrets** (`AFFINITY_*`, Graph folder IDs, `lastSyncAt`). Do not commit `.env`.
+
+| Where | Role | Env names you actually set |
+| --- | --- | --- |
+| **Vercel** (`apps/web`) | Next.js desktop | `API_URL` (server — BFF upstream), `NEXT_PUBLIC_WEB_URL` (this Vercel URL). **Leave `NEXT_PUBLIC_API_URL` empty** so the browser uses same-origin `/api`. |
+| **Neon** | Postgres | `MIGRATE_DATABASE_URL` (owner — migrate + GRANT), `DATABASE_URL` (role `venture_os_app`, **no BYPASSRLS**). Prefer a **branch per preview**; never `SEED_DEMO=1` on a shared DSN. |
+| **Upstash** | Redis / BullMQ | `REDIS_URL` |
+| **Fly.io or Render** | `apps/api` + `apps/worker` | `API_URL`, `API_PORT=4000`, `WEB_URL` (Vercel origin), `WEB_ORIGIN_PATTERNS` (e.g. `https://*.vercel.app`), `BETTER_AUTH_URL` (public API origin), `BETTER_AUTH_SECRET` (32+ random, not the `.env.example` dummy), `COOKIE_SECURE` (or https `BETTER_AUTH_URL`), `DATABASE_URL`, `MIGRATE_DATABASE_URL`, `REDIS_URL`, `S3_*`, `GIT_SHA` |
+| **R2 / MinIO / fs** | Objects | `S3_ENDPOINT` (or `fs` for local), `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_FORCE_PATH_STYLE` |
+| **OpenAI** (optional) | Ask rewrite | `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-4o-mini`, `LLM_PROVIDER=openai`. Empty key: Ask still searches and **refuses**. |
+| **Never on a client URL** | Fixtures | `SEED_DEMO=0`. `SEED_DEMO_EMAIL` / `SEED_DEMO_PASSWORD` are local only. |
+
+Also set `NODE_ENV=production` on live processes. Cookies stay `HttpOnly` + `SameSite=Lax` + `Secure` when the Better Auth URL is `https` or `COOKIE_SECURE=1`. The Next BFF keeps the session first-party — do not point the browser at a split API host unless you switch to `SameSite=None`.
+
+**Shape:** web on Vercel (filter `@venture-os/web`); api HTTP on Fly/Render; worker as a **second** process (`fly.toml` `[processes] worker`, or a second Render service). Do not run parse/flags/report jobs on Vercel. Fly release migrates via `MIGRATE_DATABASE_URL` (owner). Render migrates once on the api `buildCommand`. Allow preview hosts with `WEB_ORIGIN_PATTERNS`. `/health` reports `postgres`, `redis`, `gitSha`; `ok` is Postgres liveness, `ready` is Postgres+Redis.
+
+**Hobby sleeps:** first request after a cold API may 502 — wait and retry. Turn on Vercel Deployment Protection on public Hobby previews. Rollback: Vercel previous deployment; `fly releases rollback`. Pin Fly `primary_region` near Neon.
+
+15-minute upload path: [`docs/improvements/onboarding-15min.md`](docs/improvements/onboarding-15min.md).

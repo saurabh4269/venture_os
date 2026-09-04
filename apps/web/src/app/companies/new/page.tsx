@@ -21,6 +21,7 @@ export default function NewCompanyPage() {
   const [parseStatus, setParseStatus] = useState("");
   const [funds, setFunds] = useState<{ id: string; name: string }[]>([]);
   const [fundId, setFundId] = useState("");
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     api<{ funds: { id: string; name: string }[] }>("/api/funds")
@@ -30,21 +31,29 @@ export default function NewCompanyPage() {
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
-    const res = await api<{ company: { id: string } }>("/api/companies", {
-      method: "POST",
-      body: JSON.stringify({
-        name,
-        sector,
-        stage,
-        country,
-        fyStartMonth: fy,
-        unitHint,
-        currencyHint: "INR",
-        fundId: fundId || undefined,
-      }),
-    });
-    setCompanyId(res.company.id);
-    setStep(2);
+    setErr("");
+    setBusy(true);
+    try {
+      const res = await api<{ company: { id: string } }>("/api/companies", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          sector,
+          stage,
+          country,
+          fyStartMonth: fy,
+          unitHint,
+          currencyHint: "INR",
+          fundId: fundId || undefined,
+        }),
+      });
+      setCompanyId(res.company.id);
+      setStep(2);
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "Could not create company");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function upload(e: React.FormEvent<HTMLFormElement>) {
@@ -68,6 +77,7 @@ export default function NewCompanyPage() {
         setMsg("This file matches a vault object already stored (same SHA). Extract still queued — confirm Inbox, do not treat as a new source.");
       }
       setStep(3);
+      await api(`/api/parse/${res.document.id}`, { method: "POST", body: "{}" }).catch(() => null);
       pollParse(res.document.id);
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Upload failed");
@@ -86,6 +96,7 @@ export default function NewCompanyPage() {
       if (st === "done" || st === "error") return;
       await new Promise((ok) => setTimeout(ok, 800));
     }
+    setParseStatus("timed out — start the worker or retry extract from the company page");
   }
 
   if (!canWrite) {
@@ -99,7 +110,16 @@ export default function NewCompanyPage() {
   return (
     <Shell>
       <h1>Onboard a company</h1>
-      <p className="lede">Fifteen-minute path: profile → first file → inbox. Nothing auto-posts to the book.</p>
+      <p className="lede">
+        Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Happy-path script:{" "}
+        <code>docs/improvements/onboarding-15min.md</code>. Sample MIS:{" "}
+        <code>fixtures/FIXTURE_ONLY-sample-mis.csv</code>.
+      </p>
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
       <ol style={{ color: "var(--muted)" }}>
         <li style={{ fontWeight: step === 1 ? 600 : 400 }}>Profile</li>
         <li style={{ fontWeight: step === 2 ? 600 : 400 }}>Vault (upload or OneDrive stub)</li>
@@ -110,7 +130,7 @@ export default function NewCompanyPage() {
         <form onSubmit={create} className="grid-2" style={{ maxWidth: 640, marginTop: 16 }}>
           <label className="field">
             Name
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
+            <input data-testid="company-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
           <label className="field">
             Sector
@@ -148,8 +168,8 @@ export default function NewCompanyPage() {
             </select>
           </label>
           <div>
-            <button className="btn" type="submit">
-              Create company
+            <button className="btn" type="submit" disabled={busy} data-testid="create-company">
+              {busy ? "Creating…" : "Create company"}
             </button>
           </div>
         </form>
@@ -160,10 +180,10 @@ export default function NewCompanyPage() {
           <p className="lede">OneDrive folder connect is not connected. Upload the first MIS / board pack.</p>
           <label className="field">
             First file (MIS / board pack)
-            <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First file" />
+            <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" data-testid="mis-file" />
           </label>
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn" type="submit" disabled={busy}>
+            <button className="btn" type="submit" disabled={busy} data-testid="mis-upload">
               {busy ? "Uploading…" : "Upload and extract"}
             </button>
             <button className="btn ghost" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
@@ -175,7 +195,7 @@ export default function NewCompanyPage() {
       )}
 
       {step === 3 && (
-        <div className="empty" style={{ marginTop: 16 }}>
+        <div className="empty" style={{ marginTop: 16 }} data-testid="extract-status">
           Extract {parseStatus || "queued"}. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue,
           GM). Nothing auto-posts. Then this name appears on Command with provenance.
         </div>

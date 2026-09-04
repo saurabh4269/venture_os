@@ -30,6 +30,22 @@ h1, h2, h3, .serif {
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
+:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 2px;
+}
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -40px;
+  background: var(--forest);
+  color: #f6f3ea;
+  padding: 6px 10px;
+  z-index: 20;
+}
+.skip-link:focus {
+  top: 8px;
+}
 
 .app {
   display: grid;
@@ -57,7 +73,10 @@ button { cursor: pointer; }
   color: var(--muted);
 }
 .nav a:hover, .nav a.active { background: var(--forest-soft); color: var(--forest); }
-.nav .sec { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 12px 8px 4px; }
+.nav .sec { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 12px 8px 4px; font-weight: 500; }
+.brand { display: block; color: inherit; }
+.nav-toggle { display: none; }
+.account { }
 .main { padding: 22px 28px 48px; min-width: 0; }
 .top {
   display: flex;
@@ -154,6 +173,12 @@ button.chip {
 @media (max-width: 960px) {
   .app { grid-template-columns: 1fr; }
   .rail { border-right: 0; border-bottom: 1px solid var(--rule); }
+  .nav-toggle { display: inline-flex; align-items: center; margin: 0 8px; padding: 6px 10px; border: 1px solid var(--rule); background: var(--chip); border-radius: 3px; }
+  .rail .nav { display: none; }
+  .rail .nav.is-open { display: block; }
   .cards { grid-template-columns: 1fr 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

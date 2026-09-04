@@ -1,4 +1,4 @@
-import { loadEnv } from "@venture-os/config";
+import { collectTrustedOrigins, cookieSecure, loadEnv, maskEmail } from "@venture-os/config";
 import { getDb } from "@venture-os/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -12,7 +12,7 @@ const env = loadEnv();
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
-  trustedOrigins: [env.WEB_URL, env.API_URL, "http://localhost:3000", "http://localhost:4000"],
+  trustedOrigins: collectTrustedOrigins(env),
   database: drizzleAdapter(getDb(), {
     provider: "pg",
     schema,
@@ -22,10 +22,14 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
   },
+  session: {
+    expiresIn: 60 * 60 * 24 * 7,
+    updateAge: 60 * 60 * 24,
+  },
   advanced: {
     defaultCookieAttributes: {
       sameSite: "lax",
-      secure: env.NODE_ENV === "production",
+      secure: cookieSecure(env),
       httpOnly: true,
       path: "/",
     },
@@ -38,10 +42,9 @@ export const auth = betterAuth({
       creatorRole: "org_admin",
       invitationExpiresIn: 60 * 60 * 24 * 7,
       sendInvitationEmail: async (data) => {
-        // No SMTP in this phase. Invitation row is SoT; Settings shows a copy-link.
         log("info", "invitation_created", {
           invitationId: data.id,
-          email: data.email,
+          email: env.NODE_ENV === "production" ? maskEmail(data.email) : data.email,
           organizationId: data.organization.id,
           role: data.role,
         });

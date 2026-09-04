@@ -11,7 +11,7 @@ import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 type Settings = {
   settings: { fyStartMonth: number; baseCurrency: string; displayCurrency: string } | null;
   connectors: { kind: string; status: string }[];
-  flagPolicy?: { key: string; label: string; defaultThreshold: number }[];
+  flagPolicy?: { key: string; label: string; defaultThreshold: number; threshold?: number }[];
 };
 
 type Member = { id: string; userId: string; role: string; email: string | null; name: string | null };
@@ -38,14 +38,32 @@ export default function SettingsPage() {
   const [inviteErr, setInviteErr] = useState("");
   const [copied, setCopied] = useState("");
   const [busy, setBusy] = useState(false);
+  const [policyDraft, setPolicyDraft] = useState<Record<string, string>>({});
+  const [policyMsg, setPolicyMsg] = useState("");
+  const [loadErr, setLoadErr] = useState("");
 
   function load() {
-    api<Settings>("/api/settings").then(setData);
+    setLoadErr("");
+    api<Settings>("/api/settings")
+      .then((s) => {
+        setData(s);
+        const next: Record<string, string> = {};
+        for (const f of s.flagPolicy ?? []) {
+          next[f.key] = String(f.threshold ?? f.defaultThreshold);
+        }
+        if (!s.flagPolicy?.length) {
+          for (const f of FLAG_CATALOG) next[f.key] = String(f.defaultThreshold);
+        }
+        setPolicyDraft(next);
+      })
+      .catch((e: Error) => setLoadErr(e.message));
     api<{
       funds: { id: string; name: string; vintage?: number | null; currency?: string; committedCapital?: number | null }[];
     }>("/api/funds").then((r) => setFunds(r.funds));
     api<{ members: Member[] }>("/api/members").then((r) => setMembers(r.members));
-    api<{ invitations: Invite[] }>("/api/invitations").then((r) => setInvites(r.invitations));
+    api<{ invitations: Invite[] }>("/api/invitations")
+      .then((r) => setInvites(r.invitations))
+      .catch(() => setInvites([]));
   }
   useEffect(() => {
     load();
@@ -294,7 +312,7 @@ export default function SettingsPage() {
       )}
 
       <h2>Connectors</h2>
-      <p className="lede">
+      <p className="lede" id="connector-honest">
         Primary path: Microsoft OneDrive (not connected) → use{" "}
         <Link href="/vault">Vault upload</Link>. Subjective auto-draft waits on Granola. Ownership edits stay manual
         until Affinity connects. We will not show a last-sync time. Domain auto-join and SMTP are not connected.
@@ -313,7 +331,13 @@ export default function SettingsPage() {
               <td>{connectorLabel(c.kind)}</td>
               <td>{c.status === "not_connected" ? "not connected" : c.status}</td>
               <td>
-                <button type="button" className="btn ghost sm" disabled title="OAuth is not connected">
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  disabled
+                  title="OAuth is not connected"
+                  aria-describedby="connector-honest"
+                >
                   Connect
                 </button>
               </td>
@@ -322,27 +346,81 @@ export default function SettingsPage() {
         </tbody>
       </table>
 
+      {loadErr && (
+        <p className="sev-high" role="alert">
+          {loadErr}
+        </p>
+      )}
+
       <h2>Flag policy</h2>
       <p className="lede">
-        These are catalog defaults. An org-settings editor is not connected — we will not pretend threshold edits
-        persist.
+        Firm thresholds persist on <code>org_settings.flag_policy</code>. The Flags job reads these, not only catalog
+        defaults. Missing keys keep the catalog default. Org Admin can edit.
       </p>
-      <table>
-        <thead>
-          <tr>
-            <th>Flag</th>
-            <th>Default threshold</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(data?.flagPolicy ?? FLAG_CATALOG).map((f) => (
-            <tr key={f.key}>
-              <td>{f.label}</td>
-              <td>{f.defaultThreshold}</td>
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (!isAdmin) return;
+          setPolicyMsg("");
+          const thresholds: Record<string, number> = {};
+          for (const [k, v] of Object.entries(policyDraft)) {
+            const n = Number(v);
+            if (Number.isFinite(n) && n >= 0) thresholds[k] = n;
+          }
+          try {
+            await api("/api/settings/flag-policy", {
+              method: "POST",
+              body: JSON.stringify({ thresholds }),
+            });
+            setPolicyMsg("Thresholds saved. Recompute Flags to apply.");
+            load();
+          } catch (ex) {
+            setPolicyMsg(ex instanceof Error ? ex.message : "Could not save policy");
+          }
+        }}
+      >
+        <table>
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Catalog default</th>
+              <th>This firm</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {(data?.flagPolicy ?? FLAG_CATALOG.map((c) => ({ ...c, threshold: c.defaultThreshold }))).map((f) => (
+              <tr key={f.key}>
+                <td>{f.label}</td>
+                <td>{f.defaultThreshold}</td>
+                <td>
+                  {isAdmin ? (
+                    <input
+                      type="number"
+                      min={0}
+                      step="any"
+                      aria-label={`${f.label} threshold`}
+                      value={policyDraft[f.key] ?? String(f.threshold ?? f.defaultThreshold)}
+                      onChange={(e) => setPolicyDraft({ ...policyDraft, [f.key]: e.target.value })}
+                    />
+                  ) : (
+                    f.threshold ?? f.defaultThreshold
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {isAdmin && (
+          <button className="btn sm" type="submit" style={{ marginTop: 10 }}>
+            Save flag policy
+          </button>
+        )}
+      </form>
+      {policyMsg && (
+        <p className="lede" role="status">
+          {policyMsg}
+        </p>
+      )}
 
       <h2>Funds</h2>
       {funds.length === 0 ? (
