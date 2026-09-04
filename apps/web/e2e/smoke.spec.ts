@@ -31,6 +31,7 @@ test.describe("@smoke happy path", () => {
     await page.getByTestId("mis-file").setInputFiles(fixture);
     await page.getByTestId("mis-upload").click();
     await expect(page.getByTestId("extract-status")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("extract-status")).toContainText(/done/i, { timeout: 30_000 });
     await page.goto("/inbox");
     await expect(page.getByTestId("shell-ready")).toBeVisible();
     const confirm = page.getByTestId("inbox-confirm").first();

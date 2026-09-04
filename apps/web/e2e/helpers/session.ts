@@ -29,6 +29,7 @@ export async function onboardCompany(page: Page, stamp: string) {
   await page.getByTestId("mis-file").setInputFiles(fixture);
   await page.getByTestId("mis-upload").click();
   await expect(page.getByTestId("extract-status")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("extract-status")).toContainText(/done/i, { timeout: 30_000 });
 }
 
 export async function createViewerStorageState(page: Page, browser: Browser, stamp: string) {

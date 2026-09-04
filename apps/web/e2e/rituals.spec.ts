@@ -24,7 +24,7 @@ test.describe("@smoke rituals", () => {
 
     await page.goto("/ask");
     await expect(page.getByTestId("ask-ready")).toBeVisible();
-    await page.getByTestId("ask-question").fill("What was confirmed cash of 888 crore in FY 2099?");
+    await page.getByTestId("ask-question").fill("Does xyzzy-plugh-atlas-prime appear in the book?");
     await page.getByTestId("ask-submit").click();
     await expect(page.getByTestId("ask-refused")).toBeVisible({ timeout: 20_000 });
 
