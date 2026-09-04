@@ -48,8 +48,11 @@ export default function SettingsPage() {
       .then((s) => {
         setData(s);
         const next: Record<string, string> = {};
-        for (const f of s.flagPolicy ?? FLAG_CATALOG) {
+        for (const f of s.flagPolicy ?? []) {
           next[f.key] = String(f.threshold ?? f.defaultThreshold);
+        }
+        if (!s.flagPolicy?.length) {
+          for (const f of FLAG_CATALOG) next[f.key] = String(f.defaultThreshold);
         }
         setPolicyDraft(next);
       })
@@ -377,7 +380,7 @@ export default function SettingsPage() {
             </tr>
           </thead>
           <tbody>
-            {(data?.flagPolicy ?? FLAG_CATALOG).map((f) => (
+            {(data?.flagPolicy ?? FLAG_CATALOG.map((c) => ({ ...c, threshold: c.defaultThreshold }))).map((f) => (
               <tr key={f.key}>
                 <td>{f.label}</td>
                 <td>{f.defaultThreshold}</td>
