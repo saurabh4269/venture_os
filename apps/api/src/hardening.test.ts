@@ -233,4 +233,91 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     const other = await db.select().from(navPeriodLocks);
     expect(other.every((r) => r.orgId)).toBe(true);
   });
+
+  it("masks the public invite payload and withholds the full email", async () => {
+    const created = await json<{ invitation: { id: string } }>(
+      await app.request("/api/invitations", {
+        method: "POST",
+        headers: { ...origin, cookie: adminCookie },
+        body: JSON.stringify({ email: `mask-${stamp}@alpha.test`, role: "analyst" }),
+      }),
+    );
+    const pub = await json<{
+      invitation: { email?: string; emailMasked?: string; canAccept?: boolean };
+    }>(await app.request(`/api/invitations/${created.invitation.id}`));
+    expect(pub.invitation.email).toBeUndefined();
+    expect(pub.invitation.emailMasked).toMatch(/^\w\*\*\*@alpha\.test$/);
+    expect(pub.invitation.canAccept).toBeFalsy();
+  });
+
+  it("forbids a viewer from listing invite copy-links", async () => {
+    const res = await app.request("/api/invitations", { headers: { cookie: viewerCookie } });
+    expect(res.status).toBe(403);
+  });
+
+  it("logout is idempotent without a session", async () => {
+    const res = await app.request("/api/logout", { method: "POST", headers: origin, body: "{}" });
+    expect(res.status).toBe(200);
+    expect((await json<{ ok: boolean }>(res)).ok).toBe(true);
+  });
+
+  it("health reports postgres, redis, and a git SHA", async () => {
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("content-security-policy")).toContain("frame-ancestors");
+    const body = await json<{
+      ok: boolean;
+      postgres: string;
+      redis: string;
+      gitSha: string;
+      ready: boolean;
+    }>(res);
+    expect(body.ok).toBe(true);
+    expect(body.postgres).toBe("up");
+    expect(["up", "down"]).toContain(body.redis);
+    expect(typeof body.gitSha).toBe("string");
+  });
+
+  it("rejects invite decline from the wrong account", async () => {
+    const created = await json<{ invitation: { id: string } }>(
+      await app.request("/api/invitations", {
+        method: "POST",
+        headers: { ...origin, cookie: adminCookie },
+        body: JSON.stringify({ email: `rej-${stamp}@alpha.test`, role: "analyst" }),
+      }),
+    );
+    const res = await app.request(`/api/invitations/${created.invitation.id}/reject`, {
+      method: "POST",
+      headers: { ...origin, cookie: viewerCookie },
+      body: "{}",
+    });
+    expect(res.status).toBe(403);
+  });
+});
+
+describe.skipIf(!url)("preview origin allow-list", () => {
+  it("accepts a matching Vercel preview Origin when patterned", async () => {
+    process.env.WEB_ORIGIN_PATTERNS = "https://*.vercel.app";
+    const previewApp = createApp();
+    const stamp = `pv-${Date.now().toString(36)}`;
+    const email = `${stamp}@alpha.test`;
+    const signup = await previewApp.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: { origin: "https://preview-foo.vercel.app", "content-type": "application/json" },
+      body: JSON.stringify({ email, password: "password123", name: "Preview" }),
+    });
+    expect(signup.status).toBe(200);
+    const cookie = cookieFrom(signup);
+    const org = await previewApp.request("/api/orgs", {
+      method: "POST",
+      headers: {
+        origin: "https://preview-foo.vercel.app",
+        "content-type": "application/json",
+        cookie,
+      },
+      body: JSON.stringify({ name: stamp, slug: stamp }),
+    });
+    expect(org.status).toBe(200);
+  });
 });

@@ -75,6 +75,9 @@ export function friendlyAuthError(raw: string): string {
   if (t.includes("rate_limited")) {
     return "Too many sign-in attempts. Wait a few minutes.";
   }
+  if (t.includes("org_create_cap")) {
+    return "This user already administers the maximum number of organisations.";
+  }
   if (t.includes("select_or_create_an_org")) {
     return "Create or join an organisation to open the book.";
   }

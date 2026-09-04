@@ -9,7 +9,9 @@ import { friendlyAuthError, roleLabel } from "@/lib/roles";
 
 type Invite = {
   id: string;
-  email: string;
+  email?: string;
+  emailMasked?: string;
+  canAccept?: boolean;
   role: string | null;
   status: string;
   expiresAt: string;
@@ -67,17 +69,23 @@ function InviteInner() {
   const expired = invite ? new Date(invite.expiresAt).getTime() < Date.now() : false;
   const pending = invite?.status === "pending" && !expired;
   const signedIn = Boolean(me?.user);
-  const emailMatch = signedIn && me?.user?.email.toLowerCase() === invite?.email.toLowerCase();
+  const shownEmail = invite?.email ?? invite?.emailMasked ?? "a teammate";
+  const emailMatch =
+    Boolean(invite?.canAccept) ||
+    Boolean(signedIn && invite?.email && me?.user?.email.toLowerCase() === invite.email.toLowerCase());
 
   return (
     <div className="auth">
       <h1>Join an organisation</h1>
-      {!invite && !err && <p className="lede">Looking up the invite…</p>}
+      {!invite && !err && (
+        <p className="lede" aria-live="polite">
+          Looking up the invite…
+        </p>
+      )}
       {invite && (
         <>
           <p className="lede">
-            <strong>{invite.orgName}</strong> invited <strong>{invite.email}</strong> as{" "}
-            {roleLabel(invite.role)}.
+            <strong>{invite.orgName}</strong> invited <strong>{shownEmail}</strong> as {roleLabel(invite.role)}.
           </p>
           {!pending && (
             <p className="sev-high" role="alert">
@@ -93,21 +101,18 @@ function InviteInner() {
       )}
       {pending && !signedIn && (
         <div className="row" style={{ marginTop: 16 }}>
-          <Link className="btn" href={`/signup?invite=${id}&email=${encodeURIComponent(invite?.email ?? "")}`}>
+          <Link className="btn" href={`/signup?invite=${id}`}>
             Create user
           </Link>
-          <Link
-            className="btn ghost"
-            href={`/login?next=${encodeURIComponent(`/invite?id=${id}`)}&email=${encodeURIComponent(invite?.email ?? "")}`}
-          >
+          <Link className="btn ghost" href={`/login?next=${encodeURIComponent(`/invite?id=${id}`)}`}>
             Sign in
           </Link>
         </div>
       )}
       {pending && signedIn && !emailMatch && (
         <p className="lede" style={{ marginTop: 16 }}>
-          You are signed in as {me?.user?.email}. This invite is for {invite?.email}. Sign in with that
-          address, or ask the Org Admin to send a new invite.
+          You are signed in as {me?.user?.email}. This invite is for {shownEmail}. Sign in with that address, or ask
+          the Org Admin to send a new invite.
         </p>
       )}
       {pending && emailMatch && (
@@ -129,7 +134,9 @@ export default function InvitePage() {
     <Suspense
       fallback={
         <div className="auth">
-          <p className="lede">Loading invite…</p>
+          <p className="lede" aria-live="polite">
+            Loading invite…
+          </p>
         </div>
       }
     >

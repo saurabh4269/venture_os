@@ -9,8 +9,8 @@ Later QA passes drop dated notes here. Do not rewrite history in `gap-matrix.md`
 3. Tick or annotate the matching row in `docs/02_GAP_MATRIX.md` (This-repo column).
 4. If a decision changed, add a row to `docs/DECISION.md` instead of editing old rows.
 
-Passes 01–30 are in this folder (`pass-01-auth-org.md` … `pass-30-security.md`).  
-15-minute onboard clock: `onboarding-15min.md`.
+Passes 01–34 are in this folder (`pass-01-auth-org.md` … `pass-34-a11y-shell.md`).  
+15-minute onboard clock: `onboarding-15min.md`. Queue-2 source notes: `queue-2/`.
 
 ## Do not use this folder for
 

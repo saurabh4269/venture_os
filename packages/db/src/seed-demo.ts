@@ -22,6 +22,10 @@ import {
 
 async function main() {
   const env = loadEnv();
+  if (env.NODE_ENV === "production") {
+    console.error("Refusing to seed: SEED_DEMO is forbidden when NODE_ENV=production.");
+    process.exit(1);
+  }
   if (env.SEED_DEMO !== "1" && process.env.SEED_DEMO !== "1") {
     console.error("Refusing to seed. Set SEED_DEMO=1 to load FIXTURE_ONLY rows.");
     process.exit(1);

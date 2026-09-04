@@ -33,7 +33,16 @@ import {
   xirr,
 } from "@venture-os/core";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
-import { invitationExpired, isAdminRole, loadEnv, ROLES, slugifyOrg } from "@venture-os/config";
+import {
+  invitationExpired,
+  isAdminRole,
+  loadEnv,
+  maskEmail,
+  MAX_ORGS_AS_ADMIN,
+  ROLES,
+  slugifyOrg,
+} from "@venture-os/config";
+import Redis from "ioredis";
 import {
   AskRequestSchema,
   ConfirmInboxSchema,
@@ -81,16 +90,49 @@ import { buildExports } from "./reports-export.js";
 
 export const routes = new Hono();
 
+async function pingRedis(): Promise<"up" | "down"> {
+  const env = loadEnv();
+  const r = new Redis(env.REDIS_URL, {
+    maxRetriesPerRequest: 1,
+    connectTimeout: 1500,
+    lazyConnect: true,
+    enableOfflineQueue: false,
+  });
+  r.on("error", () => {
+    /* ping result is enough; avoid unhandled error logs when Redis is down */
+  });
+  try {
+    await r.connect();
+    const pong = await r.ping();
+    return pong === "PONG" ? "up" : "down";
+  } catch {
+    return "down";
+  } finally {
+    r.disconnect();
+  }
+}
+
 routes.get("/health", async (c) => {
   let postgres = "down";
-  let redis = "unknown";
+  let redis: "up" | "down" = "down";
   try {
     await getDb().execute(sql`select 1`);
     postgres = "up";
   } catch {
     postgres = "down";
   }
-  return c.json({ ok: postgres === "up", postgres, redis, service: "api" });
+  redis = await pingRedis();
+  const env = loadEnv();
+  const gitSha = env.GIT_SHA || process.env.GIT_SHA || process.env.GITHUB_SHA || "unknown";
+  const ready = postgres === "up" && redis === "up";
+  return c.json({
+    ok: postgres === "up",
+    ready,
+    postgres,
+    redis,
+    gitSha,
+    service: "api",
+  });
 });
 
 routes.get("/api/me", async (c) => {
@@ -130,6 +172,9 @@ routes.get("/api/orgs", async (c) => {
 
 routes.post("/api/orgs", async (c) => {
   const s = requireUser(c);
+  const existing = await getDb().select().from(member).where(eq(member.userId, s.user.id));
+  const adminCount = existing.filter((m) => isAdminRole(m.role)).length;
+  if (adminCount >= MAX_ORGS_AS_ADMIN) throw new HttpError(400, "org_create_cap");
   const body = await c.req.json<{ name?: string; slug?: string }>();
   const name = (body.name ?? "").trim();
   if (!name) throw new HttpError(400, "org_name_required");
@@ -170,8 +215,10 @@ routes.post("/api/orgs/select", async (c) => {
 });
 
 routes.post("/api/logout", async (c) => {
-  requireUser(c);
-  await auth.api.signOut({ headers: c.req.raw.headers });
+  const s = c.get("session");
+  if (s?.user?.id) {
+    await auth.api.signOut({ headers: c.req.raw.headers });
+  }
   return c.json({ ok: true });
 });
 
@@ -233,7 +280,7 @@ routes.delete("/api/members/:id", async (c) => {
 });
 
 routes.get("/api/invitations", async (c) => {
-  const s = requireOrg(c);
+  const s = requireAdmin(c);
   const db = getDb();
   const rows = await db.select().from(invitation).where(eq(invitation.organizationId, s.orgId));
   const env = loadEnv();
@@ -259,12 +306,18 @@ routes.get("/api/invitations/:id", async (c) => {
     await db.update(invitation).set({ status: "expired" }).where(eq(invitation.id, id));
   }
   const [org] = await db.select().from(organization).where(eq(organization.id, row.organizationId));
+  const session = c.get("session");
+  const sessionEmail = session?.user?.email?.toLowerCase();
+  const match = Boolean(sessionEmail && sessionEmail === row.email.toLowerCase());
+  const status = expired ? "expired" : row.status;
   return c.json({
     invitation: {
       id: row.id,
-      email: row.email,
+      emailMasked: maskEmail(row.email),
+      email: match ? row.email : undefined,
+      canAccept: match && !expired && row.status === "pending",
       role: row.role,
-      status: expired ? "expired" : row.status,
+      status,
       expiresAt: row.expiresAt,
       orgName: org?.name ?? "Organisation",
     },
@@ -327,8 +380,14 @@ routes.post("/api/invitations/:id/accept", async (c) => {
 });
 
 routes.post("/api/invitations/:id/reject", async (c) => {
-  requireUser(c);
+  const s = requireUser(c);
   const id = c.req.param("id");
+  const db = getDb();
+  const [row] = await db.select().from(invitation).where(eq(invitation.id, id));
+  if (!row) throw new HttpError(404, "invitation_not_found");
+  if (row.email.toLowerCase() !== s.user.email.toLowerCase()) {
+    throw new HttpError(403, "invitation_email_mismatch");
+  }
   try {
     await auth.api.rejectInvitation({
       headers: c.req.raw.headers,

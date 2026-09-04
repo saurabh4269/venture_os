@@ -56,6 +56,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] No corpus-JSON loaded as production path.
 - [x] Empty shell renders; every number surface shows empty / “—” not illustrative demo NAV.
 - [x] Heavy parse/flag jobs run in `worker` (inline fallback only if Redis is down).
+- [x] CI builds web and runs a Playwright signup→confirm smoke (Pass 33). Same-origin BFF (Pass 31).
 
 ---
 

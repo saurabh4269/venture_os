@@ -1,3 +1,5 @@
+# DEV ONLY — bind-mount watch. Not the production image CMD.
+# Production: docker/Dockerfile APP=api|worker with pnpm --filter start (no watch).
 services:
   postgres:
     image: postgres:16-alpine
@@ -106,7 +108,7 @@ services:
     env_file: .env
     environment:
       API_URL: http://api:4000
-      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_API_URL: ""
       NEXT_PUBLIC_WEB_URL: http://localhost:3000
     ports:
       - "3000:3000"

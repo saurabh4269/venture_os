@@ -1,5 +1,8 @@
 # Fly.io — api + worker (early live). Web stays on Vercel.
 # Domain code does not import Fly APIs.
+# Set secrets: MIGRATE_DATABASE_URL (owner), DATABASE_URL (venture_os_app),
+# REDIS_URL, BETTER_AUTH_SECRET (32+), BETTER_AUTH_URL, WEB_URL, WEB_ORIGIN_PATTERNS,
+# S3_*, GIT_SHA.
 
 app = "venture-os-api"
 primary_region = "iad"
@@ -11,17 +14,22 @@ primary_region = "iad"
   NODE_ENV = "production"
   API_PORT = "4000"
 
+[deploy]
+  release_command = "pnpm --filter @venture-os/db migrate"
+
+[processes]
+  app = "pnpm --filter @venture-os/api start"
+  worker = "pnpm --filter @venture-os/worker start"
+
 [http_service]
   internal_port = 4000
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = "off"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
+  processes = ["app"]
 
 [[vm]]
   memory = "512mb"
   cpu_kind = "shared"
   cpus = 1
-
-# Deploy a second process group or app for the worker:
-# fly scale count worker=1  (configure in fly dashboard / process groups)

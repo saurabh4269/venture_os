@@ -1,6 +1,20 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { z } from "zod";
+import { collectTrustedOrigins, isTrustedOrigin, originMatches, parseOriginPatterns } from "./origins.js";
+import { isSafeInternalPath, safeNextPath } from "./paths.js";
+
+export {
+  collectTrustedOrigins,
+  isSafeInternalPath,
+  isTrustedOrigin,
+  originMatches,
+  parseOriginPatterns,
+  safeNextPath,
+};
+
+export const PUBLIC_DEV_AUTH_SECRET = "dev-only-change-me-to-a-long-random-string";
+export const MAX_ORGS_AS_ADMIN = 5;
 
 function loadDotenv() {
   const candidates = [resolve(process.cwd(), ".env"), resolve(process.cwd(), "../../.env")];
@@ -27,8 +41,11 @@ const Env = z.object({
   WEB_PORT: z.coerce.number().default(3000),
   API_PORT: z.coerce.number().default(4000),
   API_URL: z.string().default("http://localhost:4000"),
-  BETTER_AUTH_SECRET: z.string().min(16).default("dev-only-change-me-to-a-long-random-string"),
+  BETTER_AUTH_SECRET: z.string().min(16).default(PUBLIC_DEV_AUTH_SECRET),
   BETTER_AUTH_URL: z.string().default("http://localhost:4000"),
+  WEB_ORIGIN_PATTERNS: z.string().optional().default(""),
+  COOKIE_SECURE: z.string().optional(),
+  GIT_SHA: z.string().optional().default(""),
   DATABASE_URL: z.string().default("postgres://venture:venture@localhost:5432/venture_os"),
   REDIS_URL: z.string().default("redis://localhost:6379"),
   S3_ENDPOINT: z.string().default("http://localhost:9000"),
@@ -50,7 +67,40 @@ const Env = z.object({
 
 export type Env = z.infer<typeof Env>;
 
+export function assertProductionAuthSecret(secret: string | undefined): void {
+  if (!secret || secret.length < 32) {
+    throw new Error("BETTER_AUTH_SECRET must be 32+ characters in production");
+  }
+  if (secret === PUBLIC_DEV_AUTH_SECRET) {
+    throw new Error("BETTER_AUTH_SECRET must not use the public default in production");
+  }
+}
+
+export function cookieSecure(
+  env: Pick<Env, "NODE_ENV" | "BETTER_AUTH_URL">,
+  cookieSecureFlag?: string,
+): boolean {
+  const flag = cookieSecureFlag ?? (env as Env).COOKIE_SECURE;
+  if (flag === "1" || flag === "true") return true;
+  if (flag === "0" || flag === "false") return false;
+  if (env.BETTER_AUTH_URL.startsWith("https://")) return true;
+  return env.NODE_ENV === "production";
+}
+
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain || !local) return "***";
+  return `${local[0] ?? ""}***@${domain}`;
+}
+
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+  const nodeEnv = source.NODE_ENV ?? "development";
+  if (nodeEnv === "production") {
+    assertProductionAuthSecret(source.BETTER_AUTH_SECRET);
+    if (source.SEED_DEMO === "1") {
+      throw new Error("SEED_DEMO is forbidden when NODE_ENV=production");
+    }
+  }
   return Env.parse(source);
 }
 

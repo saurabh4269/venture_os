@@ -3,12 +3,12 @@ import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 const sans = IBM_Plex_Sans({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500"],
   variable: "--font-sans",
 });
 const serif = Source_Serif_4({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["500", "600"],
   variable: "--font-serif",
 });

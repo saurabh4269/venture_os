@@ -2,31 +2,48 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api, downloadAuthed } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
 
-type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean };
+type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean; ready: boolean };
 const BookSessionContext = createContext<BookSession>({
   me: null,
   canWrite: false,
   isAdmin: false,
   canLock: false,
+  ready: false,
 });
 
-/** Safe above or below <Shell>: pages mount as the parent, so we also read /api/me. */
+/** Safe above or below <Shell>: pages mount as the parent, so we also read /api/me once. */
 export function useBookSession(): BookSession {
   const ctx = useContext(BookSessionContext);
   const [me, setMe] = useState<Me | null>(ctx.me);
+  const [fetched, setFetched] = useState(Boolean(ctx.me));
   useEffect(() => {
     if (ctx.me) {
       setMe(ctx.me);
+      setFetched(true);
       return;
     }
+    let cancelled = false;
     api<Me>("/api/me")
-      .then(setMe)
-      .catch(() => setMe(null));
+      .then((m) => {
+        if (!cancelled) {
+          setMe(m);
+          setFetched(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMe(null);
+          setFetched(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [ctx.me]);
   const role = ctx.me?.role ?? me?.role ?? null;
   return {
@@ -34,6 +51,7 @@ export function useBookSession(): BookSession {
     canWrite: isWriteRole(role),
     isAdmin: isAdminRole(role),
     canLock: isLockRole(role),
+    ready: Boolean(ctx.me) || fetched,
   };
 }
 
@@ -52,10 +70,14 @@ const NAV = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const pathRef = useRef(path);
+  pathRef.current = path;
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [orgs, setOrgs] = useState<{ id: string; name: string; fixtureOnly?: boolean }[]>([]);
   const [ready, setReady] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [orgLive, setOrgLive] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -70,7 +92,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         setMe(m);
         setOrgs(o.orgs);
         if (!m.user) {
-          router.replace(`/login?next=${encodeURIComponent(path)}`);
+          router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
           return;
         }
         if (m.needsOrg || !m.orgId) {
@@ -80,20 +102,35 @@ export function Shell({ children }: { children: React.ReactNode }) {
         setReady(true);
       })
       .catch(() => {
-        if (!cancelled) router.replace(`/login?next=${encodeURIComponent(path)}`);
+        if (!cancelled) router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
       });
     return () => {
       cancelled = true;
     };
-  }, [router, path]);
+  }, [router]);
 
   async function switchOrg(id: string) {
     if (!id || id === me?.org?.id) return;
-    await api("/api/orgs/select", { method: "POST", body: JSON.stringify({ organizationId: id }) });
-    window.location.reload();
+    try {
+      await api("/api/orgs/select", { method: "POST", body: JSON.stringify({ organizationId: id }) });
+      const [m, o] = await Promise.all([
+        api<Me>("/api/me"),
+        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
+          orgs: [],
+        })),
+      ]);
+      setMe(m);
+      setOrgs(o.orgs);
+      setOrgLive(m.org?.name ?? "");
+      router.refresh();
+    } catch {
+      setOrgLive("Could not switch organisation");
+    }
   }
 
   async function signOut() {
+    setMe(null);
+    setReady(false);
     try {
       await api("/api/logout", { method: "POST", body: "{}" });
     } catch {
@@ -102,28 +139,37 @@ export function Shell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
-  const fixture = me?.org?.metadata?.includes("fixtureOnly") || me?.org?.name.includes("FIXTURE");
+  const fixture = me?.org?.metadata?.includes("fixtureOnly") || Boolean(me?.org?.name.includes("FIXTURE"));
 
   if (!ready) {
     return (
-      <div className="auth">
+      <div className="auth" role="status" aria-busy="true" data-testid="shell-busy">
         <p className="lede">Checking your organisation…</p>
       </div>
     );
   }
 
   return (
-    <div className="app">
+    <div className="app" data-testid="shell-ready">
       <a href="#main" className="skip-link">
         Skip to book
       </a>
       <aside className="rail">
-        <div className="brand">
+        <Link href="/command" className="brand">
           Venture OS
           <span>the book</span>
-        </div>
-        <nav className="nav" aria-label="Primary">
-          <div className="sec">Morning</div>
+        </Link>
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-expanded={navOpen}
+          aria-controls="primary-nav"
+          onClick={() => setNavOpen((v) => !v)}
+        >
+          Menu
+        </button>
+        <nav id="primary-nav" className={navOpen ? "nav is-open" : "nav"} aria-label="Primary">
+          <h2 className="sec">Morning</h2>
           {NAV.slice(0, 3).map((n) => (
             <Link
               key={n.href}
@@ -131,11 +177,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
               title={n.hint}
               className={path.startsWith(n.href) ? "active" : ""}
               aria-current={path.startsWith(n.href) ? "page" : undefined}
+              onClick={() => setNavOpen(false)}
             >
               {n.label}
             </Link>
           ))}
-          <div className="sec">Rituals</div>
+          <h2 className="sec">Rituals</h2>
           {NAV.slice(3, 8).map((n) => (
             <Link
               key={n.href}
@@ -143,11 +190,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
               title={n.hint}
               className={path.startsWith(n.href) ? "active" : ""}
               aria-current={path.startsWith(n.href) ? "page" : undefined}
+              onClick={() => setNavOpen(false)}
             >
               {n.label}
             </Link>
           ))}
-          <div className="sec">Firm</div>
+          <h2 className="sec">Firm</h2>
           {NAV.slice(8).map((n) => (
             <Link
               key={n.href}
@@ -155,12 +203,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
               title={n.hint}
               className={path.startsWith(n.href) ? "active" : ""}
               aria-current={path.startsWith(n.href) ? "page" : undefined}
+              onClick={() => setNavOpen(false)}
             >
               {n.label}
             </Link>
           ))}
         </nav>
-        <div style={{ marginTop: "auto", fontSize: 12, color: "var(--muted)" }}>
+        <div className="account" style={{ marginTop: "auto", fontSize: 12, color: "var(--muted)" }} aria-label="Account">
           <div>{me?.user?.name}</div>
           <div>{roleLabel(me?.role)}</div>
           <button className="btn ghost sm" type="button" style={{ marginTop: 8 }} onClick={signOut}>
@@ -168,9 +217,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </aside>
-      <div className="main" id="main">
+      <main className="main" id="main">
         {fixture && (
-          <div className="banner" role="status">
+          <div className="banner" role="alert">
             FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
           </div>
         )}
@@ -194,17 +243,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </div>
+        <div className="sr-only" aria-live="polite">
+          {orgLive}
+        </div>
         <BookSessionContext.Provider
           value={{
             me,
             canWrite: isWriteRole(me?.role),
             isAdmin: isAdminRole(me?.role),
             canLock: isLockRole(me?.role),
+            ready: true,
           }}
         >
           {children}
         </BookSessionContext.Provider>
-      </div>
+      </main>
     </div>
   );
 }
@@ -223,7 +276,13 @@ export function Fact({
   const chip = !isFact ? (
     <span className="chip unfact">—</span>
   ) : sourcePath ? (
-    <button type="button" className="chip" title="Open source" onClick={() => downloadAuthed(sourcePath)}>
+    <button
+      type="button"
+      className="chip"
+      title="Open source"
+      aria-label={`${display} — open source`}
+      onClick={() => downloadAuthed(sourcePath)}
+    >
       {display}
     </button>
   ) : (

@@ -45,13 +45,21 @@ export default function CommandPage() {
 
   return (
     <Shell>
-      <h1>Command</h1>
+      <h1 data-testid="command-ready">Command</h1>
       <p className="lede">
         Fund pulse and what needs a look. Headlines are booked facts only. Missing is — , never 0. Runway uses cash /
         average of the last three reported burns. Click a chip to download the source (session cookie).
       </p>
-      {err && <p className="sev-high">{err}</p>}
-      {!data && !err && <p className="lede">Loading the book…</p>}
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
+      {!data && !err && (
+        <p className="lede" aria-live="polite">
+          Loading the book…
+        </p>
+      )}
       {data && (
         <>
           <div className="cards" style={{ marginTop: 18 }}>

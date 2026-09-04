@@ -61,7 +61,9 @@ export default function SettingsPage() {
       funds: { id: string; name: string; vintage?: number | null; currency?: string; committedCapital?: number | null }[];
     }>("/api/funds").then((r) => setFunds(r.funds));
     api<{ members: Member[] }>("/api/members").then((r) => setMembers(r.members));
-    api<{ invitations: Invite[] }>("/api/invitations").then((r) => setInvites(r.invitations));
+    api<{ invitations: Invite[] }>("/api/invitations")
+      .then((r) => setInvites(r.invitations))
+      .catch(() => setInvites([]));
   }
   useEffect(() => {
     load();

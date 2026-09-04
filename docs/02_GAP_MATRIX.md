@@ -15,7 +15,7 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 
 | # | Requirement (brief) | Demo | This repo | Production work remaining |
 | --- | --- | --- | --- | --- |
-| 1 | Org auth / user logins | **missing** | **done** | SSO / rotation later. Pass 30: SameSite cookies, origin allow-list, auth rate-limit stub |
+| 1 | Org auth / user logins | **missing** | **done** | SSO / Redis limiter later. Pass 31–32: same-origin BFF, preview origin patterns, production secret fail-closed, invite mask, security headers |
 | 2 | Multi-tenant orgs / domain join | **missing** | **partial** | Domain / SMTP still missing; copy-link invites; role change + remove + last-admin guard (Pass 14) |
 | 3 | Durable database book | **missing** (JSON seed) | **done** | — |
 | 4 | OneDrive API ingest | **missing** | **missing** | Settings stub: **not connected**. No invented Graph fields |
@@ -40,9 +40,9 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; refuse without overlap; `refuseUnsourcedDigits` + golden harness (Pass 26) |
 | 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + evidence; firm `flag_policy` jsonb (Pass 24); mute/snooze; restatement-safe reads |
 | 25 | Cross-company compare | **mock** | **done** | Stage/sector peer filter; catalog labels; hide-empty; objective-lane only (Pass 21) |
-| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + timed script (Pass 28); connector IDs wait for OAuth |
+| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + timed script (Pass 28); Playwright smoke signup→confirm (Pass 33); connector IDs wait for OAuth |
 | 27 | Claude as reasoning layer (brief) | Demo uses **OpenAI** Luna | **done** | Pluggable `LlmProvider`; default OpenAI (D5) |
-| 28 | SOC2-ready audit / security | **missing** | **partial** | RLS + lock/policy isolation tests; invite expiry; origin + rate-limit stub (Pass 30). Audit viewer / SSO later |
+| 28 | SOC2-ready audit / security | **missing** | **partial** | RLS + lock/policy isolation; invite mask + admin list; origin patterns; headers; secret fail-closed (Pass 30–32). Audit viewer / SSO later |
 | 29 | Billing / plans for other VCs | **missing** | **missing** | Out of scope this phase |
 | 30 | LP data room (ILPA-style) | **missing** | **missing** | Phase 6 |
 

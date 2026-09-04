@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "lint": "echo ok"
   },
   "dependencies": {
+    "@venture-os/config": "workspace:*",
     "@venture-os/core": "workspace:*",
     "@venture-os/schema": "workspace:*",
     "@venture-os/ui": "workspace:*",
@@ -23,6 +25,7 @@
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
+    "@playwright/test": "^1.55.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

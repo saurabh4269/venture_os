@@ -1,4 +1,4 @@
-# Next — remaining after passes 23–30
+# Next — remaining after passes 23–34
 
 **Branch / PR:** `cursor/prod-hardening-passes-23-a53d`  
 **Prior:** passes 01–22 on `main` @ `925c284` (PR #2)
@@ -13,6 +13,10 @@
 - **28 Onboarding** — timed script `docs/improvements/onboarding-15min.md`; wizard error/busy + sample file pointer.
 - **29 Deploy docs** — Vercel + Neon + Upstash + Fly/Render with real `.env.example` names.
 - **30 Security** — origin allow-list, invite 410, auth rate-limit stub, RLS regression on new tables.
+- **31 Deploy + preview** — same-origin BFF, `WEB_ORIGIN_PATTERNS`, production Dockerfile, Fly warm + migrate + worker, Redis+/SHA health, CI web build + e2e.
+- **32 Security + session** — `safeNextPath`, production secret fail-closed, invite mask + admin list, cookie Secure helper, security headers, idempotent logout, org-create cap.
+- **33 E2E friction** — Playwright smoke (signup→upload→confirm→Command); Shell fetch-once; drop `passWithNoTests`.
+- **34 a11y Shell** — `<main>`, gate testids, Fact “open source”, mobile nav disclosure, Command alerts.
 
 ## Still later (do not invent)
 
@@ -24,6 +28,8 @@
 6. **Growth / burn-multiple derived compare columns** — not in the metric enum.
 7. **Redis-backed rate-limit / session rotation / SSO**.
 8. **SOC2 audit-log viewer**.
+9. **Playwright on Compose / axe in CI / viewer storageState**.
+10. **Live Fly/Vercel smoke after a real release** (needs operator credentials).
 
 ## Explicitly deferred (need OAuth or Phase 6)
 
@@ -36,7 +42,7 @@
 ## How to continue
 
 1. Open `cursor/<slug>-a53d` off latest `main` after merge.
-2. Next platform residuals live in `docs/improvements/queue-2/` (preview origins / same-origin BFF, Playwright smoke, production secret fail-closed). Do not reopen 23–30 P0s.
+2. Queue-2 P0s are closed in passes 31–34. Do not reopen 23–30 P0s.
 3. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1.
-4. `pnpm typecheck && pnpm test` before push.
+4. `pnpm typecheck && pnpm test` before push. CI also builds web and runs Playwright.
 5. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts.

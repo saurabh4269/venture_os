@@ -1,4 +1,5 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+/** Empty public URL → same-origin `/api` (Next BFF). Split-host only when set. */
+const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 export function apiUrl(path: string) {
   return `${API}${path}`;

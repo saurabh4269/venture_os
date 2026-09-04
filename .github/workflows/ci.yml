@@ -22,11 +22,26 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     env:
       MIGRATE_DATABASE_URL: postgres://venture:venture@localhost:5432/venture_os
       DATABASE_URL: postgres://venture_os_app:venture@localhost:5432/venture_os
       BETTER_AUTH_SECRET: ci-secret-not-for-production-use-32ch
+      BETTER_AUTH_URL: http://localhost:4000
+      WEB_URL: http://localhost:3000
+      API_URL: http://localhost:4000
+      REDIS_URL: redis://localhost:6379
       S3_ENDPOINT: fs
+      GIT_SHA: ${{ github.sha }}
+      WEB_ORIGIN_PATTERNS: https://*.vercel.app
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -38,3 +53,27 @@ jobs:
       - run: pnpm --filter @venture-os/db migrate
       - run: pnpm test
       - run: pnpm typecheck
+      - run: pnpm --filter @venture-os/web build
+      - name: Start api + web
+        run: |
+          pnpm --filter @venture-os/api start &
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:4000/health | grep -q '"postgres":"up"'; then break; fi
+            sleep 1
+          done
+          pnpm --filter @venture-os/web start &
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:3000 >/dev/null; then break; fi
+            sleep 1
+          done
+      - run: pnpm --filter @venture-os/web exec playwright install chromium --with-deps
+      - run: pnpm test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production image smoke (no push)
+        run: docker build -f docker/Dockerfile --build-arg APP=api -t venture-os-api:ci .

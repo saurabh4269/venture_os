@@ -77,6 +77,7 @@ export default function NewCompanyPage() {
         setMsg("This file matches a vault object already stored (same SHA). Extract still queued — confirm Inbox, do not treat as a new source.");
       }
       setStep(3);
+      await api(`/api/parse/${res.document.id}`, { method: "POST", body: "{}" }).catch(() => null);
       pollParse(res.document.id);
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Upload failed");
@@ -95,6 +96,7 @@ export default function NewCompanyPage() {
       if (st === "done" || st === "error") return;
       await new Promise((ok) => setTimeout(ok, 800));
     }
+    setParseStatus("timed out — start the worker or retry extract from the company page");
   }
 
   if (!canWrite) {
@@ -128,7 +130,7 @@ export default function NewCompanyPage() {
         <form onSubmit={create} className="grid-2" style={{ maxWidth: 640, marginTop: 16 }}>
           <label className="field">
             Name
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
+            <input data-testid="company-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </label>
           <label className="field">
             Sector
@@ -166,7 +168,7 @@ export default function NewCompanyPage() {
             </select>
           </label>
           <div>
-            <button className="btn" type="submit" disabled={busy}>
+            <button className="btn" type="submit" disabled={busy} data-testid="create-company">
               {busy ? "Creating…" : "Create company"}
             </button>
           </div>
@@ -178,10 +180,10 @@ export default function NewCompanyPage() {
           <p className="lede">OneDrive folder connect is not connected. Upload the first MIS / board pack.</p>
           <label className="field">
             First file (MIS / board pack)
-            <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" />
+            <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" data-testid="mis-file" />
           </label>
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn" type="submit" disabled={busy}>
+            <button className="btn" type="submit" disabled={busy} data-testid="mis-upload">
               {busy ? "Uploading…" : "Upload and extract"}
             </button>
             <button className="btn ghost" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
