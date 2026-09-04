@@ -53,7 +53,12 @@ export async function enqueueFlags(orgId: string, companyId?: string) {
 
 export async function enqueueReport(orgId: string, reportId: string) {
   try {
-    await getReportQueue().add("render-report", { orgId, reportId });
+    await Promise.race([
+      getReportQueue().add("render-report", { orgId, reportId }),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("redis_timeout")), 1500);
+      }),
+    ]);
     return "queued";
   } catch (err) {
     log("warn", "redis_unavailable_inline_report", { err: String(err) });
