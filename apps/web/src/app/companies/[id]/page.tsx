@@ -17,6 +17,10 @@ type Data = {
     sourceRefId: string;
     version: number;
     lane: string;
+    valueEur: number | null;
+    fxRate: number | null;
+    fxDate: string | null;
+    fxSource: string | null;
   }[];
   commentary: { id: string; lane: string; body: string; periodEnd: string }[];
   documents: { id: string; filename: string; kind: string }[];
@@ -47,6 +51,7 @@ export default function CompanyPage() {
         periodEnd: "2025-08-31",
         lane,
         body,
+        sourceKind: "human",
       }),
     });
     setBody("");
@@ -96,6 +101,13 @@ export default function CompanyPage() {
                       }
                       isFact={Boolean(m.sourceRefId && m.valueNumeric != null)}
                       href={ref ? apiUrl(`/api/documents/${ref.documentId}/file`) : undefined}
+                      note={
+                        m.fxRate && m.fxDate && m.fxSource
+                          ? `${m.valueEur == null ? "—" : `EUR ${m.valueEur}`} @ ${m.fxRate} on ${m.fxDate} (${m.fxSource})`
+                          : m.valueNumeric == null
+                            ? null
+                            : "EUR — (no FX triple)"
+                      }
                     />
                   </td>
                   <td>{m.periodEnd}</td>
@@ -127,7 +139,8 @@ export default function CompanyPage() {
 
       <form onSubmit={addNote} style={{ marginTop: 16 }} className="field">
         <label className="field">
-          Add commentary (stored in the selected lane only)
+          Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
+          cannot be confirmed as subjective. Transcript drafts need Granola (not connected).
           <select value={lane} onChange={(e) => setLane(e.target.value as "objective" | "subjective")}>
             <option value="objective">Objective</option>
             <option value="subjective">Subjective</option>

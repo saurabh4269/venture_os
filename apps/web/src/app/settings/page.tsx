@@ -33,7 +33,11 @@ export default function SettingsPage() {
 
   async function inviteMember(e: React.FormEvent) {
     e.preventDefault();
-    await authClient.organization.inviteMember({ email: invite.email, role: invite.role as "member" });
+    await authClient.organization.inviteMember({
+      email: invite.email,
+      // Better Auth client types default to member/admin/owner; runtime roles are the locked org set.
+      role: invite.role as "member",
+    });
   }
 
   return (

@@ -3,10 +3,15 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
   ASK_REFUSAL,
+  assertCommentaryLane,
   citationsFrom,
   decideAsk,
+  documentKindToCommentarySource,
   factOrDash,
+  formatDualDisplay,
   moic,
+  navBridge,
+  defaultPriorAsOf,
   rollupNav,
   runwayMonths,
   toEur,
@@ -284,12 +289,19 @@ routes.post("/api/inbox/:id/confirm", async (c) => {
     if (!item || item.status !== "pending") throw new HttpError(404, "inbox_item_not_pending");
     const proposed = item.proposed as Record<string, unknown>;
     if (item.kind === "commentary") {
+      const [doc] = item.documentId
+        ? await tx.select().from(documents).where(eq(documents.id, item.documentId))
+        : [];
+      const lane = (patch.lane ?? proposed.lane ?? "objective") as "objective" | "subjective";
+      const sourceKind = documentKindToCommentarySource(doc?.kind);
+      const gate = assertCommentaryLane(lane, sourceKind);
+      if (!gate.ok) throw new HttpError(400, gate.code);
       await tx.insert(commentary).values({
         orgId: s.orgId,
         companyId: item.companyId!,
         periodStart: String(patch.periodStart ?? proposed.periodStart ?? "2025-04-01"),
         periodEnd: String(patch.periodEnd ?? proposed.periodEnd ?? "2026-03-31"),
-        lane: (patch.lane ?? proposed.lane ?? "subjective") as "objective" | "subjective",
+        lane,
         body: String(proposed.body ?? proposed.excerpt ?? ""),
         sourceRefId: item.sourceRefId,
         createdBy: s.user.id,
@@ -415,8 +427,26 @@ routes.get("/api/command", async (c) => {
       const r = runwayMonths(cash?.valueNumeric ?? null, burn?.valueNumeric ?? null);
       return {
         company: co,
-        cash: factOrDash({ value: cash?.valueNumeric ?? null, sourceRefId: cash?.sourceRefId, unit: cash?.unit as never, currency: cash?.currency as never }),
-        burn: factOrDash({ value: burn?.valueNumeric ?? null, sourceRefId: burn?.sourceRefId, unit: burn?.unit as never, currency: burn?.currency as never }),
+        cash: formatDualDisplay({
+          value: cash?.valueNumeric ?? null,
+          sourceRefId: cash?.sourceRefId,
+          unit: cash?.unit as never,
+          currency: cash?.currency as never,
+          valueEur: cash?.valueEur ?? null,
+          fxRate: cash?.fxRate ?? null,
+          fxDate: cash?.fxDate ?? null,
+          fxSource: cash?.fxSource ?? null,
+        }),
+        burn: formatDualDisplay({
+          value: burn?.valueNumeric ?? null,
+          sourceRefId: burn?.sourceRefId,
+          unit: burn?.unit as never,
+          currency: burn?.currency as never,
+          valueEur: burn?.valueEur ?? null,
+          fxRate: burn?.fxRate ?? null,
+          fxDate: burn?.fxDate ?? null,
+          fxSource: burn?.fxSource ?? null,
+        }),
         runway: factOrDash({
           value: r,
           sourceRefId: cash?.sourceRefId && burn?.sourceRefId ? cash.sourceRefId : null,
@@ -484,15 +514,16 @@ routes.post("/api/flags/refresh", async (c) => {
 routes.get("/api/nav", async (c) => {
   const s = requireOrg(c);
   const asOf = c.req.query("asOf") ?? new Date().toISOString().slice(0, 10);
+  const priorAsOf = c.req.query("priorAsOf") ?? defaultPriorAsOf(asOf);
   const data = await withOrg(s.orgId, async (tx) => {
     const pos = await tx.select().from(positions);
     const mk = await tx.select().from(marks);
     const cos = await tx.select().from(companies);
     const fundRows = await tx.select().from(funds);
     const rows = pos.map((p) => {
-      const mark = mk
-        .filter((m) => m.positionId === p.id && m.asOf <= asOf)
-        .sort((a, b) => (a.asOf < b.asOf ? 1 : -1))[0];
+      const history = mk.filter((m) => m.positionId === p.id).sort((a, b) => (a.asOf < b.asOf ? 1 : -1));
+      const mark = history.find((m) => m.asOf <= asOf);
+      const prior = history.find((m) => m.asOf <= priorAsOf);
       const co = cos.find((x) => x.id === p.companyId);
       return {
         position: p,
@@ -504,20 +535,29 @@ routes.get("/api/nav", async (c) => {
         method: mark?.method ?? null,
         rationale: mark?.rationale ?? null,
         sourceRefId: mark?.sourceRefId ?? null,
+        priorMark: prior?.value ?? null,
+        priorMarkAsOf: prior?.asOf ?? null,
       };
     });
-    const rollup = rollupNav(
-      asOf,
-      rows.map((r) => ({
-        positionId: r.position.id,
-        companyId: r.position.companyId,
-        companyName: r.companyName,
-        cost: r.cost,
-        mark: r.mark,
-        markAsOf: r.markAsOf,
-      })),
-    );
-    return { asOf, rollup, positions: rows, moic: moic(rollup.nav.total, rollup.cost.total) };
+    const currentMarks = rows.map((r) => ({
+      positionId: r.position.id,
+      companyId: r.position.companyId,
+      companyName: r.companyName,
+      cost: r.cost,
+      mark: r.mark,
+      markAsOf: r.markAsOf,
+    }));
+    const priorMarks = rows.map((r) => ({
+      positionId: r.position.id,
+      companyId: r.position.companyId,
+      companyName: r.companyName,
+      cost: r.cost,
+      mark: r.priorMark,
+      markAsOf: r.priorMarkAsOf,
+    }));
+    const rollup = rollupNav(asOf, currentMarks);
+    const bridge = navBridge(asOf, currentMarks, priorMarks);
+    return { asOf, priorAsOf, rollup, bridge, positions: rows, moic: moic(rollup.nav.total, rollup.cost.total) };
   });
   return c.json(data);
 });
@@ -585,11 +625,15 @@ routes.get("/api/compare", async (c) => {
           .filter((x) => x.companyId === co.id && x.metricKey === key)
           .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
         cells[key] = {
-          ...factOrDash({
+          ...formatDualDisplay({
             value: m?.valueNumeric ?? null,
             sourceRefId: m?.sourceRefId,
             unit: m?.unit as never,
             currency: m?.currency as never,
+            valueEur: m?.valueEur ?? null,
+            fxRate: m?.fxRate ?? null,
+            fxDate: m?.fxDate ?? null,
+            fxSource: m?.fxSource ?? null,
           }),
           periodEnd: m?.periodEnd,
         };
@@ -830,8 +874,12 @@ routes.post("/api/commentary", async (c) => {
     periodEnd: string;
     lane: "objective" | "subjective";
     body: string;
+    sourceKind?: "mis" | "transcript" | "human";
   }>();
   if (body.lane === "objective" && !body.body.trim()) throw new HttpError(400, "empty");
+  const sourceKind = body.sourceKind ?? "human";
+  const gate = assertCommentaryLane(body.lane, sourceKind);
+  if (!gate.ok) throw new HttpError(400, gate.code);
   const row = await withOrg(s.orgId, async (tx) => {
     const [n] = await tx
       .insert(commentary)

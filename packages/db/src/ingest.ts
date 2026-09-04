@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { extractFromPdfText, extractFromRows, matchMetricAlias, type ExtractedProposal } from "@venture-os/core";
+import {
+  applyCorrectionLedger,
+  extractFromPdfText,
+  extractFromRows,
+  matchMetricAlias,
+  type ExtractedProposal,
+} from "@venture-os/core";
 import { and, eq } from "drizzle-orm";
 import ExcelJS from "exceljs";
 import { withOrg, type Database } from "./client.js";
@@ -32,7 +38,7 @@ export async function runParseJob(orgId: string, documentId: string): Promise<{ 
         : [];
 
       for (const p of proposals) {
-        applyCorrections(p, activeCorrections);
+        applyCorrectionLedger(p, activeCorrections);
         const refId = randomUUID();
         await tx.insert(sourceRefs).values({
           id: refId,
@@ -83,22 +89,6 @@ export async function runParseJob(orgId: string, documentId: string): Promise<{ 
       throw err;
     }
   });
-}
-
-function applyCorrections(
-  p: ExtractedProposal,
-  rows: { metricKey: string; periodStart: string; periodEnd: string; patchedValue: number | null; patchedUnit: string | null; patchedCurrency: string | null }[],
-) {
-  if (!p.metricKey || !p.periodStart) return;
-  const hit = rows.find(
-    (c) => c.metricKey === p.metricKey && c.periodStart === p.periodStart && c.periodEnd === p.periodEnd,
-  );
-  if (!hit) return;
-  p.valueNumeric = hit.patchedValue;
-  if (hit.patchedUnit) p.unit = hit.patchedUnit as ExtractedProposal["unit"];
-  if (hit.patchedCurrency) p.currency = hit.patchedCurrency as ExtractedProposal["currency"];
-  p.excerpt = `${p.excerpt} · correction ledger applied`;
-  p.confidence = 0.99;
 }
 
 async function extractBuffer(

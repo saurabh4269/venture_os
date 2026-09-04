@@ -1,22 +1,72 @@
 # AGENTS.md — Venture OS
 
-Read this before writing code. The book is more important than the demo.
+**Repo:** https://github.com/saurabh4269/venture_os  
+**Domain:** ventureos.xyz  
+**Design partner:** V3 Ventures  
+**Pack date:** 2026-09-05 (Asia/Calcutta)
 
-## Source of truth (order)
+This file is mandatory reading for every coding agent before any code change.
 
-1. **Gargi brief** — `docs/brief/v3-requirement-brief-gargi-2026-09-03.md`
-2. **Locked decisions** — `docs/decisions.md` (overrides older Clerk/WorkOS/Inngest/Claude/R2-only drafts)
-3. **This file**
-4. `docs/product-spec.md`, `docs/architecture.md`, `docs/data-model.md`
-5. `docs/gap-matrix.md` (what is actually built)
-6. Adishree 26 Aug brief and `v3.heisenbug.in` — **workflow memory only**, never UX or data templates
+---
 
-If a comment in code disagrees with (1)–(2), fix the comment.
+## Mission
 
-## What this product is
+Build a production multi-tenant **portfolio operating system** for VC investment teams. Data arrives from source systems, messy company packs are standardized into a firm schema, and dashboard / NAV / flags / Ask / reports read only from the standardized book.
 
-Multi-tenant SaaS for VC investment teams. Design partner: V3 Ventures. Domain: `ventureos.xyz`.  
-Rituals: Command, Companies, Inbox, Flags, NAV, Compare, Ask, Reports, Vault, Settings.
+Greenfield only. Do **not** extend `saurabh4269/v3_agentic_os` as production SoR.
+
+---
+
+## Read order (do not invent beyond these)
+
+1. `docs/00_README.md` — index + anti-hallucination
+2. `docs/brief/V3_Requirement_Brief_v3_Gargi_2026-09-03.md` — functional SoT (wins on V3 behavior)
+3. `docs/01_PRODUCT_SPEC.md`
+4. `docs/02_GAP_MATRIX.md` + `docs/02b_PRODUCTION_GAP_ANALYSIS.md`
+5. `docs/03_ARCHITECTURE.md` + `docs/DECISION.md` — **LOCKED stack**
+6. `docs/04_BUILD_PLAN.md` — phased delivery (extend checkboxes; do not rewrite)
+7. `docs/05_DATA_MODEL.md` — hard invariants
+8. `docs/06_AGENT_PROMPT.md` — original Phase 0 kickoff (historical)
+
+Historical brief only: `docs/brief/V3_Requirement_Brief_v1_Adishree_2026-08-26.md` (Gargi supersedes).  
+PDFs: `docs/brief/raw/`.
+
+Do **not** recreate a parallel kebab-case docs tree. Tick or annotate the official numbered files as slices land.
+
+---
+
+## LOCKED stack (do not reopen casually)
+
+Auth: Better Auth.  
+LLM: OpenAI via `packages/llm`.  
+Jobs: BullMQ + Redis.  
+HTTP API: Hono.  
+Web: Next.js 15 App Router.  
+SoR: Postgres + Drizzle + RLS with `org_id` on every tenant row.  
+Objects: S3-compatible storage (`ObjectStore`; MinIO in Compose; `S3_ENDPOINT=fs` local/CI).  
+UI: first-principles — do not clone the demo site.  
+Hosting: free-tier first, then Azure.  
+Tooling: pnpm + Turborepo. Extra package: `packages/core` (metrics, flags, units, FY, Ask, extract).
+
+Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
+
+---
+
+## Implementation status
+
+| Phase | Status |
+| --- | --- |
+| 0 Platform | Shipped (auth, RLS, CI, empty shell) |
+| 1 Book | Shipped (upload → parse → inbox → book) |
+| 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements) |
+| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge, Compare); NAV **approval** later |
+| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX from the book) |
+| 5 Live connectors | Stub only — UI says **not connected** |
+| 6 LP room + billing | Out of scope |
+
+Resume from `docs/02_GAP_MATRIX.md` (This-repo column) and unchecked boxes in `docs/04_BUILD_PLAN.md`.
+
+---
 
 ## How to run
 
@@ -32,12 +82,14 @@ Without Docker (native services + filesystem objects):
 ```bash
 cp .env.example .env
 # MIGRATE_DATABASE_URL = Postgres superuser (migrations + GRANT)
-# DATABASE_URL         = venture_os_app (no BYPASSRLS — required for RLS)
+# DATABASE_URL         = venture_os_app (no BYPASSRLS — required for RLS tests)
 # REDIS_URL            = local Redis
 # S3_ENDPOINT=fs
 pnpm db:migrate
-pnpm dev                       # turbo: web, api, worker
+pnpm dev                       # turbo: web :3000, api :4000, worker
 ```
+
+If Redis is up and the worker is down, parse jobs sit queued — start the worker or `POST /api/parse/:documentId`.
 
 ### OpenAI
 
@@ -48,24 +100,12 @@ pnpm dev                       # turbo: web, api, worker
 ### Demo for a VC
 
 1. Sign up → create org (you are Org Admin).
-2. Companies → Add company → upload an MIS `.xlsx` (or run opt-in seed).
-3. Inbox → confirm rows (edit units if needed).
+2. Companies → Add company → upload an MIS `.xlsx` / `.csv` (or run opt-in seed).
+3. Inbox → confirm rows (edit units if needed). Nothing auto-posts to the book.
 4. Command / Flags / NAV / Compare / Ask / Reports now read the **book**.
-5. Optional labelled fixture: `pnpm seed:demo` (`SEED_DEMO=1`). Banner: **FIXTURE_ONLY**. Never use as production data.
+5. Optional labelled fixture: `SEED_DEMO=1 pnpm seed:demo`. Banner: **FIXTURE_ONLY**. Never use as production data.
 
-## Phase status
-
-| Phase | Status |
-| --- | --- |
-| 0 Platform | Done in this repo |
-| 1 Book | Done (upload → parse → inbox → book) |
-| 2 Rituals | Done (Command, Inbox, Flags, NAV, Compare, onboard) |
-| 3 Ask + Reports | Done (FTS + refuse; exports) |
-| 4 Live connectors | Stub only (not connected) |
-| 5 Hardening | Later |
-| 6 LP room + billing | Out of scope |
-
-Resume work from `docs/gap-matrix.md` and `docs/build-plan.md`.
+---
 
 ## Commands
 
@@ -74,32 +114,39 @@ Resume work from `docs/gap-matrix.md` and `docs/build-plan.md`.
 | `pnpm dev` | web :3000, api :4000, worker |
 | `pnpm test` | Vitest across packages |
 | `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm db:migrate` | Drizzle migrate |
+| `pnpm db:migrate` | Drizzle migrate (`MIGRATE_DATABASE_URL` preferred) |
 | `pnpm db:generate` | Drizzle generate |
 | `pnpm seed:demo` | FIXTURE_ONLY opt-in |
 | `pnpm --filter @venture-os/api start` | API only |
 
-## Anti-hallucination rules (non-negotiable)
+---
 
-1. Never invent companies, metrics, NAV, flags, documents, or connector API fields.
-2. Missing ≠ 0. Null stays null in math and UI (`—` / not reported).
-3. LLM never commits objective facts — propose to inbox only.
-4. Headlines computed in `packages/core` from book facts only.
-5. No `source_ref` → not shown as fact.
-6. Ask refuses without evidence; citations must resolve to a row/locator.
-7. Corrections are reapplied on re-parse; do not delete the ledger.
-8. Dual currency needs `fx_rate` + `fx_date` + `source`.
-9. Ambiguous units → inbox `unit_ambiguity`, not a guess.
-10. FY Apr–Mar unless profile overrides.
-11. Restatements insert versions; never overwrite the prior amount in place.
-12. Flags only from the catalog + evidence payload.
-13. Never fake connector success — label **not connected**.
+## Anti-hallucination (absolute)
+
+1. Never invent portfolio companies, metrics, NAVs, ownership, runway, flags, document contents, or connector fields.
+2. Missing is not zero. Null stays null. UI shows dash or not reported.
+3. LLM never writes objective financial facts into SoR. Propose then review then confirm only.
+4. Headline numbers computed by deterministic code only.
+5. Every user-visible figure needs provenance (document_id + locator) or must not display as fact.
+6. Ask must refuse when evidence is insufficient. Citations must resolve to real locators.
+7. Corrections are sacred and survive reparse.
+8. FX displays need rate + date + source. Units detected explicitly never from magnitude.
+9. FY is April-March unless company profile overrides. Restatements version history.
+10. Flags only from agreed catalog + deterministic rules + evidence.
+11. Connectors: never fake success. Label not connected until real OAuth + sync.
+12. Never invent Affinity / Graph / Granola / ILPA field names — stub + TODO(source-of-truth).
+13. Migrations required for schema changes. Instrument success metrics before claiming targets.
 14. No secrets in git. `.env.example` only.
 15. Fixtures are `FIXTURE_ONLY` and opt-in.
+16. Subjective commentary never from MIS-only input.
+
+---
 
 ## Never invent connector fields
 
-OneDrive / Affinity / Granola live APIs are out of scope. Do not add request bodies, webhook shapes, or “sync tokens” you have not verified against vendor docs in this repo. Settings UI is a stub.
+OneDrive / Affinity / Granola live APIs are out of scope until vendor docs are in this repo. Do not add request bodies, webhook shapes, or sync tokens you have not verified. Settings UI is a stub.
+
+---
 
 ## Where code lives
 
@@ -107,19 +154,45 @@ OneDrive / Affinity / Granola live APIs are out of scope. Do not add request bod
 | --- | --- |
 | Tables, RLS, migrations | `packages/db` |
 | Zod / DTO | `packages/schema` |
-| Runway, MOIC, XIRR, units, FY, flags, Ask | `packages/core` |
+| Runway, MOIC, XIRR, units, FY, flags, Ask, extract | `packages/core` |
 | LLM port | `packages/llm` |
 | HTTP | `apps/api` |
 | Jobs | `apps/worker` |
 | UI | `apps/web` |
+
+---
 
 ## Tests you must not break
 
 - Null semantics (runway/MOIC/XIRR with null inputs)
 - Flag detectors (no evidence → no flag)
 - Ask refuse (empty retrieval → `refused: true`, LLM not required)
-- RLS isolation (org A cannot read org B)
+- RLS isolation (org A cannot read org B) — must use `venture_os_app`, not a superuser
+- FX conversion without a complete triple → null / refused display
+- Subjective lane rejects MIS-only source
+- Correction ledger reapplies on extract
+
+---
+
+## Definition of done (any PR touching numbers)
+
+- Fact written only via approved ingest/correct API
+- Provenance present or field marked non-factual
+- Null handling tested
+- Re-parse + correction test where extract path changes
+- No LLM in NAV/rollup path
+- Ask path has refuse-without-citation coverage when Ask code changes
+
+---
 
 ## UI
 
 First principles. Do not copy `v3.heisenbug.in`. Dense calm desktop, provenance chips, objective/subjective split, ritual nav.
+
+---
+
+## Demo reference (never production data plane)
+
+- Repo: https://github.com/saurabh4269/v3_agentic_os
+- Live: https://v3.heisenbug.in (narrative only — do not copy UI)
+- Functional SoT: `docs/brief` Gargi v3

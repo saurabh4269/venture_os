@@ -8,3 +8,5 @@ export * from "./flags.js";
 export * from "./ask.js";
 export * from "./display.js";
 export * from "./extract.js";
+export * from "./commentary.js";
+export * from "./corrections.js";

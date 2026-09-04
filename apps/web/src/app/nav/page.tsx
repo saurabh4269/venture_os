@@ -6,11 +6,24 @@ import { api } from "@/lib/api";
 
 type Nav = {
   asOf: string;
+  priorAsOf: string;
   rollup: {
     nav: { total: number | null; complete: boolean; missing: number };
     cost: { total: number | null; complete: boolean };
     moic: number | null;
     unmarked: { companyName: string }[];
+  };
+  bridge: {
+    deltaNav: number | null;
+    unexplained: { companyName: string; reason: string }[];
+    lines: {
+      companyName: string;
+      priorMark: number | null;
+      currentMark: number | null;
+      delta: number | null;
+      priorAsOf: string | null;
+      currentAsOf: string | null;
+    }[];
   };
   positions: {
     position: { id: string; costBasis: number | null; ownershipPct: number | null };
@@ -21,6 +34,8 @@ type Nav = {
     markAsOf: string | null;
     method: string | null;
     sourceRefId: string | null;
+    priorMark: number | null;
+    priorMarkAsOf: string | null;
   }[];
 };
 
@@ -56,7 +71,8 @@ export default function NavPage() {
       <h1>NAV</h1>
       <p className="lede">
         Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
-        rollup is complete.
+        rollup is complete. The bridge is period-over-period from booked marks — missing priors stay unexplained, never
+        zero-filled. Approval / period lock is later.
       </p>
       <label className="field" style={{ maxWidth: 200 }}>
         As-of
@@ -78,9 +94,45 @@ export default function NavPage() {
               <div className="k">MOIC</div>
               <div className="v">{data.rollup.moic == null ? "—" : `${data.rollup.moic.toFixed(2)}x`}</div>
             </div>
+            <div className="card">
+              <div className="k">Bridge Δ</div>
+              <div className="v">{data.bridge.deltaNav == null ? "—" : data.bridge.deltaNav.toLocaleString("en-IN")}</div>
+              <div className="lede">vs {data.priorAsOf}</div>
+            </div>
           </div>
           {data.rollup.unmarked.length > 0 && (
             <p className="lede">Unmarked: {data.rollup.unmarked.map((u) => u.companyName).join(", ")}</p>
+          )}
+          {data.bridge.unexplained.length > 0 && (
+            <p className="lede">
+              Unexplained bridge:{" "}
+              {data.bridge.unexplained.map((u) => `${u.companyName} (${u.reason.replaceAll("_", " ")})`).join(", ")}
+            </p>
+          )}
+          {data.bridge.lines.length > 0 && (
+            <>
+              <h2>Period bridge</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Prior</th>
+                    <th>Current</th>
+                    <th>Δ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.bridge.lines.map((l) => (
+                    <tr key={l.companyName}>
+                      <td>{l.companyName}</td>
+                      <td>{l.priorMark ?? "—"}</td>
+                      <td>{l.currentMark ?? "—"}</td>
+                      <td>{l.delta == null ? "—" : l.delta.toLocaleString("en-IN")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
           <table>
             <thead>

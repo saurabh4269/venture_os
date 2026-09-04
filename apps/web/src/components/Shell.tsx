@@ -121,18 +121,29 @@ export function Fact({
   display,
   isFact,
   href,
+  note,
 }: {
   display: string;
   isFact: boolean;
   href?: string;
+  note?: string | null;
 }) {
-  if (!isFact) return <span className="chip unfact">—</span>;
-  if (href) {
-    return (
-      <a className="chip" href={href} title="Open source">
-        {display}
-      </a>
-    );
-  }
-  return <span className="chip">{display}</span>;
+  const chip = !isFact ? (
+    <span className="chip unfact">—</span>
+  ) : href ? (
+    <a className="chip" href={href} title="Open source">
+      {display}
+    </a>
+  ) : (
+    <span className="chip">{display}</span>
+  );
+  if (!note) return chip;
+  return (
+    <span>
+      {chip}
+      <span className="lede" style={{ display: "block", marginTop: 2 }}>
+        {note}
+      </span>
+    </span>
+  );
 }

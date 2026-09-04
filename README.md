@@ -1,12 +1,24 @@
 # Venture OS
 
 Production-grade multi-tenant operating system for **VC investment teams**.  
-Design partner: **V3 Ventures**. Domain: **ventureos.xyz**.
+Design partner: **V3 Ventures**. Domain: **ventureos.xyz**.  
+Repo: https://github.com/saurabh4269/venture_os
 
 This is the book — Command, Inbox (HITL), Flags, NAV, Compare, Ask, Reports, Vault — not a chatbot over PDFs and not a founder portal.
 
-Functional source of truth: [`docs/brief/v3-requirement-brief-gargi-2026-09-03.md`](docs/brief/v3-requirement-brief-gargi-2026-09-03.md).  
-Agent guide: [`AGENTS.md`](AGENTS.md).
+## Docs
+
+Start at [`docs/00_README.md`](docs/00_README.md). Agent rules: [`AGENTS.md`](AGENTS.md).
+
+Requirement briefs (Markdown + PDF): [`docs/brief/`](docs/brief/).  
+Locked stack: [`docs/DECISION.md`](docs/DECISION.md) D5 and [`docs/03_ARCHITECTURE.md`](docs/03_ARCHITECTURE.md).  
+Build status: [`docs/02_GAP_MATRIX.md`](docs/02_GAP_MATRIX.md) (This-repo column) and [`docs/04_BUILD_PLAN.md`](docs/04_BUILD_PLAN.md).
+
+## Locked stack (summary)
+
+Better Auth · OpenAI · BullMQ+Redis · Hono · Postgres+RLS · S3-compatible · first-principles UI · free-tier then Azure.
+
+Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
 
 ---
 
@@ -32,7 +44,9 @@ You need Postgres 16 and Redis 7 locally. Object store can be the filesystem:
 ```bash
 pnpm i
 cp .env.example .env
-# DATABASE_URL=postgres://…  REDIS_URL=redis://localhost:6379
+# MIGRATE_DATABASE_URL=postgres://superuser…   (migrations + GRANT)
+# DATABASE_URL=postgres://venture_os_app…      (app + RLS; no BYPASSRLS)
+# REDIS_URL=redis://localhost:6379
 # S3_ENDPOINT=fs
 pnpm db:migrate
 pnpm dev
@@ -63,7 +77,7 @@ If the key is unset: parse still works; Ask still retrieves and **refuses to inv
 3. **Companies → Add company**. Complete the 15-minute path: profile → upload `fixtures/FIXTURE_ONLY-sample-mis.csv` (or any MIS xlsx/pdf).
 4. **Inbox** — confirm rows. Ambiguous units must be set by you. Nothing auto-posts.
 5. **Command / Flags / NAV / Compare / Ask / Reports** now read the **book**.
-6. Click a number — it opens the source file when a `source_ref` exists. Missing shows **—**.
+6. Click a number — it opens the source file when a `source_ref` exists. Missing shows **—**. Dual EUR display appears only with `fx_rate` + `fx_date` + source.
 
 ### Optional labelled fixture (never production)
 
@@ -86,32 +100,11 @@ CI (`.github/workflows/ci.yml`) runs the same against a Postgres service, includ
 
 ---
 
-## Stack (locked)
-
-| Piece | Choice |
-| --- | --- |
-| Language | TypeScript |
-| Monorepo | pnpm + Turborepo |
-| Web | Next.js 15 (`apps/web`) |
-| API | Hono (`apps/api`) |
-| Jobs | BullMQ + Redis (`apps/worker`) |
-| DB | Postgres + Drizzle + RLS on `org_id` |
-| Auth | Better Auth (orgs, invites, roles) |
-| Files | S3-compatible (MinIO / `S3_ENDPOINT=fs`) |
-| LLM | OpenAI behind `packages/llm` |
-| Search | Postgres FTS |
-
-Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default. See `docs/decisions.md`.
-
-Early live hosting (free-tier): Vercel (web) + Neon + Upstash + Fly/Render (api/worker). Azure later. Notes in `docs/cost-hosting.md`. Deploy stubs: `apps/web/vercel.json`, `fly.toml`, `render.yaml`.
-
----
-
 ## What is real vs stubbed
 
-**Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields, correction ledger + restatement versions, Command, Flags (catalog detectors), NAV rollup, Compare, Ask (FTS + refuse), Reports + PDF/PPTX/XLSX downloads, onboarding wizard, RLS, Vitest.
+**Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog detectors), NAV rollup + period-over-period bridge, Compare, Ask (FTS + refuse), Reports + PDF/PPTX/XLSX downloads, onboarding wizard, RLS, Vitest.
 
-**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, LP/ILPA room, billing, perfect OCR.
+**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV approval workflow, LP/ILPA room, billing, perfect OCR, domain auto-join.
 
 ---
 
@@ -125,5 +118,7 @@ packages/db       schema, RLS, ingest, object store
 packages/core     runway / MOIC / XIRR / flags / Ask / units
 packages/llm      provider interface
 packages/schema   Zod
-docs/             living product + architecture
+docs/             official numbered pack (do not fork a second tree)
 ```
+
+Early live hosting notes: [`docs/cost-hosting.md`](docs/cost-hosting.md). Deploy stubs: `apps/web/vercel.json`, `fly.toml`, `render.yaml`.

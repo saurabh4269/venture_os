@@ -14,7 +14,7 @@ Public site `https://v3.ventures`: consumer early-stage; India / Europe / US; Ve
 
 ## Stack lock vs older drafts
 
-Handoffs that mentioned Clerk, WorkOS, Inngest, Claude-default, or R2-only are void. See `docs/decisions.md`.
+Handoffs that mentioned Clerk, WorkOS, Inngest, Claude-default, or R2-only are void. See `docs/DECISION.md`.
 
 ## Parser reality
 

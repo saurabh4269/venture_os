@@ -17,8 +17,8 @@ type Pulse = {
   needsALook: { flags: { id: string; flagKey: string; severity: string; companyId: string }[]; inbox: { id: string }[] };
   coverage: {
     company: { id: string; name: string; stage: string | null };
-    cash: { display: string; isFact: boolean };
-    burn: { display: string; isFact: boolean };
+    cash: { display: string; isFact: boolean; fxNote?: string | null };
+    burn: { display: string; isFact: boolean; fxNote?: string | null };
     runway: { display: string; isFact: boolean };
     lastMis: string | null;
     ownershipPct: number | null;
@@ -107,10 +107,10 @@ export default function CommandPage() {
                     <td>{r.ownershipPct == null ? "—" : `${(r.ownershipPct * 100).toFixed(1)}%`}</td>
                     <td>{r.lastMis ?? "—"}</td>
                     <td>
-                      <Fact {...r.cash} />
+                      <Fact {...r.cash} note={r.cash.fxNote} />
                     </td>
                     <td>
-                      <Fact {...r.burn} />
+                      <Fact {...r.burn} note={r.burn.fxNote} />
                     </td>
                     <td>
                       <Fact {...r.runway} />

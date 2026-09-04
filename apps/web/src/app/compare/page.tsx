@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Fact, Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
 
-type Cell = { display: string; isFact: boolean; periodEnd?: string | null };
+type Cell = { display: string; isFact: boolean; periodEnd?: string | null; fxNote?: string | null };
 type Data = {
   metrics: string[];
   matrix: { company: { id: string; name: string }; cells: Record<string, Cell> }[];
@@ -38,7 +38,7 @@ export default function ComparePage() {
                 <td>{row.company.name}</td>
                 {data.metrics.map((m) => (
                   <td key={m}>
-                    <Fact {...row.cells[m]!} />
+                    <Fact {...row.cells[m]!} note={row.cells[m]?.fxNote} />
                   </td>
                 ))}
               </tr>
