@@ -133,6 +133,13 @@ export const DEFAULT_FY_START_MONTH = 4; // April
 export const BASE_CURRENCY = "INR";
 export const DISPLAY_CURRENCY = "EUR";
 
+export {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  normalizeEmail,
+  passwordLengthError,
+} from "./password.js";
+
 export const WRITE_ROLES: Role[] = ["org_admin", "partner", "analyst"];
 export const ADMIN_ROLES: Role[] = ["org_admin"];
 export const CONFIRM_ROLES: Role[] = ["org_admin", "partner", "analyst"];

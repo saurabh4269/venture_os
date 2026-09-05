@@ -1,7 +1,10 @@
 import { type NextRequest } from "next/server";
+import { applyUpstreamHeaders } from "@/lib/bff-headers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 const HOP = new Set([
   "connection",
@@ -43,15 +46,7 @@ async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }
   }
   const res = await fetch(target, init);
   const out = new Headers();
-  res.headers.forEach((v, k) => {
-    if (k === "transfer-encoding" || k === "content-encoding") return;
-    if (k === "set-cookie") return;
-    out.append(k, v);
-  });
-  const cookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
-  for (const c of cookies) {
-    out.append("set-cookie", c.replace(/;\s*domain=[^;]+/i, ""));
-  }
+  applyUpstreamHeaders(res.headers, out);
   return new Response(res.body, { status: res.status, headers: out });
 }
 
