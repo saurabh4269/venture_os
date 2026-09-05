@@ -121,40 +121,28 @@ export function Pipeline({ current }: { current?: "source" | "proposed" | "revie
 export function AuthFrame({
   children,
   tab,
+  footer,
 }: {
   children: ReactNode;
   tab?: "signin" | "signup" | "other";
+  footer?: ReactNode;
 }) {
   const mode = tab ?? "other";
   return (
     <div className="auth-shell">
-      <div className="auth-brand">
-        {mode === "other" ? (
-          <p className="wordmark">
-            <Link href="/">Venture OS</Link>
-          </p>
-        ) : (
+      <div className="auth">
+        <div className="auth-brand">
           <h1>
             <Link href="/">Venture OS</Link>
           </h1>
-        )}
-        <p>Portfolio operating system</p>
-      </div>
-      <div className="auth">
-        {mode !== "other" && (
-          <nav className="auth-tabs" aria-label="Account">
-            <Link href="/login" className={mode === "signin" ? "on" : undefined} aria-current={mode === "signin" ? "page" : undefined}>
-              Sign in
-            </Link>
-            <Link href="/signup" className={mode === "signup" ? "on" : undefined} aria-current={mode === "signup" ? "page" : undefined}>
-              Create account
-            </Link>
-          </nav>
-        )}
+        </div>
         {children}
+        {footer}
       </div>
-      <p className="auth-principles">AES-backed vault · Cite-or-refuse · Institutional calm</p>
-      <p className="auth-foot">© 2026 Venture OS. Keys are AES-encrypted at rest. SSO and password reset by email are not connected.</p>
+      <footer className="auth-page-foot" aria-hidden={mode === "other"}>
+        <span>© 2026 Venture OS. All rights reserved.</span>
+        <Link href="/security">Methodology</Link>
+      </footer>
     </div>
   );
 }

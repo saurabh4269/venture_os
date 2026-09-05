@@ -1,16 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
+import { Inter, Newsreader } from "next/font/google";
 import { RegisterPwa } from "@/components/RegisterPwa";
 import "./globals.css";
 
-const sans = IBM_Plex_Sans({
+const sans = Inter({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600"],
   variable: "--font-sans",
 });
-const serif = Source_Serif_4({
+const serif = Newsreader({
   subsets: ["latin", "latin-ext"],
-  weight: ["500", "600"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
   variable: "--font-serif",
 });
 
@@ -34,8 +35,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#244c3c" },
-    { media: "(prefers-color-scheme: dark)", color: "#244c3c" },
+    { media: "(prefers-color-scheme: light)", color: "#09090B" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090B" },
   ],
   width: "device-width",
   initialScale: 1,

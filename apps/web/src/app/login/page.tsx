@@ -67,8 +67,15 @@ function LoginForm() {
   }
 
   return (
-    <AuthFrame tab="signin">
-      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }} noValidate>
+    <AuthFrame
+      tab="signin"
+      footer={
+        <p className="auth-signup-link">
+          Don&apos;t have an account? <Link href="/signup">Sign up</Link>
+        </p>
+      }
+    >
+      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14 }} noValidate>
         <label className="field" htmlFor="email">
           Email address
           <input
@@ -78,6 +85,7 @@ function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             type="email"
             autoComplete="username"
+            placeholder="founder@startup.com"
             data-testid="login-email"
             required
           />
@@ -85,8 +93,8 @@ function LoginForm() {
         <label className="field" htmlFor="password">
           <span className="field-hint">
             Password
-            <span className="lede">
-              {MIN_PASSWORD_LENGTH}–{MAX_PASSWORD_LENGTH} characters
+            <span className="auth-forgot" title="Password reset by email is not connected">
+              Forgot password?
             </span>
           </span>
           <input
@@ -107,8 +115,8 @@ function LoginForm() {
             {err}
           </div>
         )}
-        <button className="btn" type="submit" disabled={busy} data-testid="login-submit">
-          {busy ? "Signing in…" : "Sign in"}
+        <button className="btn" type="submit" disabled={busy} data-testid="login-submit" style={{ width: "100%" }}>
+          {busy ? "Signing in…" : "Sign In"}
         </button>
         {params.get("id") ? (
           <p className="lede">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
+import { HelpCircle, Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
@@ -19,10 +20,8 @@ import {
   IconFlags,
   IconInbox,
   IconNav,
-  IconOrg,
   IconReports,
   IconSettings,
-  IconUser,
   IconVault,
 } from "@/components/Icons";
 
@@ -35,7 +34,6 @@ const BookSessionContext = createContext<BookSession>({
   ready: false,
 });
 
-/** Safe above or below <Shell>: pages mount as the parent, so we also read /api/me once. */
 export function useBookSession(): BookSession {
   const ctx = useContext(BookSessionContext);
   const [me, setMe] = useState<Me | null>(ctx.me);
@@ -75,43 +73,32 @@ export function useBookSession(): BookSession {
 }
 
 const NAV = [
-  { href: "/command", label: "Command", hint: "Fund pulse", Icon: IconCommand },
-  { href: "/companies", label: "Companies", hint: "Names on the book", Icon: IconCompanies },
-  { href: "/inbox", label: "Inbox", hint: "Confirm before it posts", Icon: IconInbox },
-  { href: "/flags", label: "Flags", hint: "Catalog risks", Icon: IconFlags },
-  { href: "/nav", label: "NAV", hint: "Marks and lock", Icon: IconNav },
-  { href: "/compare", label: "Compare", hint: "Peer metrics", Icon: IconCompare },
-  { href: "/ask", label: "Ask", hint: "Cite or refuse", Icon: IconAsk },
-  { href: "/reports", label: "Reports", hint: "Packs from the book", Icon: IconReports },
-  { href: "/vault", label: "Vault", hint: "Source files", Icon: IconVault },
-  { href: "/settings", label: "Settings", hint: "Firm, people, policy", Icon: IconSettings },
+  { href: "/command", label: "Command", Icon: IconCommand },
+  { href: "/inbox", label: "Inbox", Icon: IconInbox },
+  { href: "/flags", label: "Flags", Icon: IconFlags },
+  { href: "/companies", label: "Companies", Icon: IconCompanies },
+  { href: "/ask", label: "Ask", Icon: IconAsk },
+  { href: "/nav", label: "NAV", Icon: IconNav },
+  { href: "/compare", label: "Compare", Icon: IconCompare },
+  { href: "/reports", label: "Reports", Icon: IconReports },
+  { href: "/vault", label: "Vault", Icon: IconVault },
 ] as const;
 
-function NavLink({
+function RailLink({
   href,
   label,
-  hint,
   Icon,
   active,
-  onClick,
 }: {
   href: string;
   label: string;
-  hint: string;
   Icon: ComponentType<{ className?: string }>;
   active: boolean;
-  onClick: () => void;
 }) {
   return (
-    <Link
-      href={href}
-      title={hint}
-      className={active ? "active" : ""}
-      aria-current={active ? "page" : undefined}
-      onClick={onClick}
-    >
+    <Link href={href} title={label} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
       <Icon className="nav-ico" />
-      {label}
+      <span className="sr-only">{label}</span>
     </Link>
   );
 }
@@ -124,11 +111,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [orgs, setOrgs] = useState<{ id: string; name: string; fixtureOnly?: boolean }[]>([]);
   const [ready, setReady] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
   const [orgLive, setOrgLive] = useState("");
   const [wake, setWake] = useState<"loading" | "slow" | "error">("loading");
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const [orgOpen, setOrgOpen] = useState(false);
 
   const alive = useRef(true);
 
@@ -180,7 +168,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
       alive.current = false;
       window.clearTimeout(slow);
     };
-    // First mount only — loadSession reads pathRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -214,10 +201,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
+  function onSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQ.trim();
+    if (!q) return;
+    router.push(`/companies?q=${encodeURIComponent(q)}`);
+  }
+
   const fixture =
     Boolean(me?.org?.metadata?.includes("fixtureOnly")) || /FIXTURE_ONLY/i.test(me?.org?.name ?? "");
   const canWrite = isWriteRole(me?.role);
-  const orgName = me?.org?.name ?? "the book";
+  const initial = (me?.user?.name?.trim()[0] || "?").toUpperCase();
 
   if (!ready) {
     const message =
@@ -232,120 +226,108 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const groups: { title: string; items: typeof NAV }[] = [
-    { title: "Morning", items: NAV.slice(0, 3) as unknown as typeof NAV },
-    { title: "Rituals", items: NAV.slice(3, 8) as unknown as typeof NAV },
-    { title: "Firm", items: NAV.slice(8) as unknown as typeof NAV },
-  ];
-
   return (
     <div className="app" data-testid="shell-ready">
-      <a href="#main" className="skip-link">
-        Skip to book
-      </a>
-      <aside className={navOpen ? "rail is-open" : "rail"}>
-        <Link href="/command" className="brand">
-          Venture OS
-          <span>{orgName}</span>
-        </Link>
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={navOpen}
-          aria-controls="primary-nav"
-          onClick={() => setNavOpen((v) => !v)}
-        >
-          Menu
-        </button>
-        <nav id="primary-nav" className={navOpen ? "nav is-open" : "nav"} aria-label="Primary">
-          {groups.map((g) => (
-            <div key={g.title}>
-              <h2 className="sec">{g.title}</h2>
-              {g.items.map((n) => (
-                <NavLink
-                  key={n.href}
-                  href={n.href}
-                  label={n.label}
-                  hint={n.hint}
-                  Icon={n.Icon}
-                  active={path.startsWith(n.href)}
-                  onClick={() => setNavOpen(false)}
-                />
-              ))}
-            </div>
+      <a href="#main" className="skip-link">Skip to book</a>
+      <aside className="rail" aria-label="Primary navigation">
+        <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
+        <nav className="nav" aria-label="Rituals">
+          {NAV.map((n) => (
+            <RailLink
+              key={n.href}
+              href={n.href}
+              label={n.label}
+              Icon={n.Icon}
+              active={path.startsWith(n.href)}
+            />
           ))}
         </nav>
-        {canWrite && (
-          <Link href="/companies/new" className="btn rail-cta">
-            + New investment
+        <div className="rail-spacer" />
+        <div className="rail-foot">
+          <Link href="/settings" title="Settings" className={path.startsWith("/settings") ? "active" : ""}>
+            <IconSettings className="nav-ico" />
           </Link>
-        )}
-        <div className="account" aria-label="Account">
-          {orgs.length === 0 ? (
-            <Link href="/onboard">Create organisation</Link>
-          ) : (
-            <label className="account-row">
-              <IconOrg />
-              <span className="sr-only">Organisation</span>
-              <select
-                value={me?.org?.id ?? ""}
-                onChange={(e) => switchOrg(e.target.value)}
-                aria-label="Organisation"
-              >
-                {orgs.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <div className="account-row">
-            <IconUser />
-            <div>
-              <div className="who">{me?.user?.name}</div>
-              <div className="who-meta">{roleLabel(me?.role)}</div>
-            </div>
-          </div>
-          <button className="btn ghost sm" type="button" onClick={signOut}>
-            Sign out
+          <button type="button" title="Account" onClick={() => setOrgOpen((v) => !v)} aria-expanded={orgOpen}>
+            <span className="rail-avatar">{initial}</span>
           </button>
+          {orgOpen ? (
+            <div className="org-menu" style={{ position: "fixed", bottom: 72, left: 56 }}>
+              {orgs.length > 1 ? (
+                <select
+                  value={me?.org?.id ?? ""}
+                  onChange={(e) => switchOrg(e.target.value)}
+                  aria-label="Organisation"
+                >
+                  {orgs.map((o) => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="who">{me?.org?.name}</div>
+              )}
+              <div className="who-meta">{roleLabel(me?.role)}</div>
+              <button className="btn ghost sm" type="button" onClick={signOut} style={{ width: "100%", marginTop: 8 }}>
+                Sign out
+              </button>
+            </div>
+          ) : null}
         </div>
       </aside>
-      <main className="main" id="main">
-        {fixture && (
-          <div className="banner" role="alert">
-            FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
+      <div className="app-body">
+        <header className="topbar">
+          <span className="topbar-title">Venture OS</span>
+          <form className="topbar-search" onSubmit={onSearch} role="search">
+            <Search size={16} aria-hidden />
+            <input
+              type="search"
+              placeholder="Search companies, flags, or reports…"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              aria-label="Search"
+            />
+          </form>
+          <div className="topbar-actions">
+            <Link href="/security" className="topbar-icon" title="Methodology">
+              <HelpCircle size={18} />
+            </Link>
+            {canWrite ? (
+              <Link href="/companies/new" className="btn sm">Create</Link>
+            ) : null}
           </div>
-        )}
-        <Pipeline
-          current={
-            path.startsWith("/inbox")
-              ? "proposed"
-              : path.startsWith("/vault") || path.startsWith("/companies/new")
-                ? "source"
-                : path.startsWith("/flags")
-                  ? "reviewed"
-                  : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
-                    ? "analysis"
-                    : "book"
-          }
-        />
-        <div className="sr-only" aria-live="polite">
-          {orgLive}
-        </div>
-        <BookSessionContext.Provider
-          value={{
-            me,
-            canWrite,
-            isAdmin: isAdminRole(me?.role),
-            canLock: isLockRole(me?.role),
-            ready: true,
-          }}
-        >
-          <CiteProvider>{children}</CiteProvider>
-        </BookSessionContext.Provider>
-      </main>
+        </header>
+        <main className="main" id="main">
+          {fixture && (
+            <div className="banner" role="alert">
+              FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
+            </div>
+          )}
+          <Pipeline
+            current={
+              path.startsWith("/inbox")
+                ? "proposed"
+                : path.startsWith("/vault") || path.startsWith("/companies/new")
+                  ? "source"
+                  : path.startsWith("/flags")
+                    ? "reviewed"
+                    : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
+                      ? "analysis"
+                      : "book"
+            }
+          />
+          <div className="sr-only" aria-live="polite">{orgLive}</div>
+          <BookSessionContext.Provider
+            value={{
+              me,
+              canWrite,
+              isAdmin: isAdminRole(me?.role),
+              canLock: isLockRole(me?.role),
+              ready: true,
+            }}
+          >
+            <CiteProvider>{children}</CiteProvider>
+          </BookSessionContext.Provider>
+        </main>
+      </div>
     </div>
   );
 }

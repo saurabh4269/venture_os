@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 const NAV = [
-  { href: "/#product", label: "Product" },
-  { href: "/#approach", label: "Approach" },
+  { href: "/#platform", label: "Platform" },
+  { href: "/#insights", label: "Insights" },
+  { href: "/#network", label: "Network" },
   { href: "/#pricing", label: "Pricing" },
-  { href: "/#partners", label: "Case Studies" },
 ] as const;
 
 export function LandingHeader() {
@@ -27,10 +27,10 @@ export function LandingHeader() {
         </nav>
         <div className="mkt-header-actions">
           <Link href="/login" className="mkt-login">
-            Log in
+            Sign in
           </Link>
           <Link href="/signup" className="btn mkt-cta">
-            Get started
+            Get Started
           </Link>
           <button
             type="button"
@@ -51,10 +51,10 @@ export function LandingHeader() {
             </a>
           ))}
           <Link href="/login" onClick={() => setOpen(false)}>
-            Log in
+            Sign in
           </Link>
           <Link href="/signup" className="btn" onClick={() => setOpen(false)}>
-            Get started
+            Get Started
           </Link>
         </nav>
       ) : null}
@@ -64,18 +64,17 @@ export function LandingHeader() {
 
 export function LandingFooter() {
   return (
-    <footer className="mkt-footer">
+    <footer className="mkt-footer" role="contentinfo">
       <div className="mkt-footer-inner">
         <Link href="/" className="mkt-logo">
           Venture OS
         </Link>
-        <p className="mkt-copy">© 2026 Venture OS. Institutional portfolio management.</p>
-        <nav className="mkt-foot-links" aria-label="On this page">
-          <a href="/#trust">Methodology</a>
-          <a href="/#pricing">Support</a>
-          <Link href="/login">Log in</Link>
+        <nav className="mkt-foot-links" aria-label="Footer">
+          <Link href="/security">Methodology</Link>
+          <a href="/#platform">Changelog</a>
+          <a href="/api/health">Status</a>
         </nav>
-        <p className="mkt-legal-line">Institutional-grade data. Figures cited or refused.</p>
+        <p className="mkt-copy">© 2026 Venture OS. All rights reserved.</p>
       </div>
     </footer>
   );

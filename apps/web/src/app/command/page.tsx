@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG } from "@venture-os/core";
-import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
-import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
-import { Fact, Shell, useBookSession } from "@/components/Shell";
-import { api, sourcePathFor } from "@/lib/api";
+import { CompanyMark, EM, Panel } from "@/components/BookUI";
+import { AskOsPanel } from "@/components/AskOsPanel";
+import { IconFlagSmall, IconWarn } from "@/components/Icons";
+import { Shell, useBookSession } from "@/components/Shell";
+import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
 
 type Pulse = {
@@ -24,87 +25,78 @@ type Pulse = {
   };
   coverage: {
     company: { id: string; name: string; stage: string | null };
-    cash: { display: string; isFact: boolean; fxNote?: string | null; sourceRefId?: string | null };
-    burn: { display: string; isFact: boolean; fxNote?: string | null; sourceRefId?: string | null };
-    runway: { display: string; isFact: boolean; sourceRefId?: string | null };
+    cash: { display: string; isFact: boolean };
+    burn: { display: string; isFact: boolean };
+    runway: { display: string; isFact: boolean };
     lastMis: string | null;
     ownershipPct: number | null;
-    lastMark: number | null;
-    lastMarkSource: string | null;
     openFlags: number;
   }[];
-  sourceRefs: { id: string; documentId: string }[];
 };
+
+type ConnectorRow = { kind: string; lastSyncAt?: string };
+
+const PIPELINE_STAGES = ["SOURCE", "PROPOSED", "REVIEWED", "BOOK", "ANALYSIS"] as const;
+type PipelineStage = (typeof PIPELINE_STAGES)[number];
 
 function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
 }
 
-function bookCloseLine(d = new Date()) {
-  const weekday = d.toLocaleDateString("en-GB", { weekday: "long" });
-  const rest = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  return `${weekday} · ${rest} · Book as of close`;
+function deriveStage(row: Pulse["coverage"][number], inboxNames: Set<string>): PipelineStage {
+  if (inboxNames.has(row.company.id)) return "PROPOSED";
+  if (row.openFlags > 0) return "REVIEWED";
+  if (row.lastMis) return "BOOK";
+  return "SOURCE";
 }
 
-function daysSince(iso: string | null) {
-  if (!iso) return null;
-  const n = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  return Number.isFinite(n) ? n : null;
+function relativeUpdated(iso: string | null) {
+  if (!iso) return EM;
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return "<1h ago";
+  if (h < 48) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
 
-function coverageGap(row: Pulse["coverage"][number]) {
-  return !row.lastMis;
-}
-
-function uncitedCount(coverage: Pulse["coverage"]) {
-  let seen = 0;
-  let uncited = 0;
-  for (const r of coverage) {
-    for (const f of [r.cash, r.burn, r.runway]) {
-      if (f.display && f.display !== EM) {
-        seen += 1;
-        if (!f.isFact) uncited += 1;
-      }
-    }
-    if (r.lastMark != null) {
-      seen += 1;
-      if (!r.lastMarkSource) uncited += 1;
-    }
-  }
-  return seen === 0 ? null : uncited;
-}
-
-function pulseStatus(row: Pulse["coverage"][number]) {
-  if (row.openFlags > 0) return { label: "Review", kind: "review" as const };
-  if (coverageGap(row)) return { label: "Gap", kind: "gap" as const };
-  return { label: "Booked", kind: "booked" as const };
+function fmtCount(n: number) {
+  return n > 0 ? String(n) : EM;
 }
 
 export default function CommandPage() {
   const { canWrite } = useBookSession();
   const [data, setData] = useState<Pulse | null>(null);
+  const [lastSync, setLastSync] = useState<string | null>(null);
   const [err, setErr] = useState("");
-  const [filter, setFilter] = useState("");
-  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
   const [busy, setBusy] = useState(false);
 
   function load() {
     setBusy(true);
-    api<Pulse>("/api/command")
-      .then((d) => {
+    Promise.all([
+      api<Pulse>("/api/command"),
+      api<{ connectors: ConnectorRow[] }>("/api/connectors").catch(() => ({ connectors: [] })),
+    ])
+      .then(([d, c]) => {
         setData(d);
+        const syncs = c.connectors.map((x) => x.lastSyncAt).filter(Boolean) as string[];
+        setLastSync(syncs.length ? syncs.sort().reverse()[0]! : null);
         setErr("");
-        setRefreshedAt(new Date());
       })
       .catch((e: Error) => setErr(bookErrorMessage(e.message)))
       .finally(() => setBusy(false));
   }
+
   useEffect(() => {
     load();
   }, []);
 
-  const gaps = data?.coverage.filter(coverageGap).length ?? 0;
-  const uncited = data ? uncitedCount(data.coverage) : null;
+  const inboxCompanyIds = useMemo(() => {
+    if (!data) return new Set<string>();
+    const names = new Set(data.needsALook.inbox.map((i) => i.companyName));
+    return new Set(data.coverage.filter((c) => names.has(c.company.name)).map((c) => c.company.id));
+  }, [data]);
+
   const look = useMemo(() => {
     if (!data) return [];
     return [
@@ -114,8 +106,7 @@ export default function CommandPage() {
         company: i.companyName,
         copy: `Inbox ${i.kind.replaceAll("_", " ")} — confirm before it posts.`,
         severity: "med" as const,
-        lane: null as "obj" | null,
-        citeHref: "/inbox",
+        cite: false,
       })),
       ...data.needsALook.flags.map((f) => ({
         id: `flag-${f.id}`,
@@ -123,125 +114,65 @@ export default function CommandPage() {
         company: f.companyName,
         copy: `${flagLabel(f.flagKey)} (${f.severity}).`,
         severity: f.severity === "high" ? ("high" as const) : ("med" as const),
-        lane: "obj" as const,
-        citeHref: "/flags",
+        cite: true,
       })),
     ];
   }, [data]);
 
-  const pulseRows = useMemo(() => {
+  const pipeline = useMemo(() => {
     if (!data) return [];
-    const q = filter.trim().toLowerCase();
-    return data.coverage.filter((r) => !q || r.company.name.toLowerCase().includes(q));
-  }, [data, filter]);
+    return [...data.coverage]
+      .map((r) => ({
+        ...r,
+        pipelineStage: deriveStage(r, inboxCompanyIds),
+        updated: relativeUpdated(r.lastMis),
+      }))
+      .sort((a, b) => (b.lastMis ?? "").localeCompare(a.lastMis ?? ""))
+      .slice(0, 8);
+  }, [data, inboxCompanyIds]);
 
-  function exportPulse() {
-    if (!data) return;
-    const header = ["Company", "Stage", "Ownership", "Last MIS", "Cash", "Burn", "Runway", "Flags", "Coverage"];
-    const lines = [
-      header.join(","),
-      ...pulseRows.map((r) => {
-        const st = pulseStatus(r);
-        return [
-          `"${r.company.name}"`,
-          r.company.stage ?? EM,
-          formatOwnership(r.ownershipPct),
-          r.lastMis ?? EM,
-          `"${r.cash.display}"`,
-          `"${r.burn.display}"`,
-          `"${r.runway.display}"`,
-          String(r.openFlags),
-          st.label,
-        ].join(",");
-      }),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "portfolio-pulse.csv";
-    a.click();
-  }
+  const needsLook = look.length;
 
   return (
     <Shell>
-      <PageHead
-        title="Command"
-        testId="command-ready"
-        kicker={bookCloseLine()}
-        lede="Is the book current, and what needs a human? Pulse from booked facts only. Missing is —, never 0. Cite opens the footnote — file, locator, excerpt, period, confirmed by."
-        actions={
-          <>
-            <span className="lede">
-              Last refresh{" "}
-              {refreshedAt
-                ? refreshedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-                : EM}
-            </span>
-            <button className="btn ghost sm" type="button" onClick={load} disabled={busy}>
-              <span className="row" style={{ gap: 6 }}>
-                <IconRefresh />
-                {busy ? "Refreshing…" : "Refresh book"}
-              </span>
-            </button>
-          </>
-        }
-      />
-      {err && (
-        <p className="sev-high" role="alert">
-          {err}
-        </p>
-      )}
-      {!data && !err && (
-        <p className="lede" aria-live="polite">
-          Loading the book…
-        </p>
-      )}
+      <header className="page-head">
+        <div>
+          <h1 data-testid="command-ready">Command</h1>
+          <p className="lede">Is the book current, and what needs a human?</p>
+        </div>
+        <div className="page-actions">
+          <button className="btn ghost sm" type="button" onClick={load} disabled={busy}>
+            {busy ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
+      </header>
+      {err && <p className="sev-high" role="alert">{err}</p>}
+      {!data && !err && <p className="lede" aria-live="polite">Loading the book…</p>}
       {data && (
         <>
-          <div className="cards cards-4">
+          <div className="cards cards-4 command-kpis">
             <div className="kpi">
               <div className="k">Companies</div>
-              <div className="v">{data.pulse.companies}</div>
-            </div>
-            <div className={`kpi${data.pulse.openFlags > 0 ? " accent-warn" : ""}`}>
-              <div className="k">Open flags</div>
-              <div className="v">{data.pulse.openFlags}</div>
-              {data.pulse.openFlags > 0 ? <div className="meta">Requires review</div> : null}
-            </div>
-            <div className={`kpi${gaps > 0 ? " accent-danger" : ""}`}>
-              <div className="k">Coverage gaps</div>
-              <div className="v">{gaps}</div>
-              <div className="meta">{gaps > 0 ? "No booked MIS" : "Names with no booked MIS period"}</div>
+              <div className="v">{fmtCount(data.pulse.companies)}</div>
             </div>
             <div className="kpi">
-              <div className="k">Uncited figures</div>
-              <div className="v">{uncited == null ? EM : uncited}</div>
-              <div className="meta">Cite-or-refuse · shown values without provenance</div>
+              <div className="k">Open flags</div>
+              <div className="v">{fmtCount(data.pulse.openFlags)}</div>
+            </div>
+            <div className="kpi">
+              <div className="k">Needs look</div>
+              <div className="v">{fmtCount(needsLook)}</div>
+            </div>
+            <div className="kpi">
+              <div className="k">Last sync</div>
+              <div className="v" style={{ fontSize: lastSync ? 20 : 28 }}>
+                {lastSync ? relativeUpdated(lastSync) : EM}
+              </div>
             </div>
           </div>
 
-          <p className="lede" style={{ margin: "-8px 0 14px" }}>
-            {data.pulse.companies === 0
-              ? "Empty book — nothing for a human yet."
-              : data.pulse.inboxPending + data.pulse.openFlags + gaps === 0
-                ? "Current — no inbox and no open flags."
-                : `${data.pulse.inboxPending} to confirm · ${data.pulse.openFlags} open flags · ${gaps} coverage gaps.`}
-            {!data.pulse.nav.nav.complete
-              ? ` NAV incomplete — ${data.pulse.nav.nav.missing} values missing.`
-              : ""}
-          </p>
-          <div className="headline-strip">
-            <span className="chip unfact">
-              NAV {data.pulse.nav.nav.total == null ? EM : data.pulse.nav.nav.total.toLocaleString("en-IN")}
-              {!data.pulse.nav.nav.complete ? ` · incomplete · ${data.pulse.nav.nav.missing} unmarked` : ""}
-            </span>
-            <span className="chip unfact">MOIC {data.pulse.moic == null ? EM : `${data.pulse.moic.toFixed(2)}x`}</span>
-            <span className="chip unfact">Inbox {data.pulse.inboxPending}</span>
-            <span className="chip unfact">Funds {data.pulse.funds}</span>
-          </div>
-
-          <div className="command-split">
-            <Panel title="Needs a look">
+          <div className="command-home-grid">
+            <Panel title={`Needs a Look${needsLook > 0 ? ` · ${needsLook}` : ""}`}>
               {look.length === 0 ? (
                 <div className="empty" style={{ boxShadow: "none" }}>
                   {data.pulse.companies === 0
@@ -258,60 +189,61 @@ export default function CommandPage() {
                         <IconFlagSmall className="nav-ico look-ico" />
                       )}
                       <div>
-                        <Link className="look-title company-link" href={item.href}>
-                          {item.company}
-                        </Link>
+                        <Link className="look-title company-link" href={item.href}>{item.company}</Link>
                         <div className="look-copy">{item.copy}</div>
-                        <div className="look-chips">
-                          {item.lane === "obj" ? <span className="lane-chip obj">Objective</span> : null}
-                        </div>
+                        {item.cite ? (
+                          <div className="look-chips">
+                            <span className="cite">Cite</span>
+                          </div>
+                        ) : null}
                       </div>
-                      <Link className="cite" href={item.citeHref}>
-                        Open
-                      </Link>
                     </div>
                   ))}
                 </div>
               )}
             </Panel>
-            <Panel title="Coverage" flush>
-              {data.coverage.length === 0 ? (
+
+            <Panel title="Pipeline Activity" flush>
+              {pipeline.length === 0 ? (
                 <div className="panel-body">
-                  <div className="empty" style={{ boxShadow: "none" }}>
-                    No coverage rows.
-                  </div>
+                  <div className="empty" style={{ boxShadow: "none" }}>No companies on the book yet.</div>
                 </div>
               ) : (
                 <table>
                   <thead>
                     <tr>
                       <th>Company</th>
-                      <th>Last MIS</th>
-                      <th>Missing</th>
+                      <th>Stage</th>
+                      <th>Source</th>
+                      <th>Updated</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.coverage.map((r) => {
-                      const age = daysSince(r.lastMis);
-                      return (
-                        <tr key={r.company.id}>
-                          <td>
-                            <div className="company-cell">
-                              <CompanyMark name={r.company.name} />
-                              <Link className="company-link" href={`/companies/${r.company.id}`}>
-                                {r.company.name}
-                              </Link>
-                            </div>
-                          </td>
-                          <td className="num">{age == null ? EM : `${age}d`}</td>
-                          <td className={r.lastMis ? undefined : "miss"}>{r.lastMis ? EM : "MIS"}</td>
-                        </tr>
-                      );
-                    })}
+                    {pipeline.map((r) => (
+                      <tr key={r.company.id}>
+                        <td>
+                          <div className="company-cell">
+                            <CompanyMark name={r.company.name} />
+                            <Link className="company-link" href={`/companies/${r.company.id}`}>
+                              {r.company.name}
+                            </Link>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`stage-chip${r.pipelineStage === "REVIEWED" ? " reviewed" : ""}`}>
+                            {r.pipelineStage}
+                          </span>
+                        </td>
+                        <td className="lede" style={{ fontSize: 13 }}>Book</td>
+                        <td className="num">{r.updated}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               )}
             </Panel>
+
+            <AskOsPanel />
           </div>
 
           {data.pulse.companies === 0 && (
@@ -319,96 +251,12 @@ export default function CommandPage() {
               <strong>The book is empty</strong>
               {canWrite ? (
                 <>
-                  <Link href="/companies/new">Add a company</Link> and upload the first MIS — about 15 minutes to a live
-                  Command row. No illustrative NAV.
+                  <Link href="/companies/new">Add a company</Link> and upload the first MIS. No illustrative NAV.
                 </>
               ) : (
                 "Ask an Org Admin to add the first name."
               )}
             </div>
-          )}
-
-          {data.coverage.length > 0 && (
-            <Panel
-              title="Portfolio pulse"
-              actions={
-                <div className="row">
-                  <label className="sr-only" htmlFor="pulse-filter">
-                    Filter
-                  </label>
-                  <input
-                    id="pulse-filter"
-                    placeholder="Filter"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    style={{ width: 140 }}
-                  />
-                  <button className="btn ghost sm" type="button" onClick={exportPulse} disabled={pulseRows.length === 0}>
-                    Export
-                  </button>
-                </div>
-              }
-              flush
-            >
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Company</th>
-                      <th>Stage</th>
-                      <th>Own.</th>
-                      <th>Last MIS</th>
-                      <th>Cash</th>
-                      <th>Burn</th>
-                      <th>Runway</th>
-                      <th>Flags</th>
-                      <th>Coverage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pulseRows.map((r) => {
-                      const st = pulseStatus(r);
-                      return (
-                        <tr key={r.company.id}>
-                          <td>
-                            <div className="company-cell">
-                              <CompanyMark name={r.company.name} />
-                              <Link className="company-link" href={`/companies/${r.company.id}`}>
-                                {r.company.name}
-                              </Link>
-                            </div>
-                          </td>
-                          <td>{r.company.stage ? <span className="badge">{r.company.stage}</span> : EM}</td>
-                          <td className="num">{formatOwnership(r.ownershipPct)}</td>
-                          <td className="num">{r.lastMis ?? EM}</td>
-                          <td>
-                            <Fact
-                              {...r.cash}
-                              note={r.cash.fxNote}
-                              sourcePath={sourcePathFor(data.sourceRefs, r.cash.sourceRefId)}
-                            />
-                          </td>
-                          <td>
-                            <Fact
-                              {...r.burn}
-                              note={r.burn.fxNote}
-                              sourcePath={sourcePathFor(data.sourceRefs, r.burn.sourceRefId)}
-                            />
-                          </td>
-                          <td>
-                            <Fact {...r.runway} sourcePath={sourcePathFor(data.sourceRefs, r.runway.sourceRefId)} />
-                          </td>
-                          <td className="num">{r.openFlags}</td>
-                          <td>
-                            <span className={`status-chip ${st.kind}`}>{st.label}</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Panel>
           )}
         </>
       )}

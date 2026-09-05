@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
@@ -92,7 +93,14 @@ function SignupForm() {
   }
 
   return (
-    <AuthFrame tab="signup">
+    <AuthFrame
+      tab="signup"
+      footer={
+        <p className="auth-signup-link">
+          Already have an account? <Link href="/login">Sign in</Link>
+        </p>
+      }
+    >
       <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }}>
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
