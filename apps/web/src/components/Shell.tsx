@@ -223,6 +223,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             href={n.href}
             className={`grid size-10 place-items-center rounded-md transition-colors ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
             aria-current={active ? "page" : undefined}
+            aria-label={n.label}
           >
             <n.Icon className="size-[18px]" />
             <span className="sr-only">{n.label}</span>
@@ -243,7 +244,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="rail-foot">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link href="/settings" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted">
+              <Link href="/settings" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted" aria-label="Settings">
                 <Settings className="size-[18px]" />
               </Link>
             </TooltipTrigger>
@@ -323,7 +324,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <TooltipContent>Methodology</TooltipContent>
             </Tooltip>
             {canWrite ? (
-              <Button size="sm" asChild><Link href="/companies/new">Create</Link></Button>
+              <Button size="sm" asChild><Link href="/companies/new">Add company</Link></Button>
             ) : null}
           </div>
         </header>

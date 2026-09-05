@@ -1882,8 +1882,9 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   font-size: 12px;
   color: #a1a1aa;
 }
-.mkt-command-card {
-  position: relative;
+.mkt-command-card .mkt-frame-kpis {
+  grid-template-columns: 1fr 1fr;
+}
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);

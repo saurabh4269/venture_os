@@ -14,7 +14,7 @@ import { friendlyAuthError } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { PasswordInput } from "@/components/ui/password-input";
 
 function LoginForm() {
   const router = useRouter();
@@ -24,6 +24,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
     api<Me>("/api/me")
@@ -48,6 +49,7 @@ function LoginForm() {
       const me = await api<Me>("/api/me");
       const dest = destinationAfterAuth(me, next);
       if (!dest.ok) { setErr(dest.message); return; }
+      setDone(true);
       router.push(dest.to);
     } catch (ex) {
       setErr(friendlyAuthError(ex instanceof Error ? ex.message : "Could not sign in"));
@@ -59,56 +61,51 @@ function LoginForm() {
   return (
     <AuthFrame tab="signin">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <Card className="border-0 shadow-none">
-          <CardContent className="pt-0">
-            <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  type="email"
-                  autoComplete="username"
-                  placeholder="founder@startup.com"
-                  data-testid="login-email"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <span className="auth-forgot text-xs" title="Password reset by email is not connected">Forgot password?</span>
-                </div>
-                <Input
-                  id="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  autoComplete="current-password"
-                  minLength={MIN_PASSWORD_LENGTH}
-                  maxLength={MAX_PASSWORD_LENGTH}
-                  data-testid="login-password"
-                  required
-                />
-              </div>
-              {err && <div className="sev-high text-sm" role="alert">{err}</div>}
-              <Button type="submit" disabled={busy} className="w-full" data-testid="login-submit">
-                {busy ? "Signing in…" : "Sign In"}
-              </Button>
-              {params.get("id") ? (
-                <p className="lede text-sm"><Link href={`/invite?id=${params.get("id")}`}>Return to invite</Link></p>
-              ) : null}
-            </form>
-          </CardContent>
-          <CardFooter className="justify-center border-t pt-4">
-            <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account? <Link href="/signup" className="font-medium text-foreground">Sign up</Link>
-            </p>
-          </CardFooter>
-        </Card>
+        <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input
+              id="email"
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              autoComplete="username"
+              placeholder="you@firm.com"
+              data-testid="login-email"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="password">Password</Label>
+              <span className="text-muted-foreground text-xs" title="Password reset is not connected">
+                Ask your fund admin
+              </span>
+            </div>
+            <PasswordInput
+              id="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              minLength={MIN_PASSWORD_LENGTH}
+              maxLength={MAX_PASSWORD_LENGTH}
+              data-testid="login-password"
+              required
+            />
+          </div>
+          {err && <div className="sev-high text-sm" role="alert">{err}</div>}
+          <Button type="submit" disabled={busy || done} className="w-full" data-testid="login-submit">
+            {done ? "Signed in" : busy ? "Signing in…" : "Sign in"}
+          </Button>
+          {params.get("id") ? (
+            <p className="lede text-sm"><Link href={`/invite?id=${params.get("id")}`}>Return to invite</Link></p>
+          ) : null}
+        </form>
+        <p className="text-muted-foreground mt-6 text-center text-sm">
+          Don&apos;t have an account? <Link href="/signup" className="font-medium text-foreground">Sign up</Link>
+        </p>
       </motion.div>
     </AuthFrame>
   );

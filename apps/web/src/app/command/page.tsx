@@ -131,6 +131,8 @@ export default function CommandPage() {
 
   const needsLook = look.length;
   const loading = !data && !err;
+  const emptyBook = data?.pulse.companies === 0;
+  const inboxPending = data?.pulse.inboxPending ?? 0;
 
   return (
     <Shell>
@@ -154,19 +156,46 @@ export default function CommandPage() {
         <KpiCard label="Last sync" value={data ? (lastSync ? relativeUpdated(lastSync) : EM) : EM} loading={loading} />
       </div>
 
-      {data && (
+      {!loading && (
         <div className="command-home-grid">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="font-serif text-lg">
-                Needs a Look{needsLook > 0 ? ` · ${needsLook}` : ""}
-              </CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="font-serif text-lg">
+                  Needs a look{needsLook > 0 ? ` · ${needsLook}` : ""}
+                </CardTitle>
+                {inboxPending > 0 ? (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/inbox">Inbox · {inboxPending}</Link>
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/inbox">Open Inbox</Link>
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {look.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  {data.pulse.companies === 0 ? "Empty book — nothing yet needs a look." : "No pending inbox rows or open flags."}
-                </p>
+                <div className="text-muted-foreground space-y-2 text-sm">
+                  {emptyBook ? (
+                    <>
+                      <p>Empty book — nothing yet needs a look.</p>
+                      {canWrite ? (
+                        <p>
+                          <Link href="/companies/new" className="text-foreground underline">Add a company</Link>
+                          {" "}or check{" "}
+                          <Link href="/inbox" className="text-foreground underline">Inbox</Link>
+                          {" "}when MIS arrives.
+                        </p>
+                      ) : (
+                        <p>Ask an Org Admin to add the first company, or check <Link href="/inbox" className="text-foreground underline">Inbox</Link>.</p>
+                      )}
+                    </>
+                  ) : (
+                    <p>No pending inbox rows or open flags. Check <Link href="/inbox" className="text-foreground underline">Inbox</Link> after uploads.</p>
+                  )}
+                </div>
               ) : (
                 <ScrollArea className="max-h-80">
                   <div className="look-list">
@@ -188,11 +217,16 @@ export default function CommandPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="font-serif text-lg">Pipeline Activity</CardTitle>
+              <CardTitle className="font-serif text-lg">Pipeline activity</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {pipeline.length === 0 ? (
-                <p className="text-muted-foreground p-4 text-sm">No companies on the book yet.</p>
+                <div className="text-muted-foreground space-y-2 p-4 text-sm">
+                  <p>No companies on the book yet.</p>
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground/80">
+                    SOURCE → PROPOSED → REVIEWED → BOOK → ANALYSIS
+                  </p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -229,7 +263,7 @@ export default function CommandPage() {
         </div>
       )}
 
-      {data?.pulse.companies === 0 && (
+      {emptyBook && !loading && (
         <Card className="mt-4">
           <CardContent className="py-8 text-center">
             <strong className="font-serif text-lg">The book is empty</strong>
