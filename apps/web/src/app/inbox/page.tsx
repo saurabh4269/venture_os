@@ -209,7 +209,7 @@ export default function InboxPage() {
         <div className="empty">
           {kindFilter === "mentions"
             ? "Mentions need a connected source. Try another filter."
-            : "No rows in this filter."}
+            : "Try another filter."}
         </div>
       ) : (
         <div className="triage">

@@ -223,7 +223,7 @@ export default function NewCompanyPage() {
             First file (MIS / board pack)
             <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" data-testid="mis-file" />
           </label>
-          <div className="row" style={{ marginTop: 12 }}>
+          <div className="upload-actions">
             <button className="btn" type="submit" disabled={busy} data-testid="mis-upload">
               {busy ? "Uploading…" : "Upload and extract"}
             </button>

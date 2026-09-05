@@ -9,7 +9,6 @@ import { IconFlagSmall, IconWarn } from "@/components/Icons";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -150,9 +149,9 @@ export default function CommandPage() {
           <p className="lede">Your portfolio at a glance — what needs attention today.</p>
         </div>
         <div className="page-actions">
-          <Button variant="outline" size="sm" type="button" onClick={load} disabled={busy}>
+          <button className="btn ghost sm" type="button" onClick={load} disabled={busy}>
             {busy ? "Refreshing…" : "Refresh"}
-          </Button>
+          </button>
         </div>
       </header>
       {err && <p className="sev-high" role="alert">{err}</p>}
@@ -173,13 +172,9 @@ export default function CommandPage() {
                   Needs a look{needsLook > 0 ? ` · ${needsLook}` : ""}
                 </CardTitle>
                 {inboxPending > 0 ? (
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/inbox">Inbox · {inboxPending}</Link>
-                  </Button>
+                  <Link href="/inbox" className="btn ghost sm">Inbox · {inboxPending}</Link>
                 ) : (
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href="/inbox">Open Inbox</Link>
-                  </Button>
+                  <Link href="/inbox" className="btn ghost sm">Open Inbox</Link>
                 )}
               </div>
             </CardHeader>
@@ -231,9 +226,6 @@ export default function CommandPage() {
               {pipeline.length === 0 ? (
                 <div className="text-muted-foreground space-y-2 p-4 text-sm">
                   <p>Ready to add your first company.</p>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground/80">
-                    SOURCE → PROPOSED → REVIEWED → BOOK → ANALYSIS
-                  </p>
                 </div>
               ) : (
                 <Table>
