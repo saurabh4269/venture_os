@@ -1,7 +1,17 @@
 /** Session GETs must not be stored as a public anonymous snapshot. */
 export const BFF_CACHE_CONTROL = "private, no-store";
 
-const DROP = new Set(["transfer-encoding", "content-encoding", "set-cookie"]);
+/**
+ * Hop-by-hop + length/encoding. Node `fetch` decompresses upstream gzip;
+ * forwarding the compressed `content-length` makes the browser stop mid-JSON
+ * (`Unterminated string in JSON at position N`).
+ */
+const DROP = new Set([
+  "transfer-encoding",
+  "content-encoding",
+  "content-length",
+  "set-cookie",
+]);
 const DROP_CACHE = new Set(["cache-control", "etag", "expires", "age", "pragma"]);
 
 export function stripCookieDomain(cookie: string): string {

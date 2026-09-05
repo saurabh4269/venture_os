@@ -339,6 +339,23 @@ describe.skipIf(!url)("hardening 23–30 HTTP", () => {
     const body = await json<{ refused: boolean; answer: string }>(asked);
     expect(body.refused).toBe(true);
     expect(body.answer).toMatch(/will not guess/i);
+
+    const hist = await app.request("/api/ask/history", { headers: { cookie: adminCookie } });
+    expect(hist.status).toBe(200);
+    expect(hist.headers.get("content-type")).toMatch(/json/);
+    const listed = await json<{ queries: { question: string; refused: boolean }[] }>(hist);
+    expect(listed.queries.some((q) => q.refused && /888/.test(q.question))).toBe(true);
+
+    const getAsk = await app.request("/api/ask", { headers: { cookie: adminCookie } });
+    expect(getAsk.status).toBe(200);
+    expect((await json<{ queries: unknown[] }>(getAsk)).queries.length).toBeGreaterThan(0);
+  });
+
+  it("unknown API paths return JSON 404, not text/plain", async () => {
+    const res = await app.request("/api/does-not-exist", { headers: { cookie: adminCookie } });
+    expect(res.status).toBe(404);
+    expect(res.headers.get("content-type")).toMatch(/json/);
+    expect(await json<{ error: string }>(res)).toEqual({ error: "not_found" });
   });
 
   it("rejects invite decline from the wrong account", async () => {

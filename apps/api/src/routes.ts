@@ -1578,6 +1578,29 @@ routes.post("/api/ask", async (c) => {
   return c.json(payload);
 });
 
+async function listAskHistory(orgId: string) {
+  const rows = await withOrg(orgId, (tx) =>
+    tx.select().from(askQueries).orderBy(desc(askQueries.createdAt)).limit(20),
+  );
+  return {
+    queries: rows.map((r) => ({
+      id: r.id,
+      question: r.question,
+      refused: r.refused,
+      createdAt: r.createdAt,
+    })),
+  };
+}
+
+routes.get("/api/ask", async (c) => {
+  const s = requireOrg(c);
+  return c.json(await listAskHistory(s.orgId));
+});
+routes.get("/api/ask/history", async (c) => {
+  const s = requireOrg(c);
+  return c.json(await listAskHistory(s.orgId));
+});
+
 routes.get("/api/reports", async (c) => {
   const s = requireOrg(c);
   const rows = await withOrg(s.orgId, (tx) => tx.select().from(reports).orderBy(desc(reports.createdAt)));

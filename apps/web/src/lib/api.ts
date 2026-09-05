@@ -5,6 +5,41 @@ export function apiUrl(path: string) {
   return `${API}${path}`;
 }
 
+export const TRUNCATED_JSON_MESSAGE =
+  "The book returned a truncated response. Refresh and try again.";
+export const INVALID_JSON_MESSAGE =
+  "The book returned a response that was not valid JSON. Refresh and try again.";
+
+/** Parse a response body without throwing raw JSON.parse SyntaxError. */
+export function parseJsonSafe(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    const truncated = /unterminated string|unexpected end of json|unexpected end of input/i.test(msg);
+    throw new Error(truncated ? TRUNCATED_JSON_MESSAGE : INVALID_JSON_MESSAGE);
+  }
+}
+
+async function readJson(res: Response): Promise<unknown> {
+  const text = await res.text();
+  if (!text) return undefined;
+  const ct = res.headers.get("content-type") ?? "";
+  if (ct.includes("application/json") || /^[\[{]/.test(text.trim())) {
+    return parseJsonSafe(text);
+  }
+  return undefined;
+}
+
+function errorMessage(data: unknown, fallback: string): string {
+  if (data && typeof data === "object") {
+    const rec = data as { error?: unknown; message?: unknown };
+    if (typeof rec.error === "string" && rec.error) return rec.error;
+    if (typeof rec.message === "string" && rec.message) return rec.message;
+  }
+  return fallback;
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body && !(init.body instanceof FormData) && !headers.has("content-type")) {
@@ -16,17 +51,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     cache: init?.cache ?? "no-store",
     headers,
   });
+  const data = await readJson(res);
   if (!res.ok) {
-    let msg = res.statusText;
-    try {
-      const j = (await res.json()) as { error?: string };
-      if (j.error) msg = j.error;
-    } catch {
-      /* ignore */
-    }
-    throw new Error(msg);
+    throw new Error(errorMessage(data, res.statusText || "Request failed"));
   }
-  if (res.headers.get("content-type")?.includes("application/json")) return res.json() as Promise<T>;
+  if (data !== undefined) return data as T;
   return undefined as T;
 }
 
@@ -45,10 +74,10 @@ export async function downloadAuthed(path: string, filename?: string) {
   if (!res.ok) {
     let msg = res.statusText;
     try {
-      const j = (await res.json()) as { error?: string };
-      if (j.error) msg = j.error;
-    } catch {
-      /* ignore */
+      const data = await readJson(res);
+      msg = errorMessage(data, msg);
+    } catch (err) {
+      if (err instanceof Error && err.message) msg = err.message;
     }
     throw new Error(msg);
   }

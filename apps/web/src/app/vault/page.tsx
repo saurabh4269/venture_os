@@ -16,14 +16,22 @@ type Doc = {
 
 export default function VaultPage() {
   const [docs, setDocs] = useState<Doc[]>([]);
+  const [err, setErr] = useState("");
   useEffect(() => {
-    api<{ documents: Doc[] }>("/api/documents").then((r) => setDocs(r.documents));
+    api<{ documents: Doc[] }>("/api/documents")
+      .then((r) => setDocs(r.documents ?? []))
+      .catch((e: Error) => setErr(e.message));
   }, []);
 
   return (
     <Shell>
       <h1>Vault</h1>
       <p className="lede">Company vault — MIS, board packs, transcripts. Firm library is thin. LP room is Phase 2.</p>
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
       {docs.length === 0 ? (
         <div className="empty">No documents. Open a company and upload.</div>
       ) : (

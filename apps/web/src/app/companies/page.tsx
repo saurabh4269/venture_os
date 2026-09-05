@@ -9,8 +9,11 @@ export default function CompaniesPage() {
   const { canWrite } = useBookSession();
   const [rows, setRows] = useState<{ id: string; name: string; stage: string | null; sector: string | null; country: string | null }[]>([]);
 
+  const [err, setErr] = useState("");
   useEffect(() => {
-    api<{ companies: typeof rows }>("/api/companies").then((r) => setRows(r.companies));
+    api<{ companies: typeof rows }>("/api/companies")
+      .then((r) => setRows(r.companies ?? []))
+      .catch((e: Error) => setErr(e.message));
   }, []);
 
   return (
@@ -26,6 +29,11 @@ export default function CompaniesPage() {
           </Link>
         )}
       </div>
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
       {rows.length === 0 ? (
         <div className="empty" style={{ marginTop: 20 }}>
           Empty book. {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."} (15-minute path).

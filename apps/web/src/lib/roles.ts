@@ -93,5 +93,11 @@ export function friendlyAuthError(raw: string): string {
   if (t.includes("select_or_create_an_org")) {
     return "Create or join an organisation to open the book.";
   }
+  if (t.includes("truncated response") || t.includes("unterminated string")) {
+    return "The book returned a truncated response. Refresh and try again.";
+  }
+  if (t.includes("upstream_unavailable")) {
+    return "The book API is unreachable. Try again in a moment.";
+  }
   return raw;
 }

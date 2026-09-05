@@ -18,8 +18,15 @@ export default function AskPage() {
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState("");
 
+  const [history, setHistory] = useState<{ question: string; refused: boolean; createdAt?: string }[]>([]);
+
   useEffect(() => {
-    api<{ companies: { id: string; name: string }[] }>("/api/companies").then((r) => setCos(r.companies));
+    api<{ companies: { id: string; name: string }[] }>("/api/companies")
+      .then((r) => setCos(r.companies ?? []))
+      .catch(() => setCos([]));
+    api<{ queries: { question: string; refused: boolean; createdAt?: string }[] }>("/api/ask/history")
+      .then((r) => setHistory(r.queries ?? []))
+      .catch(() => setHistory([]));
     const fromUrl = new URLSearchParams(window.location.search).get("companyId");
     if (fromUrl) setCompanyId(fromUrl);
   }, []);
@@ -82,6 +89,19 @@ export default function AskPage() {
         <p className="sev-high" role="alert">
           {err}
         </p>
+      )}
+      {!res && history.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Recent</h3>
+          <ul>
+            {history.slice(0, 8).map((h, i) => (
+              <li key={`${h.question}-${i}`}>
+                {h.question}
+                {h.refused ? " · refused" : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {res && (
         <div style={{ marginTop: 20 }}>
