@@ -35,6 +35,7 @@ test.describe("@smoke mobile chrome", () => {
     await page.getByTestId("signup-org").fill(`Mobile ${stamp}`);
     await page.getByTestId("signup-submit").click();
     await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("aside.rail")).toBeHidden();
 
     await page.getByTestId("mobile-nav-open").click();
     const nav = page.getByTestId("mobile-nav");

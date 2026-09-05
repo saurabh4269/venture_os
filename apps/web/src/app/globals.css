@@ -289,6 +289,11 @@ button { cursor: pointer; }
   border-top: 1px solid var(--rule);
   width: 100%;
   flex-shrink: 0;
+  margin-top: 4px;
+}
+.rail-expanded .rail-foot {
+  padding-top: 10px;
+  margin-top: 8px;
 }
 .rail:not(.rail-expanded) .rail-foot {
   align-items: center;
@@ -2230,6 +2235,16 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .topbar-search { display: none; }
   .topbar-title { display: inline; font-size: 15px; }
   .app { grid-template-columns: 1fr; }
+  .app > .rail {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    pointer-events: none !important;
+  }
   .main { padding: 16px 16px 32px; }
   .topbar { padding: 10px 12px; gap: 8px; }
   .topbar-actions .btn { font-size: 13px; padding: 0 12px; }
@@ -2255,6 +2270,13 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
 .mobile-sheet-head {
   padding: 20px 20px 12px;
   border-bottom: 1px solid var(--rule);
+  padding-right: 56px;
+}
+.mobile-sheet [data-slot="sheet-close"] {
+  width: 44px;
+  height: 44px;
+  top: 10px;
+  right: 10px;
 }
 .mobile-sheet-org {
   margin: 4px 0 0;
