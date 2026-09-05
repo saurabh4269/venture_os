@@ -382,6 +382,11 @@ button { cursor: pointer; }
   font-size: 13px;
   white-space: nowrap;
 }
+.topbar-add-short { display: none; }
+@media (max-width: 767px) {
+  .topbar-add-full { display: none; }
+  .topbar-add-short { display: inline; }
+}
 .upload-actions {
   display: flex;
   flex-wrap: wrap;

@@ -31,7 +31,7 @@ test.describe("workflow polish", () => {
       await page.goto(path);
       await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 30_000 });
       await expect(page.getByTestId(ready).first()).toBeVisible({ timeout: 15_000 });
-      await expect(page.locator(".topbar-actions a.btn")).toHaveText("Add company");
+      await expect(page.getByRole("link", { name: "Add company" })).toBeVisible();
       await page.screenshot({ path: `test-results/polish-desktop-${path.replace(/\//g, "_")}.png`, fullPage: true });
     }
 
@@ -62,7 +62,7 @@ test.describe("workflow polish", () => {
     await page.getByTestId("signup-confirm").fill("password12345");
     await page.getByTestId("signup-org").fill(`MPolish ${stamp}`);
     await page.getByTestId("signup-submit").click();
-    await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("command-ready")).toBeVisible({ timeout: 90_000 });
     await expect(page.locator("aside.rail")).toBeHidden();
 
     for (const path of ["/flags", "/ask", "/compare", "/reports", "/nav", "/vault", "/settings"]) {
