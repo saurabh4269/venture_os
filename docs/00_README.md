@@ -102,6 +102,7 @@ Do **not** add a second kebab-case product/architecture/brief tree. Extra notes 
 
 | File | Role |
 | --- | --- |
+| [`design/FRONTEND_DESIGNER_HANDOFF.md`](design/FRONTEND_DESIGNER_HANDOFF.md) | UI designer brief (not SoT — cites numbered docs; live preview linked) |
 | [`cost-hosting.md`](cost-hosting.md) | Free-tier then Azure bands (no secrets) |
 | [`research/notes.md`](research/notes.md) | Parser / Better Auth / FTS research |
 | [`improvements/`](improvements/) | Dated QA notes |
