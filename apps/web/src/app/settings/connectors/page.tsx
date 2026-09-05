@@ -271,14 +271,14 @@ function ConnectorCards() {
                 <div className="conn-mark" aria-hidden>
                   {connectorLabel(kind).slice(0, 1)}
                 </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="connector-card-body">
                   <div className="row connector-card-head">
                     <strong>{connectorLabel(kind)}</strong>
                     <span className={`badge badge-${status}`} data-testid={`connector-status-${kind}`}>
                       {status === "connected" ? "● Connected" : statusLabel(status)}
                     </span>
                   </div>
-                  <div className="row connector-card-meta" style={{ marginTop: 6 }}>
+                  <div className="row connector-card-meta">
                     {row?.usingEnvFallback && <span className="lede">env default</span>}
                     {row?.hasCredentials ? (
                       <span className="lede" data-testid={`connector-hint-${kind}`}>
@@ -293,7 +293,7 @@ function ConnectorCards() {
                   </div>
                 </div>
               </div>
-              <p className="lede" style={{ marginTop: 8 }}>
+              <p className="lede connector-card-help">
                 {help[kind]}
               </p>
               {row?.lastError && (
@@ -308,7 +308,6 @@ function ConnectorCards() {
               {isAdmin ? (
                 <form
                   className="field connector-form"
-                  style={{ marginTop: 10 }}
                   onSubmit={(e) => {
                     e.preventDefault();
                     save(kind);
@@ -478,15 +477,13 @@ function ConnectorCards() {
         <Link href="/companies">company</Link>. Then sync pulls into the same parse / inbox path as upload.
       </p>
       <Panel title="Vault architecture & permissions" className="vault-card-panel">
-        <div className="vault-card" style={{ marginTop: 0 }}>
+        <div className="vault-card vault-card--flat">
           <div className="vault-ico" aria-hidden>
             <IconLock />
           </div>
-          <div>
-            <p style={{ margin: "0 0 8px" }}>
-              Connector keys are encrypted at rest. Only Org Admins can add or rotate them.
-            </p>
-            <p className="lede" style={{ margin: 0 }}>
+          <div className="vault-card-copy">
+            <p>Connector keys are encrypted at rest. Only Org Admins can add or rotate them.</p>
+            <p className="lede">
               Connected status appears after a successful health check. Upload in the Vault works anytime.
             </p>
           </div>

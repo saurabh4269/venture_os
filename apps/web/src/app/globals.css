@@ -1169,6 +1169,10 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .settings-cta-row { margin: 12px 0 0; }
 .settings-audit-title { margin: 14px 0 8px; font-size: 15px; }
 .settings-form-row { align-items: flex-end; }
+.settings-form-row .field { flex: 1 1 180px; min-width: 0; }
+.settings-form-row .field input,
+.settings-form-row .field select { min-height: 36px; }
+.settings-invite-form .settings-invite-btn { align-self: flex-end; }
 .table-scroll--compact table { min-width: 560px; }
 .companies-table table { min-width: 420px; }
 .companies-toolbar .look-search { flex: 1; }
@@ -1176,13 +1180,18 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .connectors-intro code { word-break: break-word; }
 .connectors-foot { margin-top: 16px; }
 .connector-card { padding: 16px; }
+.connector-card-body { min-width: 0; flex: 1; }
 .connector-card-head { flex-wrap: wrap; gap: 8px; align-items: center; }
-.connector-card-meta { flex-wrap: wrap; gap: 6px 12px; }
-.connector-form { gap: 10px; }
+.connector-card-meta { flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; }
+.connector-card-help { margin-top: 8px; }
+.connector-form { gap: 10px; margin-top: 10px; }
 .connector-form .field input,
 .connector-form .field select { min-height: 44px; }
 .connector-actions { gap: 10px; flex-wrap: wrap; }
 .connector-actions .btn { min-height: 36px; }
+.vault-card--flat { margin-top: 0; }
+.vault-card-copy p { margin: 0 0 8px; }
+.vault-card-copy .lede { margin: 0; }
 .compare-pickers { margin: 12px 0; flex-wrap: wrap; }
 .compare-toolbar { margin-bottom: 14px; }
 .compare-section-label { margin: 12px 0 6px; }
@@ -2614,6 +2623,9 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .settings-form-row .field,
   .settings-form-row input,
   .settings-form-row select { width: 100%; }
+  .settings-form-row .field input,
+  .settings-form-row .field select { min-height: 44px; }
+  .settings-invite-form .settings-invite-btn { align-self: stretch; }
   .settings-form-row .btn { width: 100%; justify-content: center; }
   .connector-actions { flex-direction: column; align-items: stretch; }
   .connector-actions .btn { width: 100%; justify-content: center; min-height: 44px; }

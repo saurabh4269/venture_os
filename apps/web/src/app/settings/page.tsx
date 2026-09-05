@@ -202,8 +202,7 @@ export default function SettingsPage() {
       </p>
       </Panel>
 
-      <Panel title="People" flush>
-      <div id="people" />
+      <Panel title="People" flush id="people">
       {members.length === 0 ? (
         <div className="empty">Members will appear here once invites are accepted.</div>
       ) : (
@@ -272,34 +271,34 @@ export default function SettingsPage() {
         Invite teammates by role. Copy the accept link and send it by email.
       </p>
       {isAdmin ? (
-      <form onSubmit={inviteMember} className="row settings-form-row">
-        <label className="sr-only" htmlFor="invite-email">
-          Invite email
+      <form onSubmit={inviteMember} className="row settings-form-row settings-invite-form">
+        <label className="field" htmlFor="invite-email">
+          Email
+          <input
+            id="invite-email"
+            type="email"
+            data-testid="invite-email"
+            value={invite.email}
+            onChange={(e) => setInvite({ ...invite, email: e.target.value })}
+            placeholder="analyst@firm"
+            autoComplete="off"
+            required
+          />
         </label>
-        <input
-          id="invite-email"
-          type="email"
-          data-testid="invite-email"
-          value={invite.email}
-          onChange={(e) => setInvite({ ...invite, email: e.target.value })}
-          placeholder="analyst@firm"
-          autoComplete="off"
-          required
-        />
-        <label className="sr-only" htmlFor="invite-role">
+        <label className="field" htmlFor="invite-role">
           Role
+          <select
+            id="invite-role"
+            value={invite.role}
+            onChange={(e) => setInvite({ ...invite, role: e.target.value })}
+          >
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
+            ))}
+          </select>
         </label>
-        <select
-          id="invite-role"
-          value={invite.role}
-          onChange={(e) => setInvite({ ...invite, role: e.target.value })}
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABEL[r]}
-            </option>
-          ))}
-        </select>
         <button className="btn sm settings-invite-btn" type="submit" disabled={busy} data-testid="invite-submit">
           {busy ? "Creating…" : "Create invite"}
         </button>
@@ -389,7 +388,7 @@ export default function SettingsPage() {
       </table>
       </div>
       <p className="settings-cta-row">
-        <Link className="btn sm" href="/settings/connectors">
+        <Link className="btn sm" href="/settings/connectors" data-testid="settings-connectors-cta">
           Open connector settings
         </Link>
       </p>
