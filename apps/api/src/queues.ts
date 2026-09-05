@@ -16,6 +16,8 @@ function connection() {
 let parseQueue: Queue | null = null;
 let flagsQueue: Queue | null = null;
 let reportQueue: Queue | null = null;
+let connectorSyncQueue: Queue | null = null;
+let connectorHealthQueue: Queue | null = null;
 
 export function getParseQueue() {
   if (!parseQueue) parseQueue = new Queue("parse", { connection: connection() });
@@ -28,6 +30,14 @@ export function getFlagsQueue() {
 export function getReportQueue() {
   if (!reportQueue) reportQueue = new Queue("report", { connection: connection() });
   return reportQueue;
+}
+export function getConnectorSyncQueue() {
+  if (!connectorSyncQueue) connectorSyncQueue = new Queue("connector.sync", { connection: connection() });
+  return connectorSyncQueue;
+}
+export function getConnectorHealthQueue() {
+  if (!connectorHealthQueue) connectorHealthQueue = new Queue("connector.health", { connection: connection() });
+  return connectorHealthQueue;
 }
 
 async function withRedisTimeout<T>(work: Promise<T>, ms = 1500): Promise<T> {
@@ -57,6 +67,29 @@ export async function enqueueFlags(orgId: string, companyId?: string) {
   } catch {
     const { runFlagJob } = await import("@venture-os/db");
     await runFlagJob(orgId, companyId);
+  }
+}
+
+export async function enqueueConnectorSync(orgId: string, kind: string, companyId?: string) {
+  try {
+    await withRedisTimeout(getConnectorSyncQueue().add("sync", { orgId, kind, companyId }));
+    return "queued";
+  } catch (err) {
+    log("warn", "redis_unavailable_inline_connector_sync", { err: String(err) });
+    const { runConnectorSync } = await import("@venture-os/db");
+    await runConnectorSync(orgId, kind as "onedrive" | "affinity" | "granola", { companyId });
+    return "inline";
+  }
+}
+
+export async function enqueueConnectorHealth(orgId: string, kind: string) {
+  try {
+    await withRedisTimeout(getConnectorHealthQueue().add("health", { orgId, kind }));
+    return "queued";
+  } catch {
+    const { runConnectorHealth } = await import("@venture-os/db");
+    await runConnectorHealth(orgId, kind as "onedrive" | "affinity" | "granola");
+    return "inline";
   }
 }
 

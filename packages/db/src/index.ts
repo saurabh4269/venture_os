@@ -6,3 +6,4 @@ export * from "./ingest.js";
 export * from "./flags-job.js";
 export * from "./report-job.js";
 export * from "./ensure.js";
+export * from "./connector-jobs.js";

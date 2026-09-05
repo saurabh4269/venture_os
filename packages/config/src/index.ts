@@ -63,6 +63,13 @@ const Env = z.object({
   SEED_DEMO: z.string().optional().default("0"),
   SEED_DEMO_EMAIL: z.string().default("analyst@fixture.local"),
   SEED_DEMO_PASSWORD: z.string().default("fixture-only-password"),
+  /** Optional dedicated seal key. Falls back to BETTER_AUTH_SECRET. Never commit a live value. */
+  CONNECTOR_SEAL_SECRET: z.string().optional().default(""),
+  MICROSOFT_CLIENT_ID: z.string().optional().default(""),
+  MICROSOFT_CLIENT_SECRET: z.string().optional().default(""),
+  MICROSOFT_TENANT_ID: z.string().optional().default(""),
+  AFFINITY_API_KEY: z.string().optional().default(""),
+  GRANOLA_API_KEY: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof Env>;

@@ -1,6 +1,6 @@
 import { Queue, Worker } from "bullmq";
 import { loadEnv } from "@venture-os/config";
-import { runFlagJob, runParseJob, runReportJob } from "@venture-os/db";
+import { listConnectedOrgs, runConnectorHealth, runConnectorSync, runFlagJob, runParseJob, runReportJob } from "@venture-os/db";
 
 const env = loadEnv();
 const connection = () => {
@@ -74,7 +74,56 @@ async function start() {
     { connection: connection() },
   );
 
-  for (const w of [hello, parse, flags, report, nav]) {
+  const connectorSync = new Worker(
+    "connector.sync",
+    async (job) => {
+      log("connector_sync_start", { jobId: job.id, ...job.data });
+      const r = await runConnectorSync(job.data.orgId, job.data.kind, { companyId: job.data.companyId });
+      log("connector_sync_done", { jobId: job.id, ...r });
+      return r;
+    },
+    { connection: connection() },
+  );
+
+  const connectorHealth = new Worker(
+    "connector.health",
+    async (job) => {
+      log("connector_health_start", { jobId: job.id, ...job.data });
+      const r = await runConnectorHealth(job.data.orgId, job.data.kind);
+      log("connector_health_done", { jobId: job.id, ...r });
+      return r;
+    },
+    { connection: connection() },
+  );
+
+  const connectorSchedule = new Worker(
+    "connector.schedule",
+    async (job) => {
+      const connected = await listConnectedOrgs();
+      if (!connected.length) {
+        log("connector_schedule_noop", { jobId: job.id, reason: "no_connected_connectors" });
+        return { ok: true, noop: true, connected: 0 };
+      }
+      const syncQ = new Queue("connector.sync", { connection: connection() });
+      for (const row of connected) {
+        await syncQ.add("sync", { orgId: row.orgId, kind: row.kind });
+      }
+      await syncQ.close();
+      log("connector_schedule_enqueued", { jobId: job.id, n: connected.length });
+      return { ok: true, connected: connected.length };
+    },
+    { connection: connection() },
+  );
+
+  try {
+    const sched = new Queue("connector.schedule", { connection: connection() });
+    await sched.add("tick", { poll: true }, { repeat: { every: 15 * 60 * 1000 }, jobId: "connector-poll" });
+    await sched.close();
+  } catch (err) {
+    log("connector_schedule_repeat_failed", { err: String(err) });
+  }
+
+  for (const w of [hello, parse, flags, report, nav, connectorSync, connectorHealth, connectorSchedule]) {
     w.on("failed", (job, err) => {
       console.error(
         JSON.stringify({
@@ -89,7 +138,9 @@ async function start() {
     });
   }
 
-  log("worker_listen", { queues: ["hello", "parse", "flags", "report", "nav"] });
+  log("worker_listen", {
+    queues: ["hello", "parse", "flags", "report", "nav", "connector.sync", "connector.health", "connector.schedule"],
+  });
 }
 
 start();

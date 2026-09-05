@@ -2,7 +2,7 @@
 
 **Status:** Locked delivery order  
 **Pack date:** 2026-09-05 (Asia/Calcutta)  
-**Implementation:** Phases 0–4 largely shipped in this repo; Phase 5 connectors remain stubs. Tick boxes in the same PR as behaviour — do not rewrite the plan.  
+**Implementation:** Phases 0–4 largely shipped in this repo; Phase 5 connector **infra** shipped (Pass 42) — live vendor calls wait on operator secrets. Tick boxes in the same PR as behaviour — do not rewrite the plan.  
 **Rule:** Port UX patterns from the demo; **do not** port the demo data plane (corpus-JSON, ephemeral inbox, OpenAI-coupled Luna, serverless-heavy parse).
 
 Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`). Architecture: `03_ARCHITECTURE.md`. Invariants: `05_DATA_MODEL.md`.
@@ -171,10 +171,10 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 ### Acceptance criteria
 
 - [ ] Connected OneDrive folder yields inbox items without manual re-key of file bytes.
-- [ ] Disconnect / not-connected states honest (no fake success).
+- [x] Disconnect / not-connected states honest (no fake success). *(Pass 42: status machine + wipe on disconnect)*
 - [x] New company path measured: create → map → first structured output ≤15 minutes on happy path. *(upload fallback; connector map waits on OAuth)*
-- [ ] Granola-linked subjective text never written into objective metric cells.
-- [ ] Affinity sync does not invent CRM fields not in stub/docs.
+- [x] Granola-linked subjective text never written into objective metric cells. *(Pass 42: transcript + commentary lane only)*
+- [x] Affinity sync does not invent CRM fields not in stub/docs. *(Pass 42: verified v2 map + optional field id)*
 
 ---
 

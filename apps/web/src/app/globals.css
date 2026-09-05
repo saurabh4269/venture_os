@@ -170,6 +170,21 @@ button.chip {
 .auth { max-width: 420px; margin: 12vh auto; }
 .auth h1 { font-size: 34px; margin: 0 0 8px; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.connector-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.connector-card .v { font-size: 18px; }
+.badge {
+  display: inline-block;
+  border: 1px solid var(--rule);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.badge-not_connected { color: var(--muted); }
+.badge-configured { color: var(--warn); border-color: #e0c888; }
+.badge-connected { color: var(--forest); background: var(--forest-soft); }
+.badge-error { color: var(--danger); }
 @media (max-width: 960px) {
   .app { grid-template-columns: 1fr; }
   .rail { border-right: 0; border-bottom: 1px solid var(--rule); }
@@ -178,6 +193,7 @@ button.chip {
   .rail .nav.is-open { display: block; }
   .cards { grid-template-columns: 1fr 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
+  .connector-grid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

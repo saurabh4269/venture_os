@@ -10,7 +10,7 @@ import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 
 type Settings = {
   settings: { fyStartMonth: number; baseCurrency: string; displayCurrency: string } | null;
-  connectors: { kind: string; status: string }[];
+  connectors: { kind: string; status: string; lastError?: string | null; lastSyncAt?: string }[];
   flagPolicy?: {
     key: string;
     label: string;
@@ -139,8 +139,8 @@ export default function SettingsPage() {
     <Shell>
       <h1>Settings</h1>
       <p className="lede">
-        FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Primary ingest path is
-        Microsoft OneDrive (not connected) — use the company vault until OAuth exists.
+        FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Paste connector keys on
+        Settings → Connectors; vault upload remains the fallback until a health check succeeds.
       </p>
 
       {data?.settings && !isAdmin && (
@@ -185,8 +185,8 @@ export default function SettingsPage() {
       )}
       <h2>Mapping</h2>
       <p className="lede">
-        Firm metric dictionary and company mapping profiles are stubs. We will not invent OneDrive folder IDs or
-        Affinity field names. Unit/currency hints live on each company profile.
+        Firm metric dictionary is still a stub. Company OneDrive / Affinity / Granola ids are real optional fields on
+        the company page — paste vendor values only. Unit/currency hints live on each company profile.
       </p>
 
       <h2>People</h2>
@@ -330,38 +330,35 @@ export default function SettingsPage() {
 
       <h2>Connectors</h2>
       <p className="lede" id="connector-honest">
-        Primary path: Microsoft OneDrive (not connected) → use{" "}
-        <Link href="/vault">Vault upload</Link>. Subjective auto-draft waits on Granola. Ownership edits stay manual
-        until Affinity connects. We will not show a last-sync time. Domain auto-join and SMTP are not connected.
+        Paste keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a successful
+        test. Last-sync is shown only after a real sync. Upload remains the fallback:{" "}
+        <Link href="/vault">Vault</Link>. Domain auto-join and SMTP are not connected.
       </p>
       <table>
         <thead>
           <tr>
             <th>System</th>
             <th>Status</th>
-            <th></th>
+            <th>Last sync</th>
+            <th>Error</th>
           </tr>
         </thead>
         <tbody>
           {(data?.connectors ?? []).map((c) => (
             <tr key={c.kind}>
               <td>{connectorLabel(c.kind)}</td>
-              <td>{c.status === "not_connected" ? "not connected" : c.status}</td>
-              <td>
-                <button
-                  type="button"
-                  className="btn ghost sm"
-                  disabled
-                  title="OAuth is not connected"
-                  aria-describedby="connector-honest"
-                >
-                  Connect
-                </button>
-              </td>
+              <td>{c.status === "not_connected" ? "not connected" : c.status.replaceAll("_", " ")}</td>
+              <td>{c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : "—"}</td>
+              <td className="lede">{c.lastError ?? "—"}</td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p>
+        <Link className="btn sm" href="/settings/connectors">
+          Open connector settings
+        </Link>
+      </p>
 
       {loadErr && (
         <p className="sev-high" role="alert">
