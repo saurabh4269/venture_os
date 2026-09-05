@@ -391,6 +391,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="app-body">
         <header className="topbar">
+          <div className="topbar-leading">
           <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
               <Button
@@ -438,6 +439,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <span className="topbar-title md:hidden">Venture OS</span>
+          </div>
           <form className="topbar-search" onSubmit={onSearch} role="search">
             <Search className="size-4" aria-hidden />
             <input

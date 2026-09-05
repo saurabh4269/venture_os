@@ -140,10 +140,10 @@ export default function CompaniesPage() {
         </p>
       )}
       <div className="filter-bar">
-          <span className="page-kicker" style={{ margin: 0 }}>
+          <span className="page-kicker filter-label">
             Stage
           </span>
-          <div className="tabs filter-pills" style={{ margin: 0 }} aria-label="Stage">
+          <div className="tabs filter-pills filter-pills-inline" aria-label="Stage">
             {stages.length === 0 ? <span className="lede">—</span> : null}
             {stages.map((s) => (
               <button

@@ -64,12 +64,10 @@ function fmtCount(n: number) {
 
 function KpiCard({ label, value, loading }: { label: string; value: string; loading?: boolean }) {
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{label}</p>
-        {loading ? <Skeleton className="mt-2 h-8 w-16" /> : <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>}
-      </CardContent>
-    </Card>
+    <div className="kpi">
+      <div className="k">{label}</div>
+      {loading ? <Skeleton className="mt-2 h-8 w-16" /> : <div className="v">{value}</div>}
+    </div>
   );
 }
 
@@ -156,7 +154,7 @@ export default function CommandPage() {
       </header>
       {err && <p className="sev-high" role="alert">{err}</p>}
 
-      <div className="command-kpis mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="cards cards-4 command-kpis">
         <KpiCard label="Companies" value={data ? fmtCount(data.pulse.companies) : EM} loading={loading} />
         <KpiCard label="Open flags" value={data ? fmtCount(data.pulse.openFlags) : EM} loading={loading} />
         <KpiCard label="Needs look" value={data ? fmtCount(needsLook) : EM} loading={loading} />
@@ -180,23 +178,23 @@ export default function CommandPage() {
             </CardHeader>
             <CardContent>
               {look.length === 0 ? (
-                <div className="text-muted-foreground space-y-2 text-sm">
+                <div className="command-empty-hint space-y-2">
                   {emptyBook ? (
                     <>
                       <p>All clear for now.</p>
                       {canWrite ? (
-                        <p>
-                          <Link href="/companies/new" className="text-foreground underline">Add a company</Link>
+                        <p className="lede">
+                          <Link href="/companies/new">Add a company</Link>
                           {" "}or open{" "}
-                          <Link href="/inbox" className="text-foreground underline">Inbox</Link>
+                          <Link href="/inbox">Inbox</Link>
                           {" "}when files arrive.
                         </p>
                       ) : (
-                        <p>Open <Link href="/inbox" className="text-foreground underline">Inbox</Link> when new files arrive.</p>
+                        <p className="lede">Open <Link href="/inbox">Inbox</Link> when new files arrive.</p>
                       )}
                     </>
                   ) : (
-                    <p>You're up to date. Check <Link href="/inbox" className="text-foreground underline">Inbox</Link> after new uploads.</p>
+                    <p className="lede">You&apos;re up to date. Check <Link href="/inbox">Inbox</Link> after new uploads.</p>
                   )}
                 </div>
               ) : (
@@ -224,7 +222,7 @@ export default function CommandPage() {
             </CardHeader>
             <CardContent className="p-0">
               {pipeline.length === 0 ? (
-                <div className="text-muted-foreground space-y-2 p-4 text-sm">
+                <div className="command-empty-hint p-4">
                   <p>Ready to add your first company.</p>
                 </div>
               ) : (
@@ -264,16 +262,14 @@ export default function CommandPage() {
       )}
 
       {emptyBook && !loading && (
-        <Card className="mt-4">
-          <CardContent className="py-8 text-center">
-            <strong className="font-serif text-lg">Start your book</strong>
-            <p className="text-muted-foreground mt-2 text-sm">
-              {canWrite ? (
-                <><Link href="/companies/new" className="text-foreground underline">Add a company</Link> and upload your first MIS pack.</>
-              ) : "Ask your Org Admin to add the first company."}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="empty command-start">
+          <strong>Start your book</strong>
+          <p className="lede">
+            {canWrite ? (
+              <><Link href="/companies/new">Add a company</Link> and upload your first MIS pack.</>
+            ) : "Ask your Org Admin to add the first company."}
+          </p>
+        </div>
       )}
     </Shell>
   );

@@ -49,4 +49,23 @@ test.describe("@smoke marketing landing", () => {
     await expect(page.getByRole("heading", { name: /how we work/i })).toBeVisible();
     await expect(page.getByText(/sources attached/i).first()).toBeVisible();
   });
+
+  test("mobile landing and auth layout", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await expect(page.getByTestId("marketing-landing")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /the book for the investment team/i })).toBeVisible();
+    await page.getByRole("button", { name: "Menu" }).click();
+    await expect(page.getByRole("link", { name: "Get started" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.screenshot({ path: "test-results/landing-mobile.png", fullPage: true });
+
+    await page.goto("/login");
+    await expect(page.getByTestId("login-submit")).toBeVisible();
+    await page.screenshot({ path: "test-results/auth-login-mobile.png", fullPage: true });
+
+    await page.goto("/signup");
+    await expect(page.getByTestId("signup-submit")).toBeVisible();
+    await page.screenshot({ path: "test-results/auth-signup-mobile.png", fullPage: true });
+  });
 });
