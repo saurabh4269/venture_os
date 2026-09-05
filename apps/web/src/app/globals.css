@@ -1882,15 +1882,17 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   font-size: 12px;
   color: #a1a1aa;
 }
-.mkt-command-card .mkt-frame-kpis {
-  grid-template-columns: 1fr 1fr;
-}
+.mkt-command-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   padding: 20px;
   min-height: 280px;
+}
+.mkt-command-card .mkt-frame-kpis {
+  grid-template-columns: 1fr 1fr;
 }
 .mkt-command-label {
   font-size: 11px;
