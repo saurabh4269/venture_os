@@ -24,15 +24,25 @@ test("rail collapsed/expanded and topbar CTA", async ({ page }) => {
   await page.screenshot({ path: "test-results/rail-collapsed.png" });
 
   await page.locator(".rail-toggle").click();
-  await expect(page.locator(".rail-expanded")).toBeVisible();
-  const layout = await page.locator(".rail-expanded .rail-item.active").evaluate((item) => {
+  await expect(page.locator(".app.app-rail-expanded")).toBeVisible();
+  await expect(page.locator("aside.rail")).toHaveCSS("width", /23\dpx/);
+  const layout = await page.locator("aside.rail.rail-expanded .rail-item.active").evaluate((item) => {
+    const rail = item.closest(".rail");
+    const app = rail?.closest(".app");
     const label = item.querySelector(".rail-label");
     const icon = item.querySelector("svg");
-    if (!label || !icon) return { sameRow: false, width: item.getBoundingClientRect().width };
-    const lt = label.getBoundingClientRect().top;
-    const it = icon.getBoundingClientRect().top;
-    return { sameRow: Math.abs(lt - it) < 8, width: item.getBoundingClientRect().width };
+    const r = item.getBoundingClientRect();
+    return {
+      sameRow:
+        label && icon ? Math.abs(label.getBoundingClientRect().top - icon.getBoundingClientRect().top) < 8 : false,
+      width: r.width,
+      railWidth: rail?.getBoundingClientRect().width ?? 0,
+      appClasses: app?.className ?? "",
+      railClasses: rail?.className ?? "",
+    };
   });
+  expect(layout.appClasses).toContain("app-rail-expanded");
+  expect(layout.railWidth).toBeGreaterThan(180);
   expect(layout.sameRow).toBe(true);
   expect(layout.width).toBeGreaterThan(100);
   await page.screenshot({ path: "test-results/rail-expanded.png" });
