@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FLAG_CATALOG } from "@venture-os/core";
-import { PageHead, Panel } from "@/components/BookUI";
+import { PageHead } from "@/components/BookUI";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
@@ -41,6 +41,12 @@ function evidenceLine(ev: Record<string, unknown>) {
     .join(" · ");
 }
 
+function sevClass(severity: string) {
+  if (severity === "high") return "urgent";
+  if (severity === "med") return "warning";
+  return "info";
+}
+
 export default function FlagsPage() {
   const { canWrite } = useBookSession();
   const [status, setStatus] = useState<(typeof TABS)[number]>("open");
@@ -48,6 +54,7 @@ export default function FlagsPage() {
   const [companyId, setCompanyId] = useState("");
   const [flagKey, setFlagKey] = useState("");
   const [data, setData] = useState<FlagPayload>({ flags: [], sourceRefs: [] });
+  const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -82,7 +89,7 @@ export default function FlagsPage() {
       <PageHead
         title="Flags"
         testId="flags-ready"
-        lede="Catalog detectors only. Each row carries evidence. Missing inputs do not fire a flag. Mute and snooze survive recompute. Unmute returns a row to open. Thresholds come from Settings → Flag policy (firm). Recompute after a save — we do not invent a silent rerun."
+        lede="Evidence queue · open items require a cite. Catalog detectors only — missing inputs do not fire a flag."
         actions={
           canWrite ? (
             <button className="btn ghost" onClick={recompute} disabled={busy}>
@@ -96,14 +103,9 @@ export default function FlagsPage() {
           {err}
         </p>
       )}
-      <div className="tabs">
+      <div className="tabs filter-pills" aria-label="Status">
         {TABS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={s === status ? "btn sm" : "btn ghost sm"}
-            onClick={() => setStatus(s)}
-          >
+          <button key={s} type="button" className={`filter-pill${s === status ? " on" : ""}`} onClick={() => setStatus(s)}>
             {s}
           </button>
         ))}
@@ -131,6 +133,9 @@ export default function FlagsPage() {
             </option>
           ))}
         </select>
+        <span className="page-kicker" style={{ margin: 0 }}>
+          {data.flags.length} {data.flags.length === 1 ? "item" : "items"}
+        </span>
       </div>
       {data.flags.length === 0 ? (
         <div className="empty">
@@ -140,54 +145,62 @@ export default function FlagsPage() {
             : `Nothing in ${status}.`}
         </div>
       ) : (
-        <Panel flush>
-        <table>
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>Flag</th>
-              <th>Severity</th>
-              <th>Detected</th>
-              <th>Evidence</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.flags.map((f) => (
-              <tr key={f.id}>
-                <td>
+        <div className="triage">
+          <div className="triage-row" style={{ background: "transparent", boxShadow: "none", border: 0, padding: "0 14px" }}>
+            <div className="page-kicker">Severity</div>
+            <div className="page-kicker">Company</div>
+            <div className="page-kicker">Reason</div>
+            <div className="page-kicker hide-sm">Cite</div>
+            <div className="page-kicker hide-sm">Status</div>
+            <div className="page-kicker">Actions</div>
+          </div>
+          {data.flags.map((f) => {
+            const cites = f.sourceRefIds ?? [];
+            return (
+              <article className="triage-row" key={f.id}>
+                <div>
+                  <span className={`sev-pill ${sevClass(f.severity)}`}>{f.severity}</span>
+                </div>
+                <div>
                   {f.companyId ? (
-                    <>
-                      <Link href={`/companies/${f.companyId}`}>{f.companyName ?? "—"}</Link>
-                      <div>
-                        <Link className="lede" href={`/compare?companyIds=${f.companyId}`}>
-                          Compare
-                        </Link>
-                      </div>
-                    </>
+                    <Link className="look-title company-link" href={`/companies/${f.companyId}`}>
+                      {f.companyName ?? "—"}
+                    </Link>
                   ) : (
-                    (f.companyName ?? "—")
+                    <span className="look-title">{f.companyName ?? "—"}</span>
                   )}
-                </td>
-                <td>{flagLabel(f.flagKey)}</td>
-                <td className={`sev-${f.severity}`}>{f.severity}</td>
-                <td className="lede">{f.detectedAt ? new Date(f.detectedAt).toLocaleString() : "—"}</td>
-                <td className="lede">
-                  {evidenceLine(f.evidence ?? {})}
-                  <div className="row" style={{ marginTop: 4 }}>
-                    {(f.sourceRefIds ?? []).map((id) => (
-                      <Fact
-                        key={id}
-                        display="source"
-                        isFact
-                        sourcePath={sourcePathFor(data.sourceRefs, id)}
-                      />
-                    ))}
-                  </div>
-                  {f.note && <div>Note: {f.note}</div>}
-                  {f.snoozedUntil && <div>Until {new Date(f.snoozedUntil).toLocaleDateString()}</div>}
-                </td>
-                <td className="row">
+                </div>
+                <div>
+                  <button type="button" className="look-title" style={{ background: "none", border: 0, padding: 0, textAlign: "left" }} onClick={() => setOpenId(openId === f.id ? null : f.id)}>
+                    {flagLabel(f.flagKey)}
+                  </button>
+                  {openId === f.id && (
+                    <div className="look-copy" style={{ marginTop: 8 }}>
+                      {evidenceLine(f.evidence ?? {}) || "No evidence fields on this row."}
+                      {f.note ? <div>Note: {f.note}</div> : null}
+                      {f.snoozedUntil ? <div>Until {new Date(f.snoozedUntil).toLocaleDateString()}</div> : null}
+                      {f.detectedAt ? <div>Detected {new Date(f.detectedAt).toLocaleString()}</div> : null}
+                      <p className="lede" style={{ marginTop: 6 }}>
+                        No generated analysis. Subjective takes are not invented from a detector.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="hide-sm">
+                  {cites.length === 0 ? (
+                    <span className="lede">—</span>
+                  ) : (
+                    <div className="row">
+                      {cites.map((id) => (
+                        <Fact key={id} display="source" isFact sourcePath={sourcePathFor(data.sourceRefs, id)} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="hide-sm">
+                  <span className="badge">{status}</span>
+                </div>
+                <div className="row">
                   {canWrite && status === "open" && (
                     <>
                       <button
@@ -220,12 +233,16 @@ export default function FlagsPage() {
                       Unmute / reopen
                     </button>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </Panel>
+                  {f.companyId && (
+                    <Link className="lede" href={`/compare?companyIds=${f.companyId}`}>
+                      Compare
+                    </Link>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
       )}
     </Shell>
   );
