@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-const NAV = [{ href: "/#product", label: "Product" }] as const;
+const NAV = [{ href: "/#notes", label: "Notes" }] as const;
 
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
@@ -18,8 +18,12 @@ export function LandingHeader() {
           ))}
         </nav>
         <div className="mkt-header-actions">
-          <Link href="/login" className="mkt-login">Log in</Link>
-          <Link href="/signup" className="btn mkt-cta">Get started</Link>
+          <Link href="/login" className="btn ghost sm mkt-login-btn" data-testid="landing-header-login">
+            Log in
+          </Link>
+          <Link href="/signup" className="btn mkt-cta" data-testid="landing-header-get-started">
+            Get started
+          </Link>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <button type="button" className="mkt-menu btn ghost sm">Menu</button>
@@ -28,12 +32,16 @@ export function LandingHeader() {
               <SheetHeader>
                 <SheetTitle>Venture OS</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col gap-2 mt-4" aria-label="Marketing menu">
+              <nav className="mkt-mobile-nav" aria-label="Marketing menu">
                 {NAV.map((n) => (
-                  <a key={n.href} href={n.href} onClick={() => setOpen(false)} className="py-2">{n.label}</a>
+                  <a key={n.href} href={n.href} onClick={() => setOpen(false)}>{n.label}</a>
                 ))}
-                <Link href="/login" onClick={() => setOpen(false)} className="py-2">Log in</Link>
-                <Link href="/signup" onClick={() => setOpen(false)} className="btn">Get started</Link>
+                <Link href="/login" onClick={() => setOpen(false)} className="btn ghost">
+                  Log in
+                </Link>
+                <Link href="/signup" onClick={() => setOpen(false)} className="btn">
+                  Get started
+                </Link>
               </nav>
             </SheetContent>
           </Sheet>
@@ -50,6 +58,7 @@ export function LandingFooter() {
         <Link href="/" className="mkt-logo">Venture OS</Link>
         <nav className="mkt-foot-links" aria-label="Footer">
           <Link href="/security">Methodology</Link>
+          <Link href="/blog">Notes</Link>
           <a href="/api/health">Status</a>
         </nav>
         <p className="mkt-copy">© 2026 Venture OS. All rights reserved.</p>

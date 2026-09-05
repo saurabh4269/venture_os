@@ -5,7 +5,7 @@ import { MarketingLanding } from "@/components/marketing/MarketingLanding";
 export const metadata: Metadata = {
   title: "Venture OS — The book for the investment team.",
   description:
-    "Portfolio OS that cites or refuses. Command, Inbox, Flags, and Reports read only from confirmed facts. Design partner: V3 Ventures.",
+    "Portfolio OS that cites or refuses. Command, Inbox, Flags, and Reports read only from confirmed facts.",
 };
 
 export default function Home() {

@@ -15,8 +15,10 @@ import {
   FileText,
   Vault,
   Settings,
-  HelpCircle,
   Search,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,11 +36,12 @@ import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
-import { Pipeline } from "@/components/BookUI";
 import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
 import { WakingBook } from "@/components/WakingBook";
 import { UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { isWakeError, WAKING_COPY } from "@/lib/wake";
+
+const RAIL_STORAGE_KEY = "vos.railExpanded";
 
 type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean; ready: boolean };
 const BookSessionContext = createContext<BookSession>({
@@ -104,6 +107,36 @@ const NAV_SECONDARY = [
 
 const NAV = [...NAV_PRIMARY, ...NAV_SECONDARY];
 
+type NavItem = (typeof NAV_PRIMARY)[number] | (typeof NAV_SECONDARY)[number];
+
+function useRailExpanded() {
+  const [expanded, setExpanded] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      setExpanded(localStorage.getItem(RAIL_STORAGE_KEY) === "1");
+    } catch {
+      /* ignore */
+    }
+    setReady(true);
+  }, []);
+
+  function toggle() {
+    setExpanded((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(RAIL_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  return { expanded, toggle, ready };
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const pathRef = useRef(path);
@@ -117,6 +150,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const { expanded: railExpanded, toggle: toggleRail, ready: railReady } = useRailExpanded();
 
   const alive = useRef(true);
 
@@ -201,8 +235,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (q) router.push(`/companies?q=${encodeURIComponent(q)}`);
   }
 
-  const fixture =
-    Boolean(me?.org?.metadata?.includes("fixtureOnly")) || /FIXTURE_ONLY/i.test(me?.org?.name ?? "");
+  const fixture = Boolean(me?.org?.metadata?.includes("fixtureOnly"));
   const canWrite = isWriteRole(me?.role);
   const initial = (me?.user?.name?.trim()[0] || "?").toUpperCase();
 
@@ -219,53 +252,105 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const railLink = (n: (typeof NAV)[number], secondary = false) => {
+  function railItem(n: NavItem, secondary = false) {
     const active = path.startsWith(n.href);
+    const link = (
+      <Link
+        href={n.href}
+        className={`rail-item ${secondary ? "rail-secondary" : ""} ${active ? "active" : ""}`}
+        aria-current={active ? "page" : undefined}
+        aria-label={n.label}
+      >
+        <n.Icon className="size-[18px] shrink-0" aria-hidden />
+        {railExpanded ? <span className="rail-label">{n.label}</span> : <span className="sr-only">{n.label}</span>}
+      </Link>
+    );
+
+    if (railExpanded) return <div key={n.href}>{link}</div>;
+
     return (
       <Tooltip key={n.href}>
-        <TooltipTrigger asChild>
-          <Link
-            href={n.href}
-            className={`grid size-10 place-items-center rounded-md transition-colors ${secondary ? "rail-secondary" : ""} ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-            aria-current={active ? "page" : undefined}
-            aria-label={n.label}
-          >
-            <n.Icon className="size-[18px]" />
-            <span className="sr-only">{n.label}</span>
-          </Link>
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
         <TooltipContent side="right">{n.label}</TooltipContent>
       </Tooltip>
     );
-  };
+  }
 
   return (
-    <div className="app" data-testid="shell-ready">
+    <div className={`app ${railReady && railExpanded ? "app-rail-expanded" : ""}`} data-testid="shell-ready">
       <a href="#main" className="skip-link">Skip to book</a>
-      <aside className="rail hidden md:flex" aria-label="Primary navigation">
-        <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
-        <nav className="nav flex flex-col items-center gap-1">
-          {NAV_PRIMARY.map((n) => railLink(n))}
+      <aside
+        className={`rail hidden md:flex ${railExpanded ? "rail-expanded" : ""}`}
+        aria-label="Primary navigation"
+      >
+        <div className="rail-head">
+          <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
+          {railExpanded ? <span className="rail-wordmark">Venture OS</span> : null}
+          <button
+            type="button"
+            className="rail-toggle"
+            onClick={toggleRail}
+            aria-label={railExpanded ? "Collapse navigation" : "Expand navigation"}
+            aria-expanded={railExpanded}
+          >
+            {railExpanded ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+          </button>
+        </div>
+        <nav className="nav">
+          {NAV_PRIMARY.map((n) => railItem(n))}
           <div className="rail-divider" aria-hidden />
-          {NAV_SECONDARY.map((n) => railLink(n, true))}
+          {railExpanded ? (
+            NAV_SECONDARY.map((n) => railItem(n, true))
+          ) : (
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" className="rail-item rail-secondary" aria-label="More navigation">
+                      <MoreHorizontal className="size-[18px]" aria-hidden />
+                      <span className="sr-only">More</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="right">More</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent side="right" align="start">
+                <DropdownMenuLabel>More</DropdownMenuLabel>
+                {NAV_SECONDARY.map((n) => (
+                  <DropdownMenuItem key={n.href} onClick={() => router.push(n.href)}>
+                    {n.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </nav>
         <div className="rail-spacer" />
         <div className="rail-foot">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link href="/settings" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted" aria-label="Settings">
-                <Settings className="size-[18px]" />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">Settings</TooltipContent>
-          </Tooltip>
+          {railExpanded ? (
+            <Link href="/settings" className="rail-item" aria-label="Settings">
+              <Settings className="size-[18px]" aria-hidden />
+              <span className="rail-label">Settings</span>
+            </Link>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href="/settings" className="rail-item" aria-label="Settings">
+                  <Settings className="size-[18px]" aria-hidden />
+                  <span className="sr-only">Settings</span>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Settings</TooltipContent>
+            </Tooltip>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" title="Account" aria-label="Account" className="grid size-10 place-items-center rounded-md">
+              <button type="button" className="rail-item rail-account" aria-label="Account" data-testid="account-menu">
                 <span className="rail-avatar">{initial}</span>
+                {railExpanded ? <span className="rail-label">{me?.user?.name ?? "Account"}</span> : null}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" className="w-56">
+            <DropdownMenuContent side="right" align="end" className="w-56" data-testid="account-dropdown">
               <DropdownMenuLabel>
                 <div className="who">{me?.user?.name}</div>
                 <div className="who-meta text-xs text-muted-foreground">{roleLabel(me?.role)}</div>
@@ -281,7 +366,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 </>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+              <DropdownMenuItem onClick={signOut} data-testid="sign-out">Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -298,8 +383,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <SheetContent side="left" className="w-64">
               <SheetHeader><SheetTitle>Venture OS</SheetTitle></SheetHeader>
               <nav className="flex flex-col gap-1 mt-4">
-                {NAV.map((n) => (
+                {NAV_PRIMARY.map((n) => (
                   <Link key={n.href} href={n.href} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
+                    <n.Icon className="size-4" /> {n.label}
+                  </Link>
+                ))}
+                <Separator className="my-2" />
+                <p className="px-2 text-xs text-muted-foreground uppercase tracking-wide">More</p>
+                {NAV_SECONDARY.map((n) => (
+                  <Link key={n.href} href={n.href} className="flex items-center gap-2 rounded-md px-2 py-2 text-muted-foreground hover:bg-muted">
                     <n.Icon className="size-4" /> {n.label}
                   </Link>
                 ))}
@@ -324,14 +416,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
             />
           </form>
           <div className="topbar-actions">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" asChild>
-                  <Link href="/security"><HelpCircle className="size-4" /></Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Methodology</TooltipContent>
-            </Tooltip>
             {canWrite ? (
               <Button size="sm" asChild><Link href="/companies/new">Add company</Link></Button>
             ) : null}
@@ -340,18 +424,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <main className="main" id="main">
           {fixture && (
             <div className="banner" role="alert">
-              FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
+              FIXTURE_ONLY — illustrative rows for testing. Not production data. Do not report these figures.
             </div>
           )}
-          <Pipeline
-            current={
-              path.startsWith("/inbox") ? "proposed"
-                : path.startsWith("/vault") || path.startsWith("/companies/new") ? "source"
-                : path.startsWith("/flags") ? "reviewed"
-                : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare") ? "analysis"
-                : "book"
-            }
-          />
           <div className="sr-only" aria-live="polite">{orgLive}</div>
           <BookSessionContext.Provider
             value={{ me, canWrite, isAdmin: isAdminRole(me?.role), canLock: isLockRole(me?.role), ready: true }}

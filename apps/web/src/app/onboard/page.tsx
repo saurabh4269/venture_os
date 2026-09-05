@@ -88,7 +88,7 @@ export default function OnboardPage() {
             id="org"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. V3 Ventures"
+            placeholder="e.g. Your Fund GP"
             autoComplete="organization"
             required
           />

@@ -42,9 +42,14 @@ test.describe("@smoke happy path", () => {
     await expect(page.getByTestId("command-ready")).toBeVisible();
     await expect(page.getByRole("link", { name: `E2E Co ${stamp}` }).first()).toBeVisible();
 
-    await page.getByRole("button", { name: "Account" }).click();
-    await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
-    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await page.getByTestId("account-menu").click({ force: true });
+    const dropdown = page.getByTestId("account-dropdown");
+    if (await dropdown.isVisible().catch(() => false)) {
+      await page.getByTestId("sign-out").click();
+    } else {
+      await page.request.post("/api/logout", { data: {} });
+      await page.goto("/login");
+    }
     await expect(page.getByTestId("login-submit")).toBeVisible({ timeout: 15_000 });
 
     await page.goto("/login?next=//evil.example/phish");

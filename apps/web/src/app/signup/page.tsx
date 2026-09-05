@@ -95,6 +95,8 @@ function SignupForm() {
   return (
     <AuthFrame
       tab="signup"
+      title="Create your account."
+      lede="You will be Org Admin. The book starts empty — we will not seed illustrative NAV."
       footer={
         <p className="auth-signup-link">
           Already have an account? <Link href="/login">Sign in</Link>
@@ -175,7 +177,7 @@ function SignupForm() {
               name="organization"
               value={org}
               onChange={(e) => setOrg(e.target.value)}
-              placeholder="e.g. V3 Ventures"
+              placeholder="e.g. Your Fund GP"
               autoComplete="organization"
               data-testid="signup-org"
               required

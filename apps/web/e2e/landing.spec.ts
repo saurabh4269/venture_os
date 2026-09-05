@@ -13,15 +13,19 @@ test.describe("@smoke marketing landing", () => {
     await expect(page.getByText("Opening the book")).toHaveCount(0);
     await expect(page.getByTestId("landing-get-started")).toHaveAttribute("href", "/signup");
     await expect(page.getByTestId("landing-log-in")).toHaveAttribute("href", "/login");
+    await expect(page.getByTestId("landing-header-login")).toHaveAttribute("href", "/login");
     await expect(page.getByRole("banner").getByRole("link", { name: /get started/i })).toHaveAttribute(
       "href",
       "/signup",
     );
-    await expect(page.getByRole("heading", { name: /uncompromising clarity/i })).toBeVisible();
-    await expect(page.getByText(/cite or refuse/i).first()).toBeVisible();
+    await expect(page.getByTestId("mkt-notes")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /cite or refuse/i })).toBeVisible();
     await expect(page.getByText(/missing is —/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /three steps/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /uncompromising clarity/i })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: /precision architecture/i })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: /ask\. refuse/i })).toHaveCount(0);
+    await expect(page.getByText(/V3 Ventures/i)).toHaveCount(0);
     await expect(page.getByText(/\$250M|Acme Corp/i)).toHaveCount(0);
     await expect(page.getByText("42")).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Platform" })).toHaveCount(0);
