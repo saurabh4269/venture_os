@@ -1,7 +1,7 @@
-# Next — remaining after passes 35–41
+# Next — remaining after passes 35–42
 
-**Branch / PR:** `cursor/passes-35-hardening-1232`  
-**Prior:** passes 23–34 on `main` @ `8b0cf54` (PR #3)
+**Branch / PR:** `cursor/wave-a-connector-infra-11d6`  
+**Prior:** passes 35–41 on `main` @ `a22207f`
 
 ## Closed in this batch
 
@@ -26,17 +26,21 @@
 9. **Live Fly/Vercel smoke after a real release** (needs operator credentials).
 10. **PDF bbox / cell highlight** inside the source file.
 
-## Explicitly deferred (need OAuth or Phase 6)
+## Closed in Pass 42
 
-- OneDrive / Affinity / Granola — stub + **not connected**. Never invent folder IDs or `lastSyncAt`.
+- **Connector infra** — envelope-sealed per-org creds (`CONNECTOR_SECRETS_KEY`), env fallbacks, Graph/Affinity/Granola clients (official fields only), BullMQ `connector.sync` / `health` / schedule no-op, Settings → Connectors cards, company mapping, onboard pull, mock-HTTP tests, Playwright cards + invalid key. P0 secrets: ciphertext/nonce/key_version, admin-only settings API, audit, rate-limit, `docs/connectors/SECURITY.md`.
+
+## Explicitly deferred (need operator secrets or Phase 6)
+
+- Live OneDrive / Affinity / Granola against production APIs — paste keys in Settings or env. Infra is ready; do not claim connected without a real healthCheck.
 - SMTP / domain auto-join.
 - LP / ILPA room.
 - Billing.
 
 ## How to continue
 
-1. Open `cursor/<slug>-1232` off latest `main` after merge.
-2. Do not reopen 23–41 P0s.
+1. Open `cursor/<slug>-11d6` off latest `main` after merge.
+2. Do not reopen 23–42 P0s.
 3. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1.
 4. `pnpm typecheck && pnpm test` before push. CI also builds web and runs Playwright.
 5. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts.

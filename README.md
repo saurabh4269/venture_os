@@ -8,7 +8,8 @@ This is the book — Command, Inbox (HITL), Flags, NAV, Compare, Ask, Reports, V
 
 ## Docs
 
-Start at [`docs/00_README.md`](docs/00_README.md). Agent rules: [`AGENTS.md`](AGENTS.md).
+Start at [`docs/00_README.md`](docs/00_README.md). Agent rules: [`AGENTS.md`](AGENTS.md).  
+Connector keys (paste-later): [`docs/connectors/ADDING_KEYS.md`](docs/connectors/ADDING_KEYS.md). Secrets model: [`docs/connectors/SECURITY.md`](docs/connectors/SECURITY.md).
 
 Requirement briefs (Markdown + PDF): [`docs/brief/`](docs/brief/).  
 Locked stack: [`docs/DECISION.md`](docs/DECISION.md) D5 and [`docs/03_ARCHITECTURE.md`](docs/03_ARCHITECTURE.md).  
@@ -89,7 +90,7 @@ Manual empty-book path:
 
 1. Open `/signup`. Create your user + organisation (you are Org Admin). A user with no org lands on `/onboard`. Invites are copy-link from **Settings → People** (`/invite?id=`). Email delivery is not connected.
 2. **Settings → Add fund** (or skip — the first company creates “Main fund”).
-3. **Companies → Add company**. Complete the 15-minute path: profile → upload `fixtures/FIXTURE_ONLY-sample-mis.csv` (or any MIS xlsx/pdf).
+3. **Companies → Add company**. Complete the 15-minute path: profile (optional connector ids) → upload `fixtures/FIXTURE_ONLY-sample-mis.csv` (or pull from OneDrive when connected).
 4. **Inbox** — confirm rows. Ambiguous units must be set by you. Nothing auto-posts.
 5. **Command / Flags / NAV / Compare / Ask / Reports** now read the **book**.
 6. Click a number — it opens the source file when a `source_ref` exists (downloads use the session cookie). Missing shows **—**. Dual EUR display appears only with `fx_rate` + `fx_date` + source. Runway is cash / average of the last three reported burns. Flags can be snoozed or muted (survives recompute). One-pagers require a company. Invites are copy-link from Settings (no SMTP).
@@ -119,7 +120,7 @@ CI (`.github/workflows/ci.yml`) runs the same against a Postgres service, includ
 
 **Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog + firm policy), NAV rollup + period-over-period bridge + as-of lock, Compare, Ask (FTS + refuse + digit harness), Reports + monthly pack + PDF/PPTX/XLSX, onboarding wizard, RLS, Vitest.
 
-**Stub / honest “not connected”:** live OneDrive / Affinity / Granola OAuth, NAV multi-approver / LP sign-off, LP/ILPA room, billing, perfect OCR, domain auto-join, SMTP.
+**Stub / honest “not connected”:** live OneDrive / Affinity / Granola until keys pass Test connection (infra is ready — [`docs/connectors/ADDING_KEYS.md`](docs/connectors/ADDING_KEYS.md)), NAV multi-approver / LP sign-off, LP/ILPA room, billing, perfect OCR, domain auto-join, SMTP.
 
 ---
 

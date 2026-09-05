@@ -18,9 +18,9 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 1 | Org auth / user logins | **missing** | **done** | SSO / Redis limiter later. Pass 31–32: same-origin BFF, preview origin patterns, production secret fail-closed, invite mask, security headers |
 | 2 | Multi-tenant orgs / domain join | **missing** | **partial** | Domain / SMTP still missing; copy-link invites; role change + remove + last-admin guard (Pass 14) |
 | 3 | Durable database book | **missing** (JSON seed) | **done** | — |
-| 4 | OneDrive API ingest | **missing** | **missing** | Settings stub: **not connected**. No invented Graph fields |
-| 5 | Affinity API (ownership, CRM) | **missing** | **missing** | Settings stub: **not connected** |
-| 6 | Granola API (transcripts) | **missing** | **missing** | Settings stub: **not connected** |
+| 4 | OneDrive API ingest | **missing** | **partial** | Infra ready (OAuth + client-credentials, folder map, download → same parse/inbox). Live Graph pending operator secrets. No invented Graph fields |
+| 5 | Affinity API (ownership, CRM) | **missing** | **partial** | Infra ready (bearer key, `GET /v2/companies`, verified field map). Ownership only via configured number field id. Live API pending secrets |
+| 6 | Granola API (transcripts) | **missing** | **partial** | Infra ready (`grn_` key, notes → transcript docs + subjective inbox). Live API pending secrets |
 | 7 | Upload fallback form | **partial** (paste text) | **done** | Same parse pipeline OneDrive will reuse |
 | 8 | True PDF/XLSX/DOCX parse | **missing** | **partial** | XLSX/CSV + PDF text; no DOCX; no layout OCR |
 | 9 | Standardization engine | **mock** | **partial** | Alias catalog + HITL confirm; LLM assist propose-only later |
@@ -35,12 +35,12 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay `—` |
 | 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + bridge + period lock + frozen official pack snapshot (Pass 23/37). Multi-approver / LP sign-off later |
 | 20 | Objective commentary from MIS | **missing** | **partial** | Separate lane; human + inbox confirm |
-| 21 | Subjective commentary from calls | **missing** | **partial** | Lane rejects MIS-only source; Granola still **not connected** |
+| 21 | Subjective commentary from calls | **missing** | **partial** | Lane rejects MIS-only source; Granola sync writes transcript + subjective inbox only when connected |
 | 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Monthly pack lanes + worker artifact (Pass 25); curated one-pager; cookie-auth download |
 | 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; refuse without overlap; `refuseUnsourcedDigits` + golden harness (Pass 26) |
 | 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + evidence; firm `flag_policy` jsonb (Pass 24); mute/snooze; restatement-safe reads |
 | 25 | Cross-company compare | **mock** | **done** | Stage/sector peer filter; catalog labels; hide-empty; objective-lane only (Pass 21) |
-| 26 | 15-min company onboarding | **missing** | **partial** | Wizard + timed script (Pass 28); Playwright smoke + rituals (Pass 33/35); `pnpm demo:vc` (Pass 40); connector IDs wait for OAuth |
+| 26 | 15-min company onboarding | **missing** | **partial** | Wizard maps optional folder/Affinity/Granola ids; upload or OneDrive pull when connected (Pass 42). Live pull needs secrets |
 | 27 | Claude as reasoning layer (brief) | Demo uses **OpenAI** Luna | **done** | Pluggable `LlmProvider`; default OpenAI (D5) |
 | 28 | SOC2-ready audit / security | **missing** | **partial** | RLS + lock/policy isolation; invite mask + admin list; origin patterns; headers; secret fail-closed (Pass 30–32). Audit viewer / SSO later |
 | 29 | Billing / plans for other VCs | **missing** | **missing** | Out of scope this phase |

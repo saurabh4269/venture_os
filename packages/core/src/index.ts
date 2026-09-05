@@ -11,3 +11,4 @@ export * from "./extract.js";
 export * from "./commentary.js";
 export * from "./corrections.js";
 export * from "./reports.js";
+export * from "./connectors/index.js";

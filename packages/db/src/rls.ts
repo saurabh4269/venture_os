@@ -16,6 +16,8 @@ export const RLS_TABLES = [
   "ask_queries",
   "fx_rates",
   "connectors",
+  "connector_cursors",
+  "connector_audits",
   "document_chunks",
   "org_settings",
   "nav_period_locks",

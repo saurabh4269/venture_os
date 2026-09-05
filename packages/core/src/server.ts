@@ -3,3 +3,5 @@
  * Do not import from Next client components — use `@venture-os/core` instead.
  */
 export * from "./nav-snapshot.js";
+export * from "./seal.js";
+export * from "./connectors/clients.js";

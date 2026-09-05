@@ -25,6 +25,9 @@ export function resetRateLimitForTests() {
 
 export const AUTH_RATE_LIMIT = 20;
 export const AUTH_RATE_WINDOW_MS = 15 * 60 * 1000;
+/** Save / Test connection — per org+user. */
+export const CONNECTOR_MUTATE_LIMIT = 30;
+export const CONNECTOR_MUTATE_WINDOW_MS = 15 * 60 * 1000;
 
 let redis: Redis | null | undefined;
 

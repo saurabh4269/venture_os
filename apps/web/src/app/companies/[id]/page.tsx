@@ -18,6 +18,10 @@ type Data = {
     fyStartMonth?: number | null;
     unitHint?: string | null;
     currencyHint?: string | null;
+    onedriveFolderId?: string | null;
+    onedriveFolderPath?: string | null;
+    affinityCompanyId?: string | null;
+    granolaLink?: string | null;
   };
   metrics: {
     id: string;
@@ -92,6 +96,8 @@ export default function CompanyPage() {
   const [editing, setEditing] = useState(false);
   const [draftMsg, setDraftMsg] = useState("");
   const [vaultKind, setVaultKind] = useState("");
+  const [mapMsg, setMapMsg] = useState("");
+  const [pullMsg, setPullMsg] = useState("");
 
   function load() {
     api<Data>(`/api/companies/${id}`)
@@ -144,6 +150,10 @@ export default function CompanyPage() {
         fyStartMonth: Number(fd.get("fyStartMonth")),
         unitHint: String(fd.get("unitHint") || "") || undefined,
         currencyHint: String(fd.get("currencyHint") || "") || undefined,
+        onedriveFolderId: String(fd.get("onedriveFolderId") || "") || undefined,
+        onedriveFolderPath: String(fd.get("onedriveFolderPath") || "") || undefined,
+        affinityCompanyId: String(fd.get("affinityCompanyId") || "") || undefined,
+        granolaLink: String(fd.get("granolaLink") || "") || undefined,
       }),
     });
     setEditing(false);
@@ -262,9 +272,100 @@ export default function CompanyPage() {
             Currency hint
             <input name="currencyHint" defaultValue={data.company.currencyHint ?? ""} placeholder="INR" />
           </label>
+          <label className="field">
+            OneDrive folder id
+            <input name="onedriveFolderId" defaultValue={data.company.onedriveFolderId ?? ""} />
+          </label>
+          <label className="field">
+            OneDrive folder path
+            <input name="onedriveFolderPath" defaultValue={data.company.onedriveFolderPath ?? ""} placeholder="/MIS" />
+          </label>
+          <label className="field">
+            Affinity company id
+            <input name="affinityCompanyId" defaultValue={data.company.affinityCompanyId ?? ""} placeholder="numeric" />
+          </label>
+          <label className="field">
+            Granola note id
+            <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} placeholder="not_…" />
+          </label>
           <button className="btn sm" type="submit">
             Save profile
           </button>
+        </form>
+      )}
+
+      {canWrite && (
+        <form
+          className="grid-2"
+          style={{ maxWidth: 720, marginBottom: 16 }}
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setMapMsg("");
+            const fd = new FormData(e.currentTarget);
+            try {
+              await api(`/api/companies/${id}/connector-mapping`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                  onedriveFolderId: String(fd.get("onedriveFolderId") || ""),
+                  onedriveFolderPath: String(fd.get("onedriveFolderPath") || ""),
+                  affinityCompanyId: String(fd.get("affinityCompanyId") || ""),
+                  granolaLink: String(fd.get("granolaLink") || ""),
+                }),
+              });
+              setMapMsg("Connector mapping saved.");
+              load();
+            } catch (ex) {
+              setMapMsg(ex instanceof Error ? ex.message : "Could not save mapping");
+            }
+          }}
+        >
+          <h2 style={{ gridColumn: "1 / -1" }}>Connector mapping</h2>
+          <p className="lede" style={{ gridColumn: "1 / -1" }}>
+            Optional. Paste vendor ids only — we will not invent folder or CRM fields. Pull from OneDrive uses the
+            same parse pipeline as upload.
+          </p>
+          <label className="field">
+            OneDrive folder id
+            <input name="onedriveFolderId" defaultValue={data.company.onedriveFolderId ?? ""} data-testid="map-onedrive-id" />
+          </label>
+          <label className="field">
+            OneDrive folder path
+            <input name="onedriveFolderPath" defaultValue={data.company.onedriveFolderPath ?? ""} data-testid="map-onedrive-path" />
+          </label>
+          <label className="field">
+            Affinity company id
+            <input name="affinityCompanyId" defaultValue={data.company.affinityCompanyId ?? ""} data-testid="map-affinity-id" />
+          </label>
+          <label className="field">
+            Granola note id
+            <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} data-testid="map-granola-link" />
+          </label>
+          <div className="row">
+            <button className="btn sm" type="submit">
+              Save mapping
+            </button>
+            <button
+              className="btn ghost sm"
+              type="button"
+              onClick={async () => {
+                setPullMsg("");
+                try {
+                  await api("/api/connectors/onedrive/sync", {
+                    method: "POST",
+                    body: JSON.stringify({ companyId: id }),
+                  });
+                  setPullMsg("OneDrive sync queued. Confirm extracts in Inbox if files were new.");
+                  load();
+                } catch (ex) {
+                  setPullMsg(ex instanceof Error ? ex.message : "Pull failed");
+                }
+              }}
+            >
+              Pull from OneDrive
+            </button>
+          </div>
+          {mapMsg && <p className="lede">{mapMsg}</p>}
+          {pullMsg && <p className="lede">{pullMsg}</p>}
         </form>
       )}
 
@@ -293,7 +394,7 @@ export default function CompanyPage() {
 
       <h2>Positions</h2>
       <p className="lede">
-        Booked positions only. Affinity is not connected — we will not invent ownership or CRM IDs.
+        Booked positions only. Affinity writes ownership only after a mapped numeric field id and a successful sync.
       </p>
       {!data.positions?.length ? (
         <div className="empty">No positions on the book. Add a fund in Settings, then onboard with a fund attached.</div>

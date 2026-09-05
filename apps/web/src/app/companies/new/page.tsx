@@ -22,11 +22,19 @@ export default function NewCompanyPage() {
   const [funds, setFunds] = useState<{ id: string; name: string }[]>([]);
   const [fundId, setFundId] = useState("");
   const [err, setErr] = useState("");
+  const [onedriveFolderId, setOnedriveFolderId] = useState("");
+  const [onedriveFolderPath, setOnedriveFolderPath] = useState("");
+  const [affinityCompanyId, setAffinityCompanyId] = useState("");
+  const [granolaLink, setGranolaLink] = useState("");
+  const [onedriveReady, setOnedriveReady] = useState(false);
 
   useEffect(() => {
     api<{ funds: { id: string; name: string }[] }>("/api/funds")
       .then((r) => setFunds(r.funds))
       .catch(() => setFunds([]));
+    api<{ connectors: { kind: string; status: string }[] }>("/api/connectors")
+      .then((r) => setOnedriveReady(r.connectors.some((c) => c.kind === "onedrive" && c.status === "connected")))
+      .catch(() => setOnedriveReady(false));
   }, []);
 
   async function create(e: React.FormEvent) {
@@ -49,6 +57,17 @@ export default function NewCompanyPage() {
       });
       setCompanyId(res.company.id);
       setStep(2);
+      if (onedriveFolderId || onedriveFolderPath || affinityCompanyId || granolaLink) {
+        await api(`/api/companies/${res.company.id}/connector-mapping`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            onedriveFolderId,
+            onedriveFolderPath,
+            affinityCompanyId,
+            granolaLink,
+          }),
+        }).catch(() => null);
+      }
     } catch (ex) {
       setErr(ex instanceof Error ? ex.message : "Could not create company");
     } finally {
@@ -125,7 +144,7 @@ export default function NewCompanyPage() {
       )}
       <ol style={{ color: "var(--muted)" }}>
         <li style={{ fontWeight: step === 1 ? 600 : 400 }}>Profile</li>
-        <li style={{ fontWeight: step === 2 ? 600 : 400 }}>Vault (upload or OneDrive stub)</li>
+        <li style={{ fontWeight: step === 2 ? 600 : 400 }}>Vault (upload or OneDrive pull)</li>
         <li style={{ fontWeight: step === 3 ? 600 : 400 }}>Confirm inbox</li>
       </ol>
 
@@ -170,6 +189,22 @@ export default function NewCompanyPage() {
               ))}
             </select>
           </label>
+          <label className="field">
+            OneDrive folder id (optional)
+            <input value={onedriveFolderId} onChange={(e) => setOnedriveFolderId(e.target.value)} />
+          </label>
+          <label className="field">
+            OneDrive folder path (optional)
+            <input value={onedriveFolderPath} onChange={(e) => setOnedriveFolderPath(e.target.value)} placeholder="/MIS" />
+          </label>
+          <label className="field">
+            Affinity company id (optional)
+            <input value={affinityCompanyId} onChange={(e) => setAffinityCompanyId(e.target.value)} />
+          </label>
+          <label className="field">
+            Granola note id (optional)
+            <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
+          </label>
           <div>
             <button className="btn" type="submit" disabled={busy} data-testid="create-company">
               {busy ? "Creating…" : "Create company"}
@@ -180,7 +215,11 @@ export default function NewCompanyPage() {
 
       {step === 2 && (
         <form onSubmit={upload} style={{ marginTop: 16 }}>
-          <p className="lede">OneDrive folder connect is not connected. Upload the first MIS / board pack.</p>
+          <p className="lede">
+            {onedriveReady
+              ? "OneDrive is connected. Upload a file or pull from the mapped folder."
+              : "OneDrive is not connected. Upload the first MIS / board pack, or paste keys in Settings → Connectors."}
+          </p>
           <label className="field">
             First file (MIS / board pack)
             <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" data-testid="mis-file" />
@@ -188,6 +227,30 @@ export default function NewCompanyPage() {
           <div className="row" style={{ marginTop: 12 }}>
             <button className="btn" type="submit" disabled={busy} data-testid="mis-upload">
               {busy ? "Uploading…" : "Upload and extract"}
+            </button>
+            <button
+              className="btn ghost"
+              type="button"
+              disabled={!onedriveReady || busy}
+              data-testid="onedrive-pull"
+              onClick={async () => {
+                setBusy(true);
+                setMsg("");
+                try {
+                  await api("/api/connectors/onedrive/sync", {
+                    method: "POST",
+                    body: JSON.stringify({ companyId }),
+                  });
+                  setStep(3);
+                  setParseStatus("queued");
+                } catch (ex) {
+                  setMsg(ex instanceof Error ? ex.message : "OneDrive pull failed");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Pull from OneDrive
             </button>
             <button className="btn ghost" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
               Skip for now

@@ -47,6 +47,10 @@ export const companies = pgTable(
     website: text("website"),
     unitHint: text("unit_hint"),
     currencyHint: text("currency_hint"),
+    onedriveFolderId: text("onedrive_folder_id"),
+    onedriveFolderPath: text("onedrive_folder_path"),
+    affinityCompanyId: text("affinity_company_id"),
+    granolaLink: text("granola_link"),
     status: text("status").notNull().default("active"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
@@ -90,6 +94,8 @@ export const documents = pgTable(
     periodStart: date("period_start"),
     periodEnd: date("period_end"),
     uploadedBy: text("uploaded_by").references(() => user.id),
+    source: text("source").notNull().default("upload"),
+    externalId: text("external_id"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [index("documents_org_idx").on(t.orgId), index("documents_company_idx").on(t.companyId)],
@@ -338,9 +344,47 @@ export const connectors = pgTable(
     orgId: orgId(),
     kind: text("kind").notNull(),
     status: text("status").notNull().default("not_connected"),
+    /** Non-secret metadata only (authMode, ownershipFieldId, drive/user ids). Never API keys. */
     config: jsonb("config").notNull().default({}),
+    /** @deprecated Legacy combined blob. New writes use ciphertext/nonce/key_version. */
+    sealedCredentials: text("sealed_credentials"),
+    secretCiphertext: text("secret_ciphertext"),
+    secretNonce: text("secret_nonce"),
+    secretKeyVersion: integer("secret_key_version"),
+    secretUpdatedAt: timestamp("secret_updated_at"),
+    lastError: text("last_error"),
+    lastSyncAt: timestamp("last_sync_at"),
+    lastHealthAt: timestamp("last_health_at"),
   },
   (t) => [uniqueIndex("connectors_org_kind_uidx").on(t.orgId, t.kind)],
+);
+
+/** Who saved / rotated / tested / synced a connector. Never stores secret material. */
+export const connectorAudits = pgTable(
+  "connector_audits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
+    kind: text("kind").notNull(),
+    action: text("action").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("connector_audits_org_idx").on(t.orgId, t.createdAt)],
+);
+
+/** Per-connector sync cursor. last_success_at is only written after a real sync. */
+export const connectorCursors = pgTable(
+  "connector_cursors",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    kind: text("kind").notNull(),
+    companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }),
+    cursor: text("cursor"),
+    lastSuccessAt: timestamp("last_success_at"),
+  },
+  (t) => [index("connector_cursors_org_idx").on(t.orgId, t.kind)],
 );
 
 export const documentChunks = pgTable(

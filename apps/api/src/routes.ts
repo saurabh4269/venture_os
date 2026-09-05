@@ -34,6 +34,7 @@ import {
   toReportMetric,
   validateFlagPolicyThresholds,
   xirr,
+  isConnectorKind,
 } from "@venture-os/core";
 import { buildNavPackSnapshot, hashNavPackSnapshot } from "@venture-os/core/server";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
@@ -86,6 +87,7 @@ import {
   runParseJob,
   sha256,
   sourceRefs,
+  toPublicView,
   user,
   withOrg,
 } from "@venture-os/db";
@@ -93,8 +95,10 @@ import { auth } from "./auth.js";
 import { canConfirm, HttpError, requireAdmin, requireLock, requireOrg, requireUser, requireWrite } from "./context.js";
 import { enqueueFlags, enqueueParse, enqueueReport } from "./queues.js";
 import { buildExports } from "./reports-export.js";
+import { connectorRoutes } from "./connector-routes.js";
 
 export const routes = new Hono();
+routes.route("/", connectorRoutes);
 
 async function pingRedis(): Promise<"up" | "down"> {
   const env = loadEnv();
@@ -581,6 +585,13 @@ routes.patch("/api/companies/:id", async (c) => {
         website: body.website === undefined ? existing.website : body.website || null,
         unitHint: body.unitHint ?? existing.unitHint,
         currencyHint: body.currencyHint ?? existing.currencyHint,
+        onedriveFolderId:
+          body.onedriveFolderId === undefined ? existing.onedriveFolderId : body.onedriveFolderId || null,
+        onedriveFolderPath:
+          body.onedriveFolderPath === undefined ? existing.onedriveFolderPath : body.onedriveFolderPath || null,
+        affinityCompanyId:
+          body.affinityCompanyId === undefined ? existing.affinityCompanyId : body.affinityCompanyId || null,
+        granolaLink: body.granolaLink === undefined ? existing.granolaLink : body.granolaLink || null,
       })
       .where(eq(companies.id, id))
       .returning();
@@ -1705,7 +1716,15 @@ routes.get("/api/settings", async (c) => {
     const users = actorIds.length ? await tx.select().from(user).where(inArray(user.id, actorIds)) : [];
     return {
       settings,
-      connectors: conns.map((c) => ({ kind: c.kind, status: c.status })),
+      connectors: conns.map((c) => {
+        const view = isConnectorKind(c.kind) ? toPublicView(c.kind, c) : null;
+        return {
+          kind: c.kind,
+          status: view?.status ?? c.status,
+          lastError: view?.lastError ?? c.lastError ?? null,
+          ...(view?.lastSyncAt ? { lastSyncAt: view.lastSyncAt } : {}),
+        };
+      }),
       flagPolicy: FLAG_CATALOG.map((f) => ({
         key: f.key,
         label: f.label,

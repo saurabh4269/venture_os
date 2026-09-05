@@ -140,6 +140,33 @@ export const CreateCompanySchema = z.object({
 
 export const UpdateCompanySchema = CreateCompanySchema.omit({ fundId: true }).partial().extend({
   name: z.string().min(1).max(200).optional(),
+  onedriveFolderId: z.string().max(200).optional().or(z.literal("")),
+  onedriveFolderPath: z.string().max(500).optional().or(z.literal("")),
+  affinityCompanyId: z.string().max(40).optional().or(z.literal("")),
+  granolaLink: z.string().max(400).optional().or(z.literal("")),
+});
+
+export const ConnectorKindSchema = z.enum(["onedrive", "affinity", "granola"]);
+export const ConnectorStatusSchema = z.enum(["not_connected", "configured", "connected", "error"]);
+export const OnedriveAuthModeSchema = z.enum(["auth_code", "client_credentials"]);
+
+export const SaveConnectorCredentialsSchema = z.object({
+  kind: ConnectorKindSchema,
+  clientId: z.string().max(200).optional(),
+  clientSecret: z.string().max(500).optional(),
+  tenantId: z.string().max(200).optional(),
+  apiKey: z.string().max(500).optional(),
+  authMode: OnedriveAuthModeSchema.optional(),
+  ownershipFieldId: z.string().max(200).optional(),
+  driveId: z.string().max(200).optional(),
+  userId: z.string().max(320).optional(),
+});
+
+export const CompanyConnectorMappingSchema = z.object({
+  onedriveFolderId: z.string().max(200).optional().or(z.literal("")),
+  onedriveFolderPath: z.string().max(500).optional().or(z.literal("")),
+  affinityCompanyId: z.string().max(40).optional().or(z.literal("")),
+  granolaLink: z.string().max(400).optional().or(z.literal("")),
 });
 
 export const CreateFundSchema = z.object({

@@ -61,7 +61,7 @@ Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
 | 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements) |
 | 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge + period lock, Compare). Passes 23–24: lock/unlock, firm flag policy |
 | 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX from the book). Pass 05/09: overlap + invented-number refuse; one-pager requires companyId |
-| 5 Live connectors | Stub only — UI says **not connected** |
+| 5 Live connectors | Infra ready (Pass 42). UI honest until healthCheck. Live Graph/Affinity/Granola wait on operator secrets |
 | 6 LP room + billing | Out of scope |
 
 Resume from `docs/02_GAP_MATRIX.md` (This-repo column) and unchecked boxes in `docs/04_BUILD_PLAN.md`.
@@ -145,7 +145,7 @@ If Redis is up and the worker is down, parse jobs sit queued — start the worke
 
 ## Never invent connector fields
 
-OneDrive / Affinity / Granola live APIs are out of scope until vendor docs are in this repo. Do not add request bodies, webhook shapes, or sync tokens you have not verified. Settings UI is a stub.
+Wave A infra lives in `packages/core` (types/status/validate/map/redact) and `@venture-os/core/server` (envelope seal + HTTP). Vendor docs: `docs/connectors/README.md`. Secrets: `docs/connectors/SECURITY.md` — ciphertext/nonce/key_version, `CONNECTOR_SECRETS_KEY` in env only, Org Admin endpoints, no plaintext in `org_settings`. Do not add Graph / Affinity / Granola fields that are not in those docs or a `FIXTURE_ONLY` fixture. Never fake `connected` or `lastSyncAt`.
 
 ---
 

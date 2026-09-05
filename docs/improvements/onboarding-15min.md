@@ -2,7 +2,7 @@
 
 **Audience:** Org Admin or Analyst on a laptop.  
 **Clock:** wall time from signup to first Command chip.  
-**Not this path:** OneDrive / Affinity / Granola (those stay **not connected**).
+**Optional:** paste OneDrive folder / Affinity id / Granola note id on the wizard, then **Pull from OneDrive** if that connector is connected. Keys: `docs/connectors/ADDING_KEYS.md`.
 
 Labelled sample file: `fixtures/FIXTURE_ONLY-sample-mis.csv`. Do not treat the optional `SEED_DEMO=1` org as a client book.
 

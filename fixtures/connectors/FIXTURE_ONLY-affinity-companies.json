@@ -1,0 +1,25 @@
+{
+  "_comment": "FIXTURE_ONLY — shape copied from Affinity API v2 CompanyPaged example (developer.affinity.co, 2026-07-15). Not live data.",
+  "data": [
+    {
+      "id": 1,
+      "name": "Horizon Technologies",
+      "domain": "horizontech.com",
+      "domains": ["horizontech.com"],
+      "isGlobal": false,
+      "fields": []
+    },
+    {
+      "id": 2,
+      "name": "Crestwood Capital",
+      "domain": "crestwoodcap.com",
+      "domains": ["crestwoodcap.com"],
+      "isGlobal": false,
+      "fields": []
+    }
+  ],
+  "pagination": {
+    "prevUrl": null,
+    "nextUrl": null
+  }
+}

@@ -105,5 +105,6 @@ Do **not** add a second kebab-case product/architecture/brief tree. Extra notes 
 | [`cost-hosting.md`](cost-hosting.md) | Free-tier then Azure bands (no secrets) |
 | [`research/notes.md`](research/notes.md) | Parser / Better Auth / FTS research |
 | [`improvements/`](improvements/) | Dated QA notes |
+| [`connectors/`](connectors/) | OneDrive / Affinity / Granola paste-later keys + [`SECURITY.md`](connectors/SECURITY.md) |
 
 `packages/core` holds deterministic runway / MOIC / XIRR / units / FY / flags / Ask / extract. Headlines never come from the LLM.
