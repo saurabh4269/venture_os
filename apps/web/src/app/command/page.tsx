@@ -255,7 +255,7 @@ export default function CommandPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={r.pipelineStage === "REVIEWED" ? "default" : "secondary"}>{r.pipelineStage}</Badge>
+                          <Badge variant="secondary">{r.pipelineStage}</Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">Book</TableCell>
                         <TableCell className="text-right tabular-nums">{r.updated}</TableCell>
