@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
 import { safeNextPath } from "@venture-os/config/paths";
 import { api } from "@/lib/api";
@@ -65,8 +64,7 @@ function LoginForm() {
 
   return (
     <AuthFrame tab="signin" title="Sign in to your book." lede={loginLede(next)}>
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <form method="post" onSubmit={onSubmit} className="auth-form flex flex-col gap-4" noValidate>
+      <form method="post" onSubmit={onSubmit} className="auth-form flex flex-col gap-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <Input
@@ -113,7 +111,6 @@ function LoginForm() {
         <p className="auth-login-link">
           Don&apos;t have an account? <Link href="/signup">Sign up</Link>
         </p>
-      </motion.div>
     </AuthFrame>
   );
 }

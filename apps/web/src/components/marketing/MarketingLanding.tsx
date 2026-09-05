@@ -71,6 +71,9 @@ export function MarketingLanding() {
               <Link href="/signup" className="btn" data-testid="landing-get-started">
                 Get started
               </Link>
+              <Link href="/login" className="btn ghost" data-testid="landing-hero-login">
+                Log in
+              </Link>
             </div>
           </div>
           <div className="mkt-hero-visual">

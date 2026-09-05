@@ -269,6 +269,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const railOpen = railReady && railExpanded;
+
   function railItem(n: NavItem, secondary = false) {
     const active = path.startsWith(n.href);
     const link = (
@@ -279,11 +281,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
         aria-label={n.label}
       >
         <n.Icon className="size-[18px] shrink-0" aria-hidden />
-        {railExpanded ? <span className="rail-label">{n.label}</span> : <span className="sr-only">{n.label}</span>}
+        {railOpen ? <span className="rail-label">{n.label}</span> : <span className="sr-only">{n.label}</span>}
       </Link>
     );
 
-    if (railExpanded) return <Fragment key={n.href}>{link}</Fragment>;
+    if (railOpen) return <Fragment key={n.href}>{link}</Fragment>;
 
     return (
       <Tooltip key={n.href}>
@@ -294,29 +296,29 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={`app ${railReady && railExpanded ? "app-rail-expanded" : ""}`} data-testid="shell-ready">
+    <div className={`app ${railOpen ? "app-rail-expanded" : ""}`} data-testid="shell-ready">
       <a href="#main" className="skip-link">Skip to book</a>
       <aside
-        className={`rail hidden md:flex ${railExpanded ? "rail-expanded" : ""}`}
+        className={`rail hidden md:flex ${railOpen ? "rail-expanded" : ""}`}
         aria-label="Primary navigation"
       >
         <div className="rail-head">
           <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
-          {railExpanded ? <span className="rail-wordmark">Venture OS</span> : null}
+          {railOpen ? <span className="rail-wordmark">Venture OS</span> : null}
           <button
             type="button"
             className="rail-toggle"
             onClick={toggleRail}
-            aria-label={railExpanded ? "Collapse navigation" : "Expand navigation"}
-            aria-expanded={railExpanded}
+            aria-label={railOpen ? "Collapse navigation" : "Expand navigation"}
+            aria-expanded={railOpen}
           >
-            {railExpanded ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+            {railOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
           </button>
         </div>
         <nav className="nav">
           {NAV_PRIMARY.map((n) => railItem(n))}
           <div className="rail-divider" aria-hidden />
-          {railExpanded ? (
+          {railOpen ? (
             NAV_SECONDARY.map((n) => railItem(n, true))
           ) : (
             <DropdownMenu>
@@ -344,7 +346,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="rail-spacer" />
         <div className="rail-foot">
-          {railExpanded ? (
+          {railOpen ? (
             <Link href="/settings" className="rail-item" aria-label="Settings">
               <Settings className="size-[18px]" aria-hidden />
               <span className="rail-label">Settings</span>
@@ -364,7 +366,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <DropdownMenuTrigger asChild>
               <button type="button" className="rail-item rail-account" aria-label="Account" data-testid="account-menu">
                 <span className="rail-avatar">{initial}</span>
-                {railExpanded ? <span className="rail-label">{me?.user?.name ?? "Account"}</span> : null}
+                {railOpen ? <span className="rail-label">{me?.user?.name ?? "Account"}</span> : null}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end" className="w-56" data-testid="account-dropdown">
