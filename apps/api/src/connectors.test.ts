@@ -25,8 +25,14 @@ async function json<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
-function mockVendorFetch(req: Request): Promise<Response> {
-  const u = new URL(req.url);
+function requestUrl(input: string | URL | Request): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+}
+
+function mockVendorFetch(input: string | URL | Request): Promise<Response> {
+  const u = new URL(requestUrl(input));
   if (u.hostname === "login.microsoftonline.com" && u.pathname.endsWith("/token")) {
     return Promise.resolve(
       Response.json({ access_token: "FIXTURE_graph_token", expires_in: 3600, token_type: "Bearer" }),
@@ -156,6 +162,7 @@ describe.skipIf(!url)("connector infra (mock HTTP)", () => {
     expect(map.status).toBe(200);
 
     const sync = await runConnectorSync(orgId, "onedrive", { companyId, fetchImpl: mockVendorFetch, parse: true });
+    expect(sync.error, sync.error).toBeUndefined();
     expect(sync.status).toBe("connected");
     expect(sync.ingested).toBeGreaterThan(0);
 

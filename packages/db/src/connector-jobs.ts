@@ -227,7 +227,7 @@ function connectorParams(secrets: ConnectorSecrets, extra: Record<string, string
 export async function runConnectorHealth(
   orgId: string,
   kind: ConnectorKind,
-  fetchImpl: FetchLike = fetch,
+  fetchImpl: FetchLike = globalThis.fetch,
 ): Promise<{ status: ConnectorStatus; error?: string }> {
   return withOrg(orgId, async (tx) => {
     const [row] = await tx.select().from(connectors).where(eq(connectors.kind, kind));
@@ -272,15 +272,16 @@ export async function runConnectorSync(
   kind: ConnectorKind,
   opts?: { companyId?: string; fetchImpl?: FetchLike; parse?: boolean },
 ): Promise<{ status: ConnectorStatus; ingested: number; error?: string }> {
-  const fetchImpl = opts?.fetchImpl ?? fetch;
+  const fetchImpl = opts?.fetchImpl ?? globalThis.fetch;
   const parse = opts?.parse !== false;
-  return withOrg(orgId, async (tx) => {
+  const pendingParse: string[] = [];
+  const result = await withOrg(orgId, async (tx) => {
     const [row] = await tx.select().from(connectors).where(eq(connectors.kind, kind));
     if (!row) throw new Error("connector_not_found");
     let { secrets } = resolveSecrets(row, kind);
     if (!secrets) {
       await tx.update(connectors).set({ status: "not_connected", lastError: "missing_credentials" }).where(eq(connectors.id, row.id));
-      return { status: "not_connected", ingested: 0, error: "missing_credentials" };
+      return { status: "not_connected" as const, ingested: 0, error: "missing_credentials" };
     }
     try {
       secrets = await ensureAccessToken(kind, secrets, fetchImpl);
@@ -293,7 +294,7 @@ export async function runConnectorSync(
       const cos = await tx.select().from(companies);
       const mapped = opts?.companyId ? cos.filter((c) => c.id === opts.companyId) : cos;
       let ingested = 0;
-      if (kind === "onedrive") ingested = await syncOnedrive(tx, orgId, secrets, mapped, fetchImpl, parse);
+      if (kind === "onedrive") ingested = await syncOnedrive(tx, orgId, secrets, mapped, fetchImpl, pendingParse);
       else if (kind === "affinity") ingested = await syncAffinity(tx, orgId, secrets, mapped, fetchImpl);
       else ingested = await syncGranola(tx, orgId, secrets, mapped, fetchImpl);
 
@@ -308,16 +309,24 @@ export async function runConnectorSync(
           sealedCredentials: row.sealedCredentials ? nextSealed : row.sealedCredentials,
         })
         .where(eq(connectors.id, row.id));
-      return { status: "connected", ingested };
+      return { status: "connected" as const, ingested };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await tx
         .update(connectors)
         .set({ status: "error", lastError: message })
         .where(eq(connectors.id, row.id));
-      return { status: "error", ingested: 0, error: message };
+      return { status: "error" as const, ingested: 0, error: message };
     }
   });
+  // Parse after commit — runParseJob opens its own withOrg() and cannot see
+  // uncommitted documents from the sync transaction.
+  if (parse && result.status === "connected") {
+    for (const documentId of pendingParse) {
+      await runParseJob(orgId, documentId);
+    }
+  }
+  return result;
 }
 
 async function syncOnedrive(
@@ -326,7 +335,7 @@ async function syncOnedrive(
   secrets: ConnectorSecrets,
   cos: { id: string; onedriveFolderId: string | null; onedriveFolderPath: string | null }[],
   fetchImpl: FetchLike,
-  parse: boolean,
+  pendingParse: string[],
 ): Promise<number> {
   const targets = cos.filter((c) => c.onedriveFolderId || c.onedriveFolderPath);
   if (!targets.length) return 0;
@@ -366,7 +375,7 @@ async function syncOnedrive(
           externalId: art.externalId,
         })
         .returning();
-      if (doc && parse) await runParseJob(orgId, doc.id);
+      if (doc) pendingParse.push(doc.id);
       ingested += 1;
     }
     await upsertCursor(tx, orgId, "onedrive", co.id, listed.cursor ?? null);
