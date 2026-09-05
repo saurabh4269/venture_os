@@ -1,22 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { LandingShell } from "./LandingChrome";
+import { HeroAtmosphere } from "./HeroAtmosphere";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { LandingShell } from "./LandingChrome";
-
-function CommandMock() {
-  return (
-    <div className="mkt-command-card" aria-hidden="true">
-      <div className="mkt-command-label">Command active</div>
-      <div className="mkt-kpi-chip">
-        <div className="src">Schematic — not live data</div>
-        <div className="v">Every figure needs a cite</div>
-      </div>
-    </div>
-  );
-}
 
 export function MarketingLanding() {
   const heroRef = useRef<HTMLElement>(null);
@@ -56,7 +50,8 @@ export function MarketingLanding() {
 
   return (
     <LandingShell>
-      <main id="main">
+      <main id="main" className="relative">
+        <HeroAtmosphere />
         <section className="mkt-hero" ref={heroRef}>
           <div className="mkt-hero-copy">
             <h1>
@@ -66,64 +61,86 @@ export function MarketingLanding() {
               Portfolio OS that refuses to invent numbers. Precision-engineered for conviction.
             </p>
             <div className="mkt-hero-ctas">
-              <Link href="/signup" className="btn" data-testid="landing-get-started">
-                Get Started <span aria-hidden>+</span>
-              </Link>
-              <Link href="/login" className="btn ghost" data-testid="landing-log-in">
-                Log in
-              </Link>
+              <Button asChild size="lg" data-testid="landing-get-started">
+                <Link href="/signup">Get Started +</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" data-testid="landing-log-in">
+                <Link href="/login">Log in</Link>
+              </Button>
             </div>
           </div>
           <div className="mkt-hero-visual">
-            <CommandMock />
+            <Card className="mkt-command-card shadow-md">
+              <CardHeader className="pb-2">
+                <Badge variant="secondary" className="w-fit text-[10px] uppercase tracking-wider">
+                  Command active
+                </Badge>
+              </CardHeader>
+              <CardContent>
+                <Card className="absolute bottom-5 right-5 w-56 shadow-sm">
+                  <CardContent className="p-3 text-sm">
+                    <p className="text-muted-foreground text-xs">Schematic — not live data</p>
+                    <p className="font-medium">Every figure needs a cite</p>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
             <p className="mkt-schematic">Schematic of Command — not a live book.</p>
           </div>
         </section>
 
         <section className="mkt-feature-row" id="platform" aria-label="Platform principles">
-          <article className="mkt-feature-card">
-            <div className="mkt-feature-ico emerald" aria-hidden>✓</div>
-            <h3>Cite Everything</h3>
-            <p>Every figure needs a source document and locator. Missing stays —.</p>
-          </article>
-          <article className="mkt-feature-card">
-            <div className="mkt-feature-ico gray" aria-hidden>—</div>
-            <h3>Dash, Not Zero.</h3>
-            <p>Null stays null. We never coerce a blank into zero or a health score.</p>
-          </article>
-          <article className="mkt-feature-card">
-            <div className="mkt-feature-ico violet" aria-hidden>🔒</div>
-            <h3>Secure Vault.</h3>
-            <p>Connector keys are AES-encrypted at rest. Not connected until healthCheck.</p>
-          </article>
+          {[
+            { icon: "✓", tone: "emerald", title: "Cite Everything", body: "Every figure needs a source document and locator. Missing stays —." },
+            { icon: "—", tone: "gray", title: "Dash, Not Zero.", body: "Null stays null. We never coerce a blank into zero or a health score." },
+            { icon: "🔒", tone: "violet", title: "Secure Vault.", body: "Connector keys are AES-encrypted at rest. Not connected until healthCheck." },
+          ].map((f) => (
+            <motion.div key={f.title} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+              <Card className="mkt-feature-card h-full text-center">
+                <CardContent className="pt-8">
+                  <div className={`mkt-feature-ico ${f.tone}`} aria-hidden>{f.icon}</div>
+                  <CardTitle className="font-serif text-xl">{f.title}</CardTitle>
+                  <p className="text-muted-foreground mt-2 text-sm">{f.body}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </section>
 
         <section className="mkt-section" id="insights">
           <h2>Precision Architecture.</h2>
           <p className="lede mkt-lede">Tools designed to surface verifiable truth, immediately.</p>
           <div className="mkt-arch-grid">
-            <article className="mkt-arch-card">
-              <h3>Omnipresent Command</h3>
-              <div className="mkt-search-mock">
-                <span>Acme Corp Q3 Burn Rate</span>
-                <kbd>⌘K</kbd>
-              </div>
-              <div className="mkt-loading-mock">
-                <span aria-hidden>◌</span>
-                Searching unstructured filings…
-              </div>
-            </article>
-            <article className="mkt-arch-card">
-              <h3>Review updates instantly.</h3>
-              <div className="mkt-inbox-mock">
-                <strong>Financial Update: your company</strong>
-                <span style={{ color: "var(--muted)", fontSize: 13 }}>Parser output — confirm before it posts.</span>
-              </div>
-              <div className="mkt-inbox-actions">
-                <span className="btn sm">Agree</span>
-                <span className="btn ghost sm">Reject</span>
-              </div>
-            </article>
+            <Card className="mkt-arch-card">
+              <CardHeader>
+                <CardTitle className="font-serif">Omnipresent Command</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mkt-search-mock">
+                  <span>Acme Corp Q3 Burn Rate</span>
+                  <kbd>⌘K</kbd>
+                </div>
+                <div className="mkt-loading-mock">
+                  <span aria-hidden>◌</span>
+                  Searching unstructured filings…
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="mkt-arch-card">
+              <CardHeader>
+                <CardTitle className="font-serif">Review updates instantly.</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mkt-inbox-mock">
+                  <strong>Financial Update: your company</strong>
+                  <span className="text-muted-foreground text-sm">Parser output — confirm before it posts.</span>
+                </div>
+                <div className="mkt-inbox-actions">
+                  <Button size="sm">Agree</Button>
+                  <Button size="sm" variant="outline">Reject</Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
 
@@ -133,26 +150,28 @@ export function MarketingLanding() {
               <h2>Ask. Refuse.</h2>
               <p>This AI refuses to generate answers it cannot verify.</p>
             </div>
-            <div className="mkt-chat-mock" aria-hidden="true">
-              <div className="mkt-chat-q">What was the post-money valuation of series B?</div>
-              <div className="mkt-chat-a">
-                The Series B post-money valuation was $250M.
-                <span className="cite-inline">CITE</span>
-              </div>
-              <div className="mkt-chat-src">Illustration only — not portfolio data.</div>
-            </div>
+            <Card className="mkt-chat-mock border-zinc-800 bg-zinc-900 text-white">
+              <CardContent className="p-6">
+                <div className="mkt-chat-q">What was the post-money valuation of series B?</div>
+                <div className="mkt-chat-a">
+                  The Series B post-money valuation was $250M.
+                  <Badge className="ml-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">CITE</Badge>
+                </div>
+                <Separator className="my-3 bg-zinc-700" />
+                <div className="text-xs text-zinc-400">Illustration only — not portfolio data.</div>
+              </CardContent>
+            </Card>
           </div>
         </section>
 
         <section className="mkt-section" id="pricing">
           <h2>Talk to us. No public price list.</h2>
           <p className="lede mkt-lede">
-            Venture OS is with design partners first. Get started and we will discuss whether the book fits your
-            firm.
+            Venture OS is with design partners first. Get started and we will discuss whether the book fits your firm.
           </p>
           <div className="mkt-hero-ctas">
-            <Link href="/signup" className="btn">Get Started</Link>
-            <Link href="/login" className="btn ghost">Log in</Link>
+            <Button asChild><Link href="/signup">Get Started</Link></Button>
+            <Button asChild variant="outline"><Link href="/login">Log in</Link></Button>
           </div>
         </section>
 

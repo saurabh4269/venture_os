@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
 import { safeNextPath } from "@venture-os/config/paths";
 import { api } from "@/lib/api";
@@ -10,6 +11,10 @@ import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm 
 import { type Me } from "@/lib/auth-client";
 import { AuthFrame } from "@/components/BookUI";
 import { friendlyAuthError } from "@/lib/roles";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 function LoginForm() {
   const router = useRouter();
@@ -34,30 +39,15 @@ function LoginForm() {
     setErr("");
     const fields = readAuthForm(e.currentTarget);
     const policy = passwordLengthError(fields.password);
-    if (policy) {
-      setErr(policy);
-      return;
-    }
-    if (!fields.email) {
-      setErr("Enter your work email.");
-      return;
-    }
+    if (policy) { setErr(policy); return; }
+    if (!fields.email) { setErr("Enter your work email."); return; }
     setBusy(true);
     try {
-      const res = await postAuthEmail("/api/auth/sign-in/email", {
-        email: fields.email,
-        password: fields.password,
-      });
-      if (!res.ok) {
-        setErr(friendlyAuthError(res.message));
-        return;
-      }
+      const res = await postAuthEmail("/api/auth/sign-in/email", { email: fields.email, password: fields.password });
+      if (!res.ok) { setErr(friendlyAuthError(res.message)); return; }
       const me = await api<Me>("/api/me");
       const dest = destinationAfterAuth(me, next);
-      if (!dest.ok) {
-        setErr(dest.message);
-        return;
-      }
+      if (!dest.ok) { setErr(dest.message); return; }
       router.push(dest.to);
     } catch (ex) {
       setErr(friendlyAuthError(ex instanceof Error ? ex.message : "Could not sign in"));
@@ -67,76 +57,66 @@ function LoginForm() {
   }
 
   return (
-    <AuthFrame
-      tab="signin"
-      footer={
-        <p className="auth-signup-link">
-          Don&apos;t have an account? <Link href="/signup">Sign up</Link>
-        </p>
-      }
-    >
-      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14 }} noValidate>
-        <label className="field" htmlFor="email">
-          Email address
-          <input
-            id="email"
-            name="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            autoComplete="username"
-            placeholder="founder@startup.com"
-            data-testid="login-email"
-            required
-          />
-        </label>
-        <label className="field" htmlFor="password">
-          <span className="field-hint">
-            Password
-            <span className="auth-forgot" title="Password reset by email is not connected">
-              Forgot password?
-            </span>
-          </span>
-          <input
-            id="password"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            minLength={MIN_PASSWORD_LENGTH}
-            maxLength={MAX_PASSWORD_LENGTH}
-            data-testid="login-password"
-            required
-          />
-        </label>
-        {err && (
-          <div className="sev-high" role="alert">
-            {err}
-          </div>
-        )}
-        <button className="btn" type="submit" disabled={busy} data-testid="login-submit" style={{ width: "100%" }}>
-          {busy ? "Signing in…" : "Sign In"}
-        </button>
-        {params.get("id") ? (
-          <p className="lede">
-            <Link href={`/invite?id=${params.get("id")}`}>Return to invite</Link>
-          </p>
-        ) : null}
-      </form>
+    <AuthFrame tab="signin">
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+        <Card className="border-0 shadow-none">
+          <CardContent className="pt-0">
+            <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  autoComplete="username"
+                  placeholder="founder@startup.com"
+                  data-testid="login-email"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <span className="auth-forgot text-xs" title="Password reset by email is not connected">Forgot password?</span>
+                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  autoComplete="current-password"
+                  minLength={MIN_PASSWORD_LENGTH}
+                  maxLength={MAX_PASSWORD_LENGTH}
+                  data-testid="login-password"
+                  required
+                />
+              </div>
+              {err && <div className="sev-high text-sm" role="alert">{err}</div>}
+              <Button type="submit" disabled={busy} className="w-full" data-testid="login-submit">
+                {busy ? "Signing in…" : "Sign In"}
+              </Button>
+              {params.get("id") ? (
+                <p className="lede text-sm"><Link href={`/invite?id=${params.get("id")}`}>Return to invite</Link></p>
+              ) : null}
+            </form>
+          </CardContent>
+          <CardFooter className="justify-center border-t pt-4">
+            <p className="text-sm text-muted-foreground">
+              Don&apos;t have an account? <Link href="/signup" className="font-medium text-foreground">Sign up</Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </motion.div>
     </AuthFrame>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <AuthFrame tab="signin">
-          <p className="lede">Loading…</p>
-        </AuthFrame>
-      }
-    >
+    <Suspense fallback={<AuthFrame tab="signin"><p className="lede">Loading…</p></AuthFrame>}>
       <LoginForm />
     </Suspense>
   );

@@ -55,6 +55,18 @@ Conflict rule: Gargi brief wins on product behavior; architecture docs win on st
 - Marketing hero: GSAP fade-in (`prefers-reduced-motion` respected)
 - App panels: framer-motion optional on future passes
 
+## Libraries (required handoff)
+
+| Library | Use |
+| --- | --- |
+| **shadcn/ui** | `button`, `card`, `badge`, `tabs`, `dialog`, `alert-dialog`, `sheet`, `tooltip`, `separator`, `skeleton`, `input`, `label`, `dropdown-menu`, `scroll-area`, `table`, `sonner` — app chrome, auth forms, Command |
+| **lucide-react** | Icon rail, search, marketing + shell icons |
+| **GSAP + ScrollTrigger** | Marketing landing scroll + hero entrance |
+| **framer-motion** | App page transitions (`Shell`), auth card, feature cards |
+| **@react-three/fiber + drei + three** | `HeroAtmosphere` soft wireframe mesh (disabled when `prefers-reduced-motion`) |
+
+Installed in `apps/web/package.json`. Init via `components.json` + `npx shadcn@latest init`.
+
 ## Files
 
 - Tokens: `apps/web/src/app/globals.css`, `packages/ui/src/index.ts`

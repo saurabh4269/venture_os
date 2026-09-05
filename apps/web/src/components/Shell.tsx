@@ -2,8 +2,35 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
-import { HelpCircle, Search } from "lucide-react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Inbox,
+  Flag,
+  Building2,
+  MessageCircleQuestion,
+  TrendingUp,
+  BarChart3,
+  FileText,
+  Vault,
+  Settings,
+  HelpCircle,
+  Search,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
@@ -12,18 +39,6 @@ import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
 import { WakingBook } from "@/components/WakingBook";
 import { UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { isWakeError, WAKING_COPY } from "@/lib/wake";
-import {
-  IconAsk,
-  IconCommand,
-  IconCompanies,
-  IconCompare,
-  IconFlags,
-  IconInbox,
-  IconNav,
-  IconReports,
-  IconSettings,
-  IconVault,
-} from "@/components/Icons";
 
 type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean; ready: boolean };
 const BookSessionContext = createContext<BookSession>({
@@ -73,35 +88,16 @@ export function useBookSession(): BookSession {
 }
 
 const NAV = [
-  { href: "/command", label: "Command", Icon: IconCommand },
-  { href: "/inbox", label: "Inbox", Icon: IconInbox },
-  { href: "/flags", label: "Flags", Icon: IconFlags },
-  { href: "/companies", label: "Companies", Icon: IconCompanies },
-  { href: "/ask", label: "Ask", Icon: IconAsk },
-  { href: "/nav", label: "NAV", Icon: IconNav },
-  { href: "/compare", label: "Compare", Icon: IconCompare },
-  { href: "/reports", label: "Reports", Icon: IconReports },
-  { href: "/vault", label: "Vault", Icon: IconVault },
+  { href: "/command", label: "Command", Icon: LayoutDashboard },
+  { href: "/inbox", label: "Inbox", Icon: Inbox },
+  { href: "/flags", label: "Flags", Icon: Flag },
+  { href: "/companies", label: "Companies", Icon: Building2 },
+  { href: "/ask", label: "Ask", Icon: MessageCircleQuestion },
+  { href: "/nav", label: "NAV", Icon: TrendingUp },
+  { href: "/compare", label: "Compare", Icon: BarChart3 },
+  { href: "/reports", label: "Reports", Icon: FileText },
+  { href: "/vault", label: "Vault", Icon: Vault },
 ] as const;
-
-function RailLink({
-  href,
-  label,
-  Icon,
-  active,
-}: {
-  href: string;
-  label: string;
-  Icon: ComponentType<{ className?: string }>;
-  active: boolean;
-}) {
-  return (
-    <Link href={href} title={label} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
-      <Icon className="nav-ico" />
-      <span className="sr-only">{label}</span>
-    </Link>
-  );
-}
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -116,7 +112,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [searchQ, setSearchQ] = useState("");
-  const [orgOpen, setOrgOpen] = useState(false);
 
   const alive = useRef(true);
 
@@ -125,9 +120,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     setRetrying(true);
     Promise.all([
       api<Me>("/api/me"),
-      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
-        orgs: [],
-      })),
+      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
     ])
       .then(([m, o]) => {
         if (!alive.current) return;
@@ -160,9 +153,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     alive.current = true;
-    const slow = window.setTimeout(() => {
-      setWake((w) => (w === "loading" ? "slow" : w));
-    }, 2500);
+    const slow = window.setTimeout(() => setWake((w) => (w === "loading" ? "slow" : w)), 2500);
     loadSession();
     return () => {
       alive.current = false;
@@ -177,9 +168,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       await api("/api/orgs/select", { method: "POST", body: JSON.stringify({ organizationId: id }) });
       const [m, o] = await Promise.all([
         api<Me>("/api/me"),
-        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
-          orgs: [],
-        })),
+        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
       ]);
       setMe(m);
       setOrgs(o.orgs);
@@ -204,8 +193,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   function onSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = searchQ.trim();
-    if (!q) return;
-    router.push(`/companies?q=${encodeURIComponent(q)}`);
+    if (q) router.push(`/companies?q=${encodeURIComponent(q)}`);
   }
 
   const fixture =
@@ -226,72 +214,116 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const railLink = (n: (typeof NAV)[number]) => {
+    const active = path.startsWith(n.href);
+    return (
+      <Tooltip key={n.href}>
+        <TooltipTrigger asChild>
+          <Link
+            href={n.href}
+            className={`grid size-10 place-items-center rounded-md transition-colors ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            aria-current={active ? "page" : undefined}
+          >
+            <n.Icon className="size-[18px]" />
+            <span className="sr-only">{n.label}</span>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right">{n.label}</TooltipContent>
+      </Tooltip>
+    );
+  };
+
   return (
     <div className="app" data-testid="shell-ready">
       <a href="#main" className="skip-link">Skip to book</a>
-      <aside className="rail" aria-label="Primary navigation">
+      <aside className="rail hidden md:flex" aria-label="Primary navigation">
         <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
-        <nav className="nav" aria-label="Rituals">
-          {NAV.map((n) => (
-            <RailLink
-              key={n.href}
-              href={n.href}
-              label={n.label}
-              Icon={n.Icon}
-              active={path.startsWith(n.href)}
-            />
-          ))}
-        </nav>
+        <nav className="nav flex flex-col items-center gap-1">{NAV.map(railLink)}</nav>
         <div className="rail-spacer" />
         <div className="rail-foot">
-          <Link href="/settings" title="Settings" className={path.startsWith("/settings") ? "active" : ""}>
-            <IconSettings className="nav-ico" />
-          </Link>
-          <button type="button" title="Account" onClick={() => setOrgOpen((v) => !v)} aria-expanded={orgOpen}>
-            <span className="rail-avatar">{initial}</span>
-          </button>
-          {orgOpen ? (
-            <div className="org-menu" style={{ position: "fixed", bottom: 72, left: 56 }}>
-              {orgs.length > 1 ? (
-                <select
-                  value={me?.org?.id ?? ""}
-                  onChange={(e) => switchOrg(e.target.value)}
-                  aria-label="Organisation"
-                >
-                  {orgs.map((o) => (
-                    <option key={o.id} value={o.id}>{o.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="who">{me?.org?.name}</div>
-              )}
-              <div className="who-meta">{roleLabel(me?.role)}</div>
-              <button className="btn ghost sm" type="button" onClick={signOut} style={{ width: "100%", marginTop: 8 }}>
-                Sign out
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/settings" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted">
+                <Settings className="size-[18px]" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Settings</TooltipContent>
+          </Tooltip>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" title="Account" aria-label="Account" className="grid size-10 place-items-center rounded-md">
+                <span className="rail-avatar">{initial}</span>
               </button>
-            </div>
-          ) : null}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="who">{me?.user?.name}</div>
+                <div className="who-meta text-xs text-muted-foreground">{roleLabel(me?.role)}</div>
+              </DropdownMenuLabel>
+              {orgs.length > 1 && (
+                <>
+                  <DropdownMenuSeparator />
+                  {orgs.map((o) => (
+                    <DropdownMenuItem key={o.id} onClick={() => switchOrg(o.id)}>
+                      {o.name}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
+
       <div className="app-body">
         <header className="topbar">
-          <span className="topbar-title">Venture OS</span>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon-sm" className="md:hidden" aria-label="Open navigation">
+                <LayoutDashboard className="size-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64">
+              <SheetHeader><SheetTitle>Venture OS</SheetTitle></SheetHeader>
+              <nav className="flex flex-col gap-1 mt-4">
+                {NAV.map((n) => (
+                  <Link key={n.href} href={n.href} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
+                    <n.Icon className="size-4" /> {n.label}
+                  </Link>
+                ))}
+                <Separator className="my-2" />
+                <Link href="/settings" className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
+                  <Settings className="size-4" /> Settings
+                </Link>
+                <Button variant="ghost" className="justify-start" onClick={signOut}>Sign out</Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
+          <span className="topbar-title hidden sm:inline">Venture OS</span>
           <form className="topbar-search" onSubmit={onSearch} role="search">
-            <Search size={16} aria-hidden />
-            <input
+            <Search className="size-4" aria-hidden />
+            <Input
               type="search"
               placeholder="Search companies, flags, or reports…"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
+              className="rounded-full bg-muted/50 pl-9"
               aria-label="Search"
             />
           </form>
           <div className="topbar-actions">
-            <Link href="/security" className="topbar-icon" title="Methodology">
-              <HelpCircle size={18} />
-            </Link>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" asChild>
+                  <Link href="/security"><HelpCircle className="size-4" /></Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Methodology</TooltipContent>
+            </Tooltip>
             {canWrite ? (
-              <Link href="/companies/new" className="btn sm">Create</Link>
+              <Button size="sm" asChild><Link href="/companies/new">Create</Link></Button>
             ) : null}
           </div>
         </header>
@@ -303,28 +335,30 @@ export function Shell({ children }: { children: React.ReactNode }) {
           )}
           <Pipeline
             current={
-              path.startsWith("/inbox")
-                ? "proposed"
-                : path.startsWith("/vault") || path.startsWith("/companies/new")
-                  ? "source"
-                  : path.startsWith("/flags")
-                    ? "reviewed"
-                    : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
-                      ? "analysis"
-                      : "book"
+              path.startsWith("/inbox") ? "proposed"
+                : path.startsWith("/vault") || path.startsWith("/companies/new") ? "source"
+                : path.startsWith("/flags") ? "reviewed"
+                : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare") ? "analysis"
+                : "book"
             }
           />
           <div className="sr-only" aria-live="polite">{orgLive}</div>
           <BookSessionContext.Provider
-            value={{
-              me,
-              canWrite,
-              isAdmin: isAdminRole(me?.role),
-              canLock: isLockRole(me?.role),
-              ready: true,
-            }}
+            value={{ me, canWrite, isAdmin: isAdminRole(me?.role), canLock: isLockRole(me?.role), ready: true }}
           >
-            <CiteProvider>{children}</CiteProvider>
+            <CiteProvider>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={path}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
+            </CiteProvider>
           </BookSessionContext.Provider>
         </main>
       </div>
@@ -362,14 +396,10 @@ export function Fact({
     <span className="fact">
       {value}
       {isFact && open ? (
-        <button type="button" className="cite" onClick={open} aria-label="Open citation">
-          Cite
-        </button>
+        <button type="button" className="cite" onClick={open} aria-label="Open citation">Cite</button>
       ) : null}
       {note ? (
-        <span className="lede" style={{ display: "block", width: "100%", marginTop: 2 }}>
-          {note}
-        </span>
+        <span className="lede block w-full mt-0.5">{note}</span>
       ) : null}
     </span>
   );

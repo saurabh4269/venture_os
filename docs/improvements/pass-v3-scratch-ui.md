@@ -11,7 +11,14 @@
 - Command SoT: icon rail, KPI strip with `—` on empty counts, Pipeline Activity, Ask OS panel
 - Book paper/forest superseded — see `docs/design/stitch-v3/V3_SCRATCH.md`
 
-## Preserved
+## Libraries (installed & used)
+
+- shadcn/ui components under `src/components/ui/` — Shell, login, Command, marketing CTAs
+- lucide-react — replaces custom SVG rail icons in `Shell`
+- GSAP + ScrollTrigger — `MarketingLanding` hero + scroll reveals
+- framer-motion — `Shell` route transitions, login/signup motion
+- R3F/Three — `HeroAtmosphere.tsx` on landing (reduced-motion safe)
+
 
 - Better Auth, BFF `/api/me` no-store, anonymous landing first paint (PR #10 invariant)
 - HITL inbox, cite drawer, connector vault contracts, dual commentary lanes

@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG } from "@venture-os/core";
-import { CompanyMark, EM, Panel } from "@/components/BookUI";
+import { CompanyMark, EM } from "@/components/BookUI";
 import { AskOsPanel } from "@/components/AskOsPanel";
 import { IconFlagSmall, IconWarn } from "@/components/Icons";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Pulse = {
   pulse: {
@@ -25,26 +31,20 @@ type Pulse = {
   };
   coverage: {
     company: { id: string; name: string; stage: string | null };
-    cash: { display: string; isFact: boolean };
-    burn: { display: string; isFact: boolean };
-    runway: { display: string; isFact: boolean };
     lastMis: string | null;
-    ownershipPct: number | null;
     openFlags: number;
   }[];
 };
 
 type ConnectorRow = { kind: string; lastSyncAt?: string };
-
-const PIPELINE_STAGES = ["SOURCE", "PROPOSED", "REVIEWED", "BOOK", "ANALYSIS"] as const;
-type PipelineStage = (typeof PIPELINE_STAGES)[number];
+type PipelineStage = "SOURCE" | "PROPOSED" | "REVIEWED" | "BOOK" | "ANALYSIS";
 
 function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
 }
 
-function deriveStage(row: Pulse["coverage"][number], inboxNames: Set<string>): PipelineStage {
-  if (inboxNames.has(row.company.id)) return "PROPOSED";
+function deriveStage(row: Pulse["coverage"][number], inboxCompanyIds: Set<string>): PipelineStage {
+  if (inboxCompanyIds.has(row.company.id)) return "PROPOSED";
   if (row.openFlags > 0) return "REVIEWED";
   if (row.lastMis) return "BOOK";
   return "SOURCE";
@@ -56,12 +56,22 @@ function relativeUpdated(iso: string | null) {
   const h = Math.floor(diff / 3_600_000);
   if (h < 1) return "<1h ago";
   if (h < 48) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 function fmtCount(n: number) {
   return n > 0 ? String(n) : EM;
+}
+
+function KpiCard({ label, value, loading }: { label: string; value: string; loading?: boolean }) {
+  return (
+    <Card>
+      <CardContent className="pt-4">
+        <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{label}</p>
+        {loading ? <Skeleton className="mt-2 h-8 w-16" /> : <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function CommandPage() {
@@ -87,9 +97,7 @@ export default function CommandPage() {
       .finally(() => setBusy(false));
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const inboxCompanyIds = useMemo(() => {
     if (!data) return new Set<string>();
@@ -101,20 +109,14 @@ export default function CommandPage() {
     if (!data) return [];
     return [
       ...data.needsALook.inbox.map((i) => ({
-        id: `inbox-${i.id}`,
-        href: "/inbox",
-        company: i.companyName,
+        id: `inbox-${i.id}`, href: "/inbox", company: i.companyName,
         copy: `Inbox ${i.kind.replaceAll("_", " ")} — confirm before it posts.`,
-        severity: "med" as const,
-        cite: false,
+        severity: "med" as const, cite: false,
       })),
       ...data.needsALook.flags.map((f) => ({
-        id: `flag-${f.id}`,
-        href: "/flags",
-        company: f.companyName,
+        id: `flag-${f.id}`, href: "/flags", company: f.companyName,
         copy: `${flagLabel(f.flagKey)} (${f.severity}).`,
-        severity: f.severity === "high" ? ("high" as const) : ("med" as const),
-        cite: true,
+        severity: f.severity === "high" ? ("high" as const) : ("med" as const), cite: true,
       })),
     ];
   }, [data]);
@@ -122,16 +124,13 @@ export default function CommandPage() {
   const pipeline = useMemo(() => {
     if (!data) return [];
     return [...data.coverage]
-      .map((r) => ({
-        ...r,
-        pipelineStage: deriveStage(r, inboxCompanyIds),
-        updated: relativeUpdated(r.lastMis),
-      }))
+      .map((r) => ({ ...r, pipelineStage: deriveStage(r, inboxCompanyIds), updated: relativeUpdated(r.lastMis) }))
       .sort((a, b) => (b.lastMis ?? "").localeCompare(a.lastMis ?? ""))
       .slice(0, 8);
   }, [data, inboxCompanyIds]);
 
   const needsLook = look.length;
+  const loading = !data && !err;
 
   return (
     <Shell>
@@ -141,124 +140,106 @@ export default function CommandPage() {
           <p className="lede">Is the book current, and what needs a human?</p>
         </div>
         <div className="page-actions">
-          <button className="btn ghost sm" type="button" onClick={load} disabled={busy}>
+          <Button variant="outline" size="sm" type="button" onClick={load} disabled={busy}>
             {busy ? "Refreshing…" : "Refresh"}
-          </button>
+          </Button>
         </div>
       </header>
       {err && <p className="sev-high" role="alert">{err}</p>}
-      {!data && !err && <p className="lede" aria-live="polite">Loading the book…</p>}
+
+      <div className="command-kpis mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard label="Companies" value={data ? fmtCount(data.pulse.companies) : EM} loading={loading} />
+        <KpiCard label="Open flags" value={data ? fmtCount(data.pulse.openFlags) : EM} loading={loading} />
+        <KpiCard label="Needs look" value={data ? fmtCount(needsLook) : EM} loading={loading} />
+        <KpiCard label="Last sync" value={data ? (lastSync ? relativeUpdated(lastSync) : EM) : EM} loading={loading} />
+      </div>
+
       {data && (
-        <>
-          <div className="cards cards-4 command-kpis">
-            <div className="kpi">
-              <div className="k">Companies</div>
-              <div className="v">{fmtCount(data.pulse.companies)}</div>
-            </div>
-            <div className="kpi">
-              <div className="k">Open flags</div>
-              <div className="v">{fmtCount(data.pulse.openFlags)}</div>
-            </div>
-            <div className="kpi">
-              <div className="k">Needs look</div>
-              <div className="v">{fmtCount(needsLook)}</div>
-            </div>
-            <div className="kpi">
-              <div className="k">Last sync</div>
-              <div className="v" style={{ fontSize: lastSync ? 20 : 28 }}>
-                {lastSync ? relativeUpdated(lastSync) : EM}
-              </div>
-            </div>
-          </div>
-
-          <div className="command-home-grid">
-            <Panel title={`Needs a Look${needsLook > 0 ? ` · ${needsLook}` : ""}`}>
+        <div className="command-home-grid">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="font-serif text-lg">
+                Needs a Look{needsLook > 0 ? ` · ${needsLook}` : ""}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               {look.length === 0 ? (
-                <div className="empty" style={{ boxShadow: "none" }}>
-                  {data.pulse.companies === 0
-                    ? "Empty book — nothing yet needs a look."
-                    : "No pending inbox rows or open flags."}
-                </div>
+                <p className="text-muted-foreground text-sm">
+                  {data.pulse.companies === 0 ? "Empty book — nothing yet needs a look." : "No pending inbox rows or open flags."}
+                </p>
               ) : (
-                <div className="look-list">
-                  {look.map((item) => (
-                    <div className="look-item" key={item.id}>
-                      {item.severity === "high" ? (
-                        <IconWarn className="nav-ico look-ico high" />
-                      ) : (
-                        <IconFlagSmall className="nav-ico look-ico" />
-                      )}
-                      <div>
-                        <Link className="look-title company-link" href={item.href}>{item.company}</Link>
-                        <div className="look-copy">{item.copy}</div>
-                        {item.cite ? (
-                          <div className="look-chips">
-                            <span className="cite">Cite</span>
-                          </div>
-                        ) : null}
+                <ScrollArea className="max-h-80">
+                  <div className="look-list">
+                    {look.map((item) => (
+                      <div className="look-item" key={item.id}>
+                        {item.severity === "high" ? <IconWarn className="nav-ico look-ico high" /> : <IconFlagSmall className="nav-ico look-ico" />}
+                        <div>
+                          <Link className="look-title company-link font-medium" href={item.href}>{item.company}</Link>
+                          <div className="look-copy text-muted-foreground text-sm">{item.copy}</div>
+                          {item.cite ? <Badge className="mt-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Cite</Badge> : null}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Panel>
-
-            <Panel title="Pipeline Activity" flush>
-              {pipeline.length === 0 ? (
-                <div className="panel-body">
-                  <div className="empty" style={{ boxShadow: "none" }}>No companies on the book yet.</div>
-                </div>
-              ) : (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Company</th>
-                      <th>Stage</th>
-                      <th>Source</th>
-                      <th>Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pipeline.map((r) => (
-                      <tr key={r.company.id}>
-                        <td>
-                          <div className="company-cell">
-                            <CompanyMark name={r.company.name} />
-                            <Link className="company-link" href={`/companies/${r.company.id}`}>
-                              {r.company.name}
-                            </Link>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`stage-chip${r.pipelineStage === "REVIEWED" ? " reviewed" : ""}`}>
-                            {r.pipelineStage}
-                          </span>
-                        </td>
-                        <td className="lede" style={{ fontSize: 13 }}>Book</td>
-                        <td className="num">{r.updated}</td>
-                      </tr>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </ScrollArea>
               )}
-            </Panel>
+            </CardContent>
+          </Card>
 
-            <AskOsPanel />
-          </div>
-
-          {data.pulse.companies === 0 && (
-            <div className="empty">
-              <strong>The book is empty</strong>
-              {canWrite ? (
-                <>
-                  <Link href="/companies/new">Add a company</Link> and upload the first MIS. No illustrative NAV.
-                </>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="font-serif text-lg">Pipeline Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {pipeline.length === 0 ? (
+                <p className="text-muted-foreground p-4 text-sm">No companies on the book yet.</p>
               ) : (
-                "Ask an Org Admin to add the first name."
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Stage</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead className="text-right">Updated</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pipeline.map((r) => (
+                      <TableRow key={r.company.id}>
+                        <TableCell>
+                          <div className="company-cell flex items-center gap-2">
+                            <CompanyMark name={r.company.name} />
+                            <Link className="company-link" href={`/companies/${r.company.id}`}>{r.company.name}</Link>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={r.pipelineStage === "REVIEWED" ? "default" : "secondary"}>{r.pipelineStage}</Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">Book</TableCell>
+                        <TableCell className="text-right tabular-nums">{r.updated}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
-            </div>
-          )}
-        </>
+            </CardContent>
+          </Card>
+
+          <AskOsPanel />
+        </div>
+      )}
+
+      {data?.pulse.companies === 0 && (
+        <Card className="mt-4">
+          <CardContent className="py-8 text-center">
+            <strong className="font-serif text-lg">The book is empty</strong>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {canWrite ? (
+                <><Link href="/companies/new" className="text-foreground underline">Add a company</Link> and upload the first MIS. No illustrative NAV.</>
+              ) : "Ask an Org Admin to add the first name."}
+            </p>
+          </CardContent>
+        </Card>
       )}
     </Shell>
   );

@@ -1,13 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Newsreader } from "next/font/google";
+import { Newsreader, Geist } from "next/font/google";
 import { RegisterPwa } from "@/components/RegisterPwa";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const sans = Inter({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
-  variable: "--font-sans",
-});
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const serif = Newsreader({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600"],
@@ -44,10 +43,13 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable}`}>
+    <html lang="en" className={cn(serif.variable, "font-sans", geist.variable)}>
       <body>
-        <RegisterPwa />
-        {children}
+        <TooltipProvider>
+          <RegisterPwa />
+          {children}
+          <Toaster richColors position="top-center" />
+        </TooltipProvider>
       </body>
     </html>
   );
