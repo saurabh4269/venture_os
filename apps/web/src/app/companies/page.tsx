@@ -22,11 +22,13 @@ function coverageKind(row: Coverage | undefined) {
 }
 
 function bookCloseLine(d = new Date()) {
-  const rest = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const rest = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   return `Portfolio companies · book as of ${rest}`;
 }
 
-function exportVisible(rows: { name: string; stage: string | null; sector: string | null; ownership: string; lastMis: string; flags: string; cover: string }[]) {
+function exportVisible(
+  rows: { name: string; stage: string | null; sector: string | null; ownership: string; lastMis: string; flags: string; cover: string }[],
+) {
   const header = ["Company", "Stage", "Sector", "Ownership", "Last MIS", "Flags", "Coverage"];
   const lines = [
     header.join(","),
@@ -80,22 +82,19 @@ export default function CompaniesPage() {
 
   return (
     <Shell>
-      <PageHead
-        title="Companies"
-        testId="companies-ready"
-        lede={bookCloseLine()}
-        actions={
-          <div className="row">
-            <label className="sr-only" htmlFor="co-search">
-              Search companies
-            </label>
-            <input
-              id="co-search"
-              placeholder="Search companies…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              style={{ minWidth: 200 }}
-            />
+      {rows.length > 0 && (
+        <div className="page-toolbar">
+          <label className="sr-only" htmlFor="co-search">
+            Search companies
+          </label>
+          <input
+            id="co-search"
+            className="look-search"
+            placeholder="Search companies…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <div className="toolbar-actions">
             {visible.length > 0 && (
               <button
                 type="button"
@@ -121,12 +120,19 @@ export default function CompaniesPage() {
                 Export
               </button>
             )}
-            {canWrite ? (
-              <Link className="btn" href="/companies/new">
-                Add company
-              </Link>
-            ) : null}
           </div>
+        </div>
+      )}
+      <PageHead
+        title="Companies"
+        testId="companies-ready"
+        lede={bookCloseLine()}
+        actions={
+          canWrite ? (
+            <Link className="btn" href="/companies/new">
+              Add company
+            </Link>
+          ) : undefined
         }
       />
       {err && (
@@ -135,10 +141,18 @@ export default function CompaniesPage() {
         </p>
       )}
       {rows.length > 0 && (
-        <div className="row" style={{ marginBottom: 14 }}>
-          <div className="tabs filter-pills" aria-label="Stage">
+        <div className="filter-bar">
+          <span className="page-kicker" style={{ margin: 0 }}>
+            Stage
+          </span>
+          <div className="tabs filter-pills" style={{ margin: 0 }} aria-label="Stage">
             {stages.map((s) => (
-              <button key={s} type="button" className={`filter-pill${stage === s ? " on" : ""}`} onClick={() => setStage(stage === s ? "" : s)}>
+              <button
+                key={s}
+                type="button"
+                className={`filter-pill${stage === s ? " on" : ""}`}
+                onClick={() => setStage(stage === s ? "" : s)}
+              >
                 {s}
               </button>
             ))}
@@ -163,7 +177,7 @@ export default function CompaniesPage() {
           {filtered && (
             <button
               type="button"
-              className="btn ghost sm"
+              className="linkish push"
               onClick={() => {
                 setQ("");
                 setStage("");
@@ -207,15 +221,12 @@ export default function CompaniesPage() {
                       <td>
                         <div className="company-cell">
                           <CompanyMark name={c.name} />
-                          <div>
-                            <Link className="company-link" href={`/companies/${c.id}`}>
-                              {c.name}
-                            </Link>
-                            {c.sector ? <div className="lede">{c.sector}</div> : null}
-                          </div>
+                          <Link className="company-link" href={`/companies/${c.id}`}>
+                            {c.name}
+                          </Link>
                         </div>
                       </td>
-                      <td>{c.stage ? <span className="badge">{c.stage}</span> : <span className="lede">{EM}</span>}</td>
+                      <td>{c.stage ?? EM}</td>
                       <td className="num">{formatOwnership(cov?.ownershipPct)}</td>
                       <td className="lede">{cov?.lastMis ?? EM}</td>
                       <td>
@@ -236,8 +247,8 @@ export default function CompaniesPage() {
           </div>
           <p className="table-foot">
             Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
-            {filtered ? " matching current filters" : ""}. Last MIS is booked — not a partner note. Coverage is Booked /
-            Gap / Review from evidence, never a score.
+            {filtered ? " matching current filters" : ""}. Last MIS is booked — the mock’s last-note line is not invented.
+            Coverage is Booked / Gap / Review, never a score. Column picker is not connected.
           </p>
         </Panel>
       )}

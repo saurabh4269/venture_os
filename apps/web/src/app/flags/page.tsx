@@ -32,6 +32,8 @@ type FlagPayload = {
   sourceRefs: { id: string; documentId: string }[];
 };
 
+type Commentary = { id: string; lane: string; body: string; periodEnd: string; createdAt?: string };
+
 const TABS = ["open", "snoozed", "muted"] as const;
 
 function evidenceEntries(ev: Record<string, unknown>) {
@@ -44,6 +46,21 @@ function sevClass(severity: string) {
   return "info";
 }
 
+function exportFlags(rows: Flag[], status: string) {
+  const header = ["Severity", "Company", "Reason", "Status", "Detected"];
+  const lines = [
+    header.join(","),
+    ...rows.map((f) =>
+      [f.severity, `"${f.companyName ?? ""}"`, `"${flagLabel(f.flagKey)}"`, status, f.detectedAt ?? ""].join(","),
+    ),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "flags.csv";
+  a.click();
+}
+
 export default function FlagsPage() {
   const { canWrite } = useBookSession();
   const [status, setStatus] = useState<(typeof TABS)[number]>("open");
@@ -53,6 +70,7 @@ export default function FlagsPage() {
   const [q, setQ] = useState("");
   const [data, setData] = useState<FlagPayload>({ flags: [], sourceRefs: [] });
   const [openId, setOpenId] = useState<string | null>(null);
+  const [take, setTake] = useState<Commentary | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -75,6 +93,39 @@ export default function FlagsPage() {
     load();
   }, [status, severity, companyId, flagKey]);
 
+  const visible = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return data.flags;
+    return data.flags.filter((f) => {
+      const hay = `${f.companyName ?? ""} ${flagLabel(f.flagKey)} ${f.flagKey}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [data.flags, q]);
+
+  const selected = visible.find((f) => f.id === openId) ?? null;
+
+  useEffect(() => {
+    if (!selected?.companyId) {
+      setTake(null);
+      return;
+    }
+    let cancelled = false;
+    api<{ commentary: Commentary[] }>(`/api/companies/${selected.companyId}`)
+      .then((r) => {
+        if (cancelled) return;
+        const latest = [...(r.commentary ?? [])]
+          .filter((n) => n.lane === "subjective" && n.body.trim())
+          .sort((a, b) => String(b.createdAt ?? b.periodEnd).localeCompare(String(a.createdAt ?? a.periodEnd)))[0];
+        setTake(latest ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setTake(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.companyId]);
+
   async function recompute() {
     setBusy(true);
     setErr("");
@@ -88,61 +139,70 @@ export default function FlagsPage() {
     }
   }
 
-  const visible = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return data.flags;
-    return data.flags.filter((f) => {
-      const hay = `${f.companyName ?? ""} ${flagLabel(f.flagKey)} ${f.flagKey}`.toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [data.flags, q]);
+  function snooze(id: string) {
+    return api(`/api/flags/${id}/snooze`, {
+      method: "POST",
+      body: JSON.stringify({ until: new Date(Date.now() + 14 * 86400000).toISOString() }),
+    }).then(() => load());
+  }
 
-  const selected = visible.find((f) => f.id === openId) ?? null;
+  function mute(id: string) {
+    return api(`/api/flags/${id}/mute`, { method: "POST", body: "{}" }).then(() => load());
+  }
 
   return (
     <Shell>
+      <div className="page-toolbar">
+        <label className="sr-only" htmlFor="flag-search">
+          Search flags
+        </label>
+        <input
+          id="flag-search"
+          className="look-search"
+          placeholder="Search companies, flags, citations…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <div className="toolbar-actions">
+          {visible.length > 0 && (
+            <button type="button" className="btn ghost sm" onClick={() => exportFlags(visible, status)}>
+              Export
+            </button>
+          )}
+          {canWrite ? (
+            <button className="btn ghost sm" onClick={recompute} disabled={busy}>
+              {busy ? "Recomputing…" : "Recompute"}
+            </button>
+          ) : null}
+        </div>
+      </div>
       <PageHead
         title="Flags"
         testId="flags-ready"
         lede="Evidence queue · open items require a cite. Catalog detectors only — missing inputs do not fire a flag."
-        actions={
-          <div className="row">
-            <label className="sr-only" htmlFor="flag-search">
-              Search flags
-            </label>
-            <input
-              id="flag-search"
-              placeholder="Search companies, flags…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              style={{ minWidth: 220 }}
-            />
-            {canWrite ? (
-              <button className="btn ghost" onClick={recompute} disabled={busy}>
-                {busy ? "Recomputing…" : "Recompute"}
-              </button>
-            ) : null}
-          </div>
-        }
       />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      <div className="tabs filter-pills" aria-label="Status">
-        {TABS.map((s) => (
-          <button key={s} type="button" className={`filter-pill${s === status ? " on" : ""}`} onClick={() => setStatus(s)}>
-            {s}
-          </button>
-        ))}
-      </div>
-      <div className="row" style={{ marginBottom: 12, flexWrap: "wrap" }}>
+      <div className="filter-bar">
         <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
           <option value="">Severity</option>
           <option value="high">high</option>
           <option value="med">med</option>
           <option value="low">low</option>
+        </select>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as (typeof TABS)[number])}
+          aria-label="Status"
+        >
+          {TABS.map((s) => (
+            <option key={s} value={s}>
+              Status: {s}
+            </option>
+          ))}
         </select>
         <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
           <option value="">Company</option>
@@ -160,7 +220,7 @@ export default function FlagsPage() {
             </option>
           ))}
         </select>
-        <span className="page-kicker" style={{ margin: 0 }}>
+        <span className="queue-count push">
           {visible.length} {visible.length === 1 ? "item" : "items"}
         </span>
       </div>
@@ -175,102 +235,65 @@ export default function FlagsPage() {
         <div className="empty">No flags match this search.</div>
       ) : (
         <div className="flags-split">
-          <div className="triage">
-            <div className="triage-row triage-head">
-              <div className="page-kicker">Severity</div>
-              <div className="page-kicker">Company</div>
-              <div className="page-kicker">Reason</div>
-              <div className="page-kicker hide-sm">Cite</div>
-              <div className="page-kicker hide-sm">Status</div>
-              <div className="page-kicker">Actions</div>
-            </div>
-            {visible.map((f) => {
-              const cites = f.sourceRefIds ?? [];
-              return (
-                <article
-                  className={`triage-row${openId === f.id ? " is-on" : ""}`}
-                  key={f.id}
-                  data-testid="flags-row"
-                >
-                  <div>
-                    <span className={`sev-pill ${sevClass(f.severity)}`}>{f.severity}</span>
-                  </div>
-                  <div>
-                    {f.companyId ? (
-                      <Link className="look-title company-link" href={`/companies/${f.companyId}`}>
-                        {f.companyName ?? "—"}
-                      </Link>
-                    ) : (
-                      <span className="look-title">{f.companyName ?? "—"}</span>
-                    )}
-                  </div>
-                  <div>
-                    <button
-                      type="button"
-                      className="look-title"
-                      style={{ background: "none", border: 0, padding: 0, textAlign: "left" }}
-                      onClick={() => setOpenId(f.id)}
-                    >
-                      {flagLabel(f.flagKey)}
-                    </button>
-                  </div>
-                  <div className="hide-sm">
-                    {cites.length === 0 ? (
-                      <span className="lede">—</span>
-                    ) : (
-                      <div className="row">
-                        {cites.map((id) => (
-                          <Fact key={id} display="source" isFact sourcePath={sourcePathFor(data.sourceRefs, id)} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="hide-sm">
-                    <span className="badge">{status}</span>
-                  </div>
-                  <div className="row">
-                    {canWrite && status === "open" && (
-                      <>
-                        <button
-                          className="btn ghost sm"
-                          type="button"
-                          onClick={() =>
-                            api(`/api/flags/${f.id}/snooze`, {
-                              method: "POST",
-                              body: JSON.stringify({ until: new Date(Date.now() + 14 * 86400000).toISOString() }),
-                            }).then(() => load())
-                          }
-                        >
-                          Snooze 14d
-                        </button>
-                        <button
-                          className="btn ghost sm"
-                          type="button"
-                          onClick={() => api(`/api/flags/${f.id}/mute`, { method: "POST", body: "{}" }).then(() => load())}
-                        >
-                          Mute
-                        </button>
-                      </>
-                    )}
-                    {canWrite && status !== "open" && (
-                      <button
-                        className="btn ghost sm"
-                        type="button"
-                        onClick={() => api(`/api/flags/${f.id}/unmute`, { method: "POST", body: "{}" }).then(() => load())}
+          <Panel flush>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Company</th>
+                    <th>Reason</th>
+                    <th className="hide-sm">Cite</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((f) => {
+                    const cites = f.sourceRefIds ?? [];
+                    return (
+                      <tr
+                        key={f.id}
+                        className={openId === f.id ? "is-on" : undefined}
+                        data-testid="flags-row"
+                        onClick={() => setOpenId(f.id)}
                       >
-                        Unmute / reopen
-                      </button>
-                    )}
-                    {f.companyId && (
-                      <Link className="lede" href={`/compare?companyIds=${f.companyId}`}>
-                        Compare
-                      </Link>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                        <td>
+                          <span className={`sev-dot ${sevClass(f.severity)}`}>
+                            <i />
+                            {f.severity}
+                          </span>
+                        </td>
+                        <td>
+                          {f.companyId ? (
+                            <Link className="company-link" href={`/companies/${f.companyId}`} onClick={(e) => e.stopPropagation()}>
+                              {f.companyName ?? "—"}
+                            </Link>
+                          ) : (
+                            f.companyName ?? "—"
+                          )}
+                        </td>
+                        <td>{flagLabel(f.flagKey)}</td>
+                        <td className="hide-sm">
+                          {cites.length === 0 ? (
+                            <span className="lede">—</span>
+                          ) : (
+                            <div className="row" onClick={(e) => e.stopPropagation()}>
+                              {cites.map((id) => (
+                                <Fact key={id} display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, id)} />
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <span className="badge">{status}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
           <Panel
             className="flag-detail"
             kicker={
@@ -295,8 +318,31 @@ export default function FlagsPage() {
                       ? `Detected ${new Date(selected.detectedAt).toLocaleString()}`
                       : "Detected time —"}
                   </p>
-                  <div className="lane-obj" style={{ marginTop: 14 }}>
-                    <div className="page-kicker">Objective evidence</div>
+                  {canWrite && (
+                    <div className="flag-actions">
+                      {status === "open" ? (
+                        <>
+                          <button className="btn" type="button" onClick={() => snooze(selected.id)}>
+                            Snooze 14d
+                          </button>
+                          <button className="btn ghost" type="button" onClick={() => mute(selected.id)}>
+                            Mute
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="btn ghost"
+                          type="button"
+                          onClick={() => api(`/api/flags/${selected.id}/unmute`, { method: "POST", body: "{}" }).then(() => load())}
+                        >
+                          Unmute / reopen
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <p className="analysis-kicker">Evidence</p>
+                  <div className="lane-obj">
+                    <div className="page-kicker">Objective fact</div>
                     {evidenceEntries(selected.evidence ?? {}).length === 0 ? (
                       <p className="lede">No evidence fields on this row.</p>
                     ) : (
@@ -315,6 +361,14 @@ export default function FlagsPage() {
                       </div>
                     )}
                   </div>
+                  <div className="lane-sub" style={{ marginTop: 10 }}>
+                    <div className="page-kicker">Subjective take</div>
+                    {take ? (
+                      <p>{take.body}</p>
+                    ) : (
+                      <p className="lede">No partner take on the book. We will not invent analysis from a detector.</p>
+                    )}
+                  </div>
                   {selected.note ? (
                     <p className="lede" style={{ marginTop: 12 }}>
                       Note: {selected.note}
@@ -323,9 +377,13 @@ export default function FlagsPage() {
                   {selected.snoozedUntil ? (
                     <p className="lede">Until {new Date(selected.snoozedUntil).toLocaleDateString()}</p>
                   ) : null}
-                  <p className="lede" style={{ marginTop: 12 }}>
-                    No generated analysis. Subjective takes are not invented from a detector.
-                  </p>
+                  {selected.companyId && (
+                    <p style={{ marginTop: 12 }}>
+                      <Link className="lede" href={`/compare?companyIds=${selected.companyId}`}>
+                        Compare
+                      </Link>
+                    </p>
+                  )}
                 </>
               )}
             </div>

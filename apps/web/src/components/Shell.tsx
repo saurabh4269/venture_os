@@ -244,7 +244,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         {canWrite && (
           <Link href="/companies/new" className="btn rail-cta">
-            New investment
+            + New investment
           </Link>
         )}
         <div className="account" aria-label="Account">
