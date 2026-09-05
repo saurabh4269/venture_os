@@ -75,6 +75,6 @@ test.describe("workflow polish", () => {
     }
 
     await page.goto("/vault");
-    await expect(page.getByRole("link", { name: "Add company" })).toBeVisible();
+    await expect(page.locator(".empty").getByRole("link", { name: "Add company" })).toBeVisible();
   });
 });
