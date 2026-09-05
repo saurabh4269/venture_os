@@ -218,6 +218,7 @@ button { cursor: pointer; }
   max-width: none;
   padding: 0 10px;
   align-self: stretch;
+  min-height: 40px;
 }
 .rail:not(.rail-expanded) .rail-item {
   justify-content: center;
@@ -280,6 +281,11 @@ button { cursor: pointer; }
   width: 100%;
   min-height: 0;
   padding: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.rail-expanded .rail-spacer {
+  display: none;
 }
 .rail-expanded .nav > .rail-item-wrap,
 .rail-expanded .rail-foot > * {
@@ -313,7 +319,7 @@ button { cursor: pointer; }
 }
 .rail-expanded .rail-foot {
   padding-top: 12px;
-  margin-top: 12px;
+  margin-top: 0;
 }
 .rail:not(.rail-expanded) .rail-foot {
   align-items: center;
@@ -403,8 +409,8 @@ button { cursor: pointer; }
   flex-shrink: 0;
 }
 .topbar-actions .btn.sm {
-  min-height: 32px;
-  padding: 6px 12px;
+  min-height: 36px;
+  padding: 7px 12px;
   font-size: 13px;
   white-space: nowrap;
 }
@@ -747,7 +753,29 @@ a.btn.ghost, a.btn.ghost:hover { color: var(--ink); }
 }
 .btn.ghost:hover { background: var(--chip); }
 .btn.warn { background: var(--danger); }
-.btn.sm { padding: 4px 9px; font-size: 12px; }
+.btn.sm {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+/* Toolbar + page-head actions share one compact rhythm */
+.page-toolbar .btn,
+.page-head .page-actions .btn,
+.toolbar-actions .btn,
+.compare-pickers > .btn,
+.command-card-head .btn,
+.flag-actions .btn,
+.nav-unlock-row .btn,
+.page-actions-row .btn,
+.reports-draft-row .btn,
+.upload-actions .btn,
+.onboard-form-actions .btn,
+.company-upload-btn {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.companies-add-inline { min-height: 36px; padding: 7px 14px; font-size: 13px; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 12px; }
 
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
@@ -1127,7 +1155,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .panel-body > .lede + :not(.lede) { margin-top: 10px; }
 .settings-pending-table { margin-top: 12px; }
 .settings-invite-link-row { margin-top: 10px; }
-.settings-invite-copy { min-height: 40px; }
+.settings-invite-copy { min-height: 36px; }
 .settings-save-row { margin-top: 10px; }
 .settings-cta-row { margin: 12px 0 0; }
 .settings-audit-title { margin: 14px 0 8px; font-size: 15px; }
@@ -1145,8 +1173,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .connector-form .field input,
 .connector-form .field select { min-height: 44px; }
 .connector-actions { gap: 10px; flex-wrap: wrap; }
-.connector-actions .btn { min-height: 40px; }
-.connector-actions .btn.sm { padding: 8px 12px; font-size: 13px; min-height: 40px; }
+.connector-actions .btn { min-height: 36px; }
 .compare-pickers { margin: 12px 0; flex-wrap: wrap; }
 .compare-toolbar { margin-bottom: 14px; }
 .compare-section-label { margin: 12px 0 6px; }
@@ -1197,7 +1224,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .reports-export-row .chip { min-height: 36px; padding: 6px 12px; }
 .vault-empty-actions { flex-wrap: wrap; }
 .company-upload-form { flex-wrap: wrap; gap: 8px; align-items: flex-end; }
-.company-upload-btn { min-height: 40px; }
+.company-upload-btn { min-height: 36px; }
 .company-upload-form .lede { flex: 1 1 100%; }
 .company-connector-form.grid-2 { max-width: 100%; }
 .company-note-dates { flex-wrap: wrap; gap: 8px; }
@@ -2781,7 +2808,7 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .page-actions-row .chip {
     flex: 1 1 calc(50% - 4px);
     justify-content: center;
-    min-height: 40px;
+    min-height: 44px;
     text-align: center;
   }
   .page-actions-row { width: 100%; }

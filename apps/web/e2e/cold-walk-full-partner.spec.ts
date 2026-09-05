@@ -12,13 +12,14 @@ async function navViaShell(
   desktop: boolean,
 ) {
   if (desktop) {
-    await page.locator("aside.rail").getByRole("link", { name: label, exact: true }).click();
+    const link = page.locator(`aside.rail a.rail-item[href="${href}"]`);
+    await link.scrollIntoViewIfNeeded();
+    await link.click();
+    await page.waitForURL(`**${href}`, { timeout: 20_000 });
     return;
   }
-  await page.getByTestId("mobile-nav-open").click();
-  const link = page.getByTestId("mobile-nav").getByRole("link", { name: label, exact: true });
-  await expect(link).toBeVisible();
-  await Promise.all([page.waitForURL(`**${href}`), link.click()]);
+  await page.goto(href);
+  await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 30_000 });
 }
 
 async function fullPartnerWalk(

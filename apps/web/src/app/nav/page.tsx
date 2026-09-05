@@ -204,7 +204,7 @@ export default function NavPage() {
           canLock && unofficial ? (
             <button
               type="button"
-              className="btn"
+              className="btn sm"
               data-testid="nav-lock"
               disabled={lockBusy}
               onClick={async () => {

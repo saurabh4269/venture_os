@@ -323,16 +323,16 @@ export default function FlagsPage() {
                     <div className="flag-actions">
                       {status === "open" ? (
                         <>
-                          <button className="btn" type="button" onClick={() => snooze(selected.id)}>
+                          <button className="btn sm" type="button" onClick={() => snooze(selected.id)}>
                             Snooze 14d
                           </button>
-                          <button className="btn ghost" type="button" onClick={() => mute(selected.id)}>
+                          <button className="btn ghost sm" type="button" onClick={() => mute(selected.id)}>
                             Mute
                           </button>
                         </>
                       ) : (
                         <button
-                          className="btn ghost"
+                          className="btn ghost sm"
                           type="button"
                           onClick={() => api(`/api/flags/${selected.id}/unmute`, { method: "POST", body: "{}" }).then(() => load())}
                         >

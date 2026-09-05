@@ -96,17 +96,17 @@ export default function ReportsPage() {
           ))}
         </select>
         <button
-          className="btn"
+          className="btn sm"
           data-testid="reports-draft-one-pager"
           onClick={() => draft("one_pager")}
           disabled={Boolean(busy)}
         >
           {busy === "one_pager" ? "Drafting…" : "Draft one-pager"}
         </button>
-        <button className="btn ghost" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
+        <button className="btn ghost sm" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
           {busy === "portfolio" ? "Drafting…" : "Draft portfolio"}
         </button>
-        <button className="btn ghost" onClick={() => draft("monthly_pack")} disabled={Boolean(busy)}>
+        <button className="btn ghost sm" onClick={() => draft("monthly_pack")} disabled={Boolean(busy)}>
           {busy === "monthly_pack" ? "Drafting…" : "Draft monthly pack"}
         </button>
       </div>

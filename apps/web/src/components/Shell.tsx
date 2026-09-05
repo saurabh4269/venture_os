@@ -347,14 +347,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="rail-spacer" />
         <div className="rail-foot">
           {railOpen ? (
-            <Link href="/settings" className="rail-item" aria-label="Settings">
+            <Link
+              href="/settings"
+              className={`rail-item ${path.startsWith("/settings") ? "active" : ""}`}
+              aria-label="Settings"
+              aria-current={path.startsWith("/settings") ? "page" : undefined}
+            >
               <Settings className="size-[18px]" aria-hidden />
               <span className="rail-label">Settings</span>
             </Link>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href="/settings" className="rail-item" aria-label="Settings">
+                <Link
+                  href="/settings"
+                  className={`rail-item ${path.startsWith("/settings") ? "active" : ""}`}
+                  aria-label="Settings"
+                  aria-current={path.startsWith("/settings") ? "page" : undefined}
+                >
                   <Settings className="size-[18px]" aria-hidden />
                   <span className="sr-only">Settings</span>
                 </Link>

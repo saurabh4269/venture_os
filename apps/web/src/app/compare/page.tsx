@@ -92,8 +92,10 @@ export default function ComparePage() {
       .then(setData)
       .catch((e: Error) => setErr(bookErrorMessage(e.message)))
       .finally(() => setLoading(false));
-    const next = `${window.location.pathname}?${qs}`;
-    window.history.replaceState(null, "", next);
+    if (window.location.pathname === "/compare") {
+      const next = `${window.location.pathname}?${qs}`;
+      window.history.replaceState(null, "", next);
+    }
   }, [qs, hydrated]);
 
   function toggleMetric(m: string) {
