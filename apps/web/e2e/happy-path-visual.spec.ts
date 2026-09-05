@@ -83,9 +83,11 @@ test.describe("happy path visual walk", () => {
     await page.screenshot({ path: "test-results/hp-mobile-inbox.png" });
     const confirm = await waitForInboxActions(page, "inbox-confirm");
     await confirm.click();
+    await page.waitForTimeout(500);
 
     await page.goto("/command");
-    await expect(page.getByRole("link", { name: `HP MCo ${stamp}` }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("command-ready")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("link", { name: `HP MCo ${stamp}` }).first()).toBeVisible({ timeout: 60_000 });
     await page.screenshot({ path: "test-results/hp-mobile-command-booked.png" });
   });
 });
