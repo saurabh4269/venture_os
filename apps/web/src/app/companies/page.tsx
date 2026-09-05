@@ -244,8 +244,8 @@ export default function CompaniesPage() {
           </div>
           <p className="table-foot">
             Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
-            {filtered ? " matching current filters" : ""}. Last MIS is booked — the mock’s last-note line is not invented.
-            Coverage is Booked / Gap / Review, never a score. Column picker is not connected.
+            {filtered ? " matching current filters" : ""}. Last MIS and coverage are booked evidence — never a note or a
+            score.
           </p>
         </Panel>
       )}
