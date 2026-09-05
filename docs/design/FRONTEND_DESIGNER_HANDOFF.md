@@ -171,7 +171,9 @@ A flag **does not fire** without evidence. Missing inputs ≠ flag.
 ```
 Unauthenticated
   /                 Long-scroll marketing landing (Stitch). Soft-redirect if session cookie.
-                    CTAs: Get started → /signup, Log in → /login. No waitlist.
+                    Desktop: two-column hero. ≤960px: stacked hero / trust / clarity /
+                    vertical STAGE timeline / steps / forest CTA. CTAs: Get started → /signup,
+                    Log in → /login. No waitlist, no invented logos or portfolio figures.
   /security         Optional methodology (no Terms/Privacy contract, no invented certifications)
   /login
   /signup

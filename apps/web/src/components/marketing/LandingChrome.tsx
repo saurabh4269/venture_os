@@ -75,6 +75,7 @@ export function LandingFooter() {
           <a href="/#pricing">Support</a>
           <Link href="/login">Log in</Link>
         </nav>
+        <p className="mkt-legal-line">Institutional-grade data. Figures cited or refused.</p>
       </div>
     </footer>
   );

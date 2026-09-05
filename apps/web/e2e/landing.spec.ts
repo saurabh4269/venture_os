@@ -17,13 +17,17 @@ test.describe("@smoke marketing landing", () => {
       "href",
       "/signup",
     );
-    await expect(page.getByRole("heading", { name: /the morning ritual, on one book/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /source to analysis/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /uncompromising clarity/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /the citation engine/i })).toBeVisible();
     await expect(page.getByText("Source", { exact: true })).toBeVisible();
     await expect(page.getByText("Analysis", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: /three steps to a live row/i })).toBeVisible();
+    await expect(page.getByText("1. Cite")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /ready for institutional clarity/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /built with design partner v3 ventures/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /no public price list/i })).toBeVisible();
+    await expect(page.getByText("142")).toHaveCount(0);
+    await expect(page.getByText(/sequoia|a16z|index ventures/i)).toHaveCount(0);
     await expect(page.getByRole("contentinfo").getByRole("link", { name: "Methodology" })).toHaveAttribute(
       "href",
       "/#trust",

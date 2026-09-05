@@ -32,6 +32,64 @@ function CommandFrame() {
   );
 }
 
+function IcoCompanies() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+      <path d="M3 13.5V5.5L8 2.5l5 3V13.5" />
+      <path d="M6.5 13.5v-4h3v4" />
+    </svg>
+  );
+}
+function IcoFlags() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+      <path d="M4 13.5V2.5" />
+      <path d="M4 3.2h7.2L9.6 5.8 11.2 8.4H4" />
+    </svg>
+  );
+}
+function IcoCoverage() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+      <path d="M3 12.5 7.2 3.5h1.6L13 12.5" />
+      <path d="M4.6 9.4h6.8" />
+    </svg>
+  );
+}
+function IcoCite() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+      <path d="M4.5 13.5h7a1 1 0 0 0 1-1v-8L10 2.5H4.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1z" />
+      <path d="M9.5 2.5v3h3" />
+    </svg>
+  );
+}
+function IcoVerify() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+      <path d="M8 2.4 3.2 4.4v4.2c0 3.1 2 5.1 4.8 5.8 2.8-.7 4.8-2.7 4.8-5.8V4.4L8 2.4z" />
+      <path d="M5.8 8.1 7.3 9.6 10.4 6.4" />
+    </svg>
+  );
+}
+function IcoReport() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+      <path d="M4 12V6" />
+      <path d="M8 12V3.5" />
+      <path d="M12 12V8" />
+    </svg>
+  );
+}
+
+const PIPELINE = [
+  { stage: 1, name: "Source", body: "Vault — MIS, board packs, transcripts." },
+  { stage: 2, name: "Proposed", body: "Inbox — parser output, not yet the book." },
+  { stage: 3, name: "Reviewed", body: "Flags and units checked against evidence." },
+  { stage: 4, name: "Book", body: "Confirmed facts with file and locator." },
+  { stage: 5, name: "Analysis", body: "Ask, reports, and compare — book only." },
+] as const;
+
 export function MarketingLanding() {
   return (
     <LandingShell>
@@ -56,27 +114,74 @@ export function MarketingLanding() {
         </section>
 
         <section className="mkt-trust" id="trust" aria-label="Trust">
-          <div>
-            <strong>Cite or refuse</strong>
-            <p>Every figure needs a source. Ask refuses when the book has no evidence.</p>
+          <p className="mkt-trust-kicker">Institutional portfolio management for VCs</p>
+          <div className="mkt-trust-grid">
+            <div>
+              <strong>Cite or refuse</strong>
+              <p>Every figure needs a source. Ask refuses when the book has no evidence.</p>
+            </div>
+            <div>
+              <strong>Missing is —</strong>
+              <p>Null stays null. We never coerce a blank into zero or a health score.</p>
+            </div>
+            <div>
+              <strong>AES vault</strong>
+              <p>Connector keys are encrypted at rest. Status stays not connected until a health check.</p>
+            </div>
           </div>
-          <div>
-            <strong>Missing is —</strong>
-            <p>Null stays null. We never coerce a blank into zero or a health score.</p>
-          </div>
-          <div>
-            <strong>AES vault</strong>
-            <p>Connector keys are encrypted at rest. Status stays not connected until a health check.</p>
-          </div>
+          <p className="mkt-trust-partner">
+            Design partner <span>V3 Ventures</span>
+          </p>
         </section>
 
         <section className="mkt-section" id="product">
           <p className="mkt-kicker">Product</p>
-          <h2>The morning ritual, on one book.</h2>
+          <h2>Uncompromising Clarity</h2>
           <p className="lede mkt-lede">
             Command, Inbox, Flags, NAV, Compare, Ask, and Reports read only from confirmed facts. The parser
             proposes. A human confirms. Nothing auto-posts.
           </p>
+          <div className="mkt-clarity" data-testid="mkt-clarity">
+            <article>
+              <div className="mkt-clarity-top">
+                <span className="mkt-clarity-ico">
+                  <IcoCompanies />
+                </span>
+                <h3>Active companies</h3>
+                <div className="v">—</div>
+              </div>
+              <div className="mkt-clarity-status">
+                <span>Empty until you confirm a row</span>
+                <span className="mark">not zero</span>
+              </div>
+            </article>
+            <article>
+              <div className="mkt-clarity-top">
+                <span className="mkt-clarity-ico">
+                  <IcoFlags />
+                </span>
+                <h3>Open flags</h3>
+                <div className="v">—</div>
+              </div>
+              <div className="mkt-clarity-status">
+                <span>No evidence, no flag</span>
+                <span className="mark warn">catalog only</span>
+              </div>
+            </article>
+            <article>
+              <div className="mkt-clarity-top">
+                <span className="mkt-clarity-ico">
+                  <IcoCoverage />
+                </span>
+                <h3>Coverage</h3>
+                <div className="v">—</div>
+              </div>
+              <div className="mkt-clarity-status">
+                <span>Missing stays missing</span>
+                <span className="mark gap">gap</span>
+              </div>
+            </article>
+          </div>
           <div className="mkt-cards">
             <article>
               <h3>Command</h3>
@@ -107,28 +212,18 @@ export function MarketingLanding() {
 
         <section className="mkt-section" id="approach">
           <p className="mkt-kicker">Approach</p>
-          <h2>Source to analysis, with a human at the gate.</h2>
-          <ol className="mkt-pipeline" aria-label="Book pipeline">
-            <li>
-              <span>Source</span>
-              Vault — MIS, board packs, transcripts.
-            </li>
-            <li>
-              <span>Proposed</span>
-              Inbox — parser output, not yet the book.
-            </li>
-            <li>
-              <span>Reviewed</span>
-              Flags and units checked against evidence.
-            </li>
-            <li>
-              <span>Book</span>
-              Confirmed facts with file and locator.
-            </li>
-            <li>
-              <span>Analysis</span>
-              Ask, reports, and compare — book only.
-            </li>
+          <h2>The Citation Engine</h2>
+          <ol className="mkt-pipeline" aria-label="Book pipeline" data-testid="mkt-pipeline">
+            {PIPELINE.map((s) => (
+              <li key={s.stage} data-stage={s.stage}>
+                <span className="mkt-pipe-dot" aria-hidden />
+                <div className="mkt-pipe-body">
+                  <span className="mkt-stage">Stage {s.stage}</span>
+                  <span className="mkt-stage-name">{s.name}</span>
+                  {s.body}
+                </div>
+              </li>
+            ))}
           </ol>
         </section>
 
@@ -137,15 +232,24 @@ export function MarketingLanding() {
           <h2>Three steps to a live row.</h2>
           <ol className="mkt-steps">
             <li>
-              <strong>1 · Open a company</strong>
-              <p>Add the name, then upload an MIS pack. Connectors stay not connected until a health check succeeds.</p>
+              <span className="mkt-step-ico">
+                <IcoCite />
+              </span>
+              <strong>1. Cite</strong>
+              <p>Every figure needs a source document and locator. We extract and link the page or cell. Missing stays —.</p>
             </li>
             <li>
-              <strong>2 · Confirm Inbox</strong>
-              <p>Resolve units. Confirm or reject. Missing stays missing. Corrections survive a re-parse.</p>
+              <span className="mkt-step-ico">
+                <IcoVerify />
+              </span>
+              <strong>2. Verify</strong>
+              <p>Confirm Inbox. Resolve units. Check flags against evidence. Corrections survive a re-parse.</p>
             </li>
             <li>
-              <strong>3 · Read the book</strong>
+              <span className="mkt-step-ico">
+                <IcoReport />
+              </span>
+              <strong>3. Report</strong>
               <p>Command, Flags, NAV, Ask, and Reports use only what you confirmed. Empty is empty.</p>
             </li>
           </ol>
@@ -177,16 +281,21 @@ export function MarketingLanding() {
           </div>
         </section>
 
+        <p className="mkt-partner-line">
+          In partnership with <strong>V3 Ventures</strong>
+        </p>
         <section className="mkt-final">
-          <h2>Open the book.</h2>
-          <p className="mkt-sub">The organisation starts empty. We will not seed illustrative NAV.</p>
-          <div className="mkt-hero-ctas">
-            <Link href="/signup" className="btn">
-              Get started
-            </Link>
-            <Link href="/login" className="btn ghost">
-              Log in
-            </Link>
+          <div className="mkt-final-panel" data-testid="mkt-final-panel">
+            <h2>Ready for institutional clarity?</h2>
+            <p>The organisation starts empty. We will not seed illustrative NAV.</p>
+            <div className="mkt-hero-ctas">
+              <Link href="/signup" className="btn mkt-final-btn">
+                Get started
+              </Link>
+              <Link href="/login" className="btn mkt-final-ghost">
+                Log in
+              </Link>
+            </div>
           </div>
         </section>
       </main>
