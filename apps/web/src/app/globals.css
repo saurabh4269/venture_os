@@ -2199,6 +2199,8 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
+  z-index: 60 !important;
+  background: var(--surface) !important;
 }
 .mobile-sheet-head {
   padding: 20px 20px 12px;
