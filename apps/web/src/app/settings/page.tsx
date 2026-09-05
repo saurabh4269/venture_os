@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FLAG_CATALOG, FLAG_THRESHOLD_BOUNDS } from "@venture-os/core";
+import { PageHead, Panel, SettingsSubnav } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
@@ -141,12 +142,15 @@ export default function SettingsPage() {
 
   return (
     <Shell>
-      <h1>Settings</h1>
-      <p className="lede">
-        FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Paste connector keys on
-        Settings → Connectors; vault upload remains the fallback until a health check succeeds.
-      </p>
+      <PageHead
+        kicker="Organisation"
+        title="Settings"
+        lede="FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Paste connector keys on Settings → Connectors; vault upload remains the fallback until a health check succeeds."
+      />
+      <SettingsSubnav current="firm" />
+      <div className="settings-stack">
 
+      <Panel title="Firm year">
       {data?.settings && !isAdmin && (
         <p className="lede">
           FY starts month {data.settings.fyStartMonth}. Base {data.settings.baseCurrency} · display{" "}
@@ -187,13 +191,16 @@ export default function SettingsPage() {
           </button>
         </form>
       )}
-      <h2>Mapping</h2>
+      </Panel>
+      <Panel title="Mapping">
       <p className="lede">
         Firm metric dictionary is still a stub. Company OneDrive / Affinity / Granola ids are real optional fields on
         the company page — paste vendor values only. Unit/currency hints live on each company profile.
       </p>
+      </Panel>
 
-      <h2>People</h2>
+      <Panel title="People" flush>
+      <div id="people" />
       {members.length === 0 ? (
         <div className="empty">No members loaded.</div>
       ) : (
@@ -253,8 +260,9 @@ export default function SettingsPage() {
           </tbody>
         </table>
       )}
+      </Panel>
 
-      <h2>Invite</h2>
+      <Panel title="Invite">
       <p className="lede">
         Locked roles: Org Admin, Partner, Analyst, Viewer. Viewer cannot write or confirm. There is no email
         sender yet — copy the accept link.
@@ -331,8 +339,10 @@ export default function SettingsPage() {
           </tbody>
         </table>
       )}
+      </Panel>
 
-      <h2>Connectors</h2>
+      <Panel title="Connectors" flush>
+      <div className="panel-body">
       <p className="lede" id="connector-honest">
         Paste keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a successful
         test. Last-sync is shown only after a real sync. Upload remains the fallback:{" "}
@@ -363,6 +373,8 @@ export default function SettingsPage() {
           Open connector settings
         </Link>
       </p>
+      </div>
+      </Panel>
 
       {loadErr && (
         <p className="sev-high" role="alert">
@@ -370,13 +382,14 @@ export default function SettingsPage() {
         </p>
       )}
 
-      <h2>Session</h2>
+      <Panel title="Session">
       <p className="lede">
         Cookies are HttpOnly + SameSite=Lax. A session lasts 7 days and refreshes after 24 hours of use. Sign-out is
         idempotent. SSO, password reset by email, and idle rotation for viewers are not connected.
       </p>
+      </Panel>
 
-      <h2>Flag policy</h2>
+      <Panel title="Flag policy">
       <p className="lede">
         Firm thresholds persist on <code>org_settings.flag_policy</code>. The Flags job reads these, not only catalog
         defaults. Missing keys keep the catalog default — missing is not zero. Org Admin can edit. Bounds are
@@ -502,7 +515,8 @@ export default function SettingsPage() {
         </>
       )}
 
-      <h2>Funds</h2>
+      </Panel>
+      <Panel title="Funds">
       {funds.length === 0 ? (
         <div className="empty">
           No funds yet. Add a fund here, then attach positions when you onboard a company. NAV is empty without both.
@@ -574,6 +588,8 @@ export default function SettingsPage() {
         </button>
       </form>
       )}
+      </Panel>
+      </div>
     </Shell>
   );
 }

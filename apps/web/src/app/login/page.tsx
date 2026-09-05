@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
 import { safeNextPath } from "@venture-os/config/paths";
 import { api } from "@/lib/api";
 import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm } from "@/lib/auth-form";
 import { type Me } from "@/lib/auth-client";
+import { AuthFrame } from "@/components/BookUI";
 import { friendlyAuthError } from "@/lib/roles";
 
 function LoginForm() {
@@ -66,15 +67,10 @@ function LoginForm() {
   }
 
   return (
-    <div className="auth">
-      <h1>Venture OS</h1>
-      <p className="lede">
-        The book for the investment team. Sessions last 7 days and refresh daily. SSO and password reset by email are
-        not connected.
-      </p>
-      <form onSubmit={onSubmit} className="field" style={{ gap: 12, marginTop: 24 }} noValidate>
+    <AuthFrame tab="signin">
+      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }} noValidate>
         <label className="field" htmlFor="email">
-          Work email
+          Email address
           <input
             id="email"
             name="email"
@@ -87,7 +83,12 @@ function LoginForm() {
           />
         </label>
         <label className="field" htmlFor="password">
-          Password ({MIN_PASSWORD_LENGTH}+ characters)
+          <span className="field-hint">
+            Password
+            <span className="lede">
+              {MIN_PASSWORD_LENGTH}–{MAX_PASSWORD_LENGTH} characters
+            </span>
+          </span>
           <input
             id="password"
             name="password"
@@ -96,6 +97,7 @@ function LoginForm() {
             type="password"
             autoComplete="current-password"
             minLength={MIN_PASSWORD_LENGTH}
+            maxLength={MAX_PASSWORD_LENGTH}
             data-testid="login-password"
             required
           />
@@ -108,17 +110,13 @@ function LoginForm() {
         <button className="btn" type="submit" disabled={busy} data-testid="login-submit">
           {busy ? "Signing in…" : "Sign in"}
         </button>
-      </form>
-      <p style={{ marginTop: 16 }}>
-        New firm? <Link href="/signup">Create an organisation</Link>
         {params.get("id") ? (
-          <>
-            {" "}
-            · <Link href={`/invite?id=${params.get("id")}`}>Return to invite</Link>
-          </>
+          <p className="lede">
+            <Link href={`/invite?id=${params.get("id")}`}>Return to invite</Link>
+          </p>
         ) : null}
-      </p>
-    </div>
+      </form>
+    </AuthFrame>
   );
 }
 
@@ -126,9 +124,9 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="auth">
+        <AuthFrame tab="signin">
           <p className="lede">Loading…</p>
-        </div>
+        </AuthFrame>
       }
     >
       <LoginForm />

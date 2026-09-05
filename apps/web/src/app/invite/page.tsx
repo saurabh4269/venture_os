@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Me } from "@/lib/auth-client";
+import { AuthFrame } from "@/components/BookUI";
 import { friendlyAuthError, roleLabel } from "@/lib/roles";
 
 type Invite = {
@@ -75,7 +76,7 @@ function InviteInner() {
     Boolean(signedIn && invite?.email && me?.user?.email.toLowerCase() === invite.email.toLowerCase());
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <h1>Join an organisation</h1>
       {!invite && !err && (
         <p className="lede" aria-live="polite">
@@ -125,7 +126,7 @@ function InviteInner() {
           </button>
         </div>
       )}
-    </div>
+    </AuthFrame>
   );
 }
 
@@ -133,11 +134,11 @@ export default function InvitePage() {
   return (
     <Suspense
       fallback={
-        <div className="auth">
+        <AuthFrame>
           <p className="lede" aria-live="polite">
             Loading invite…
           </p>
-        </div>
+        </AuthFrame>
       }
     >
       <InviteInner />

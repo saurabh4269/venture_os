@@ -2,10 +2,26 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { api, downloadAuthed } from "@/lib/api";
+import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
+import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
+import { Pipeline } from "@/components/BookUI";
+import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
+import {
+  IconAsk,
+  IconCommand,
+  IconCompanies,
+  IconCompare,
+  IconFlags,
+  IconInbox,
+  IconNav,
+  IconOrg,
+  IconReports,
+  IconSettings,
+  IconUser,
+  IconVault,
+} from "@/components/Icons";
 
 type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean; ready: boolean };
 const BookSessionContext = createContext<BookSession>({
@@ -56,17 +72,46 @@ export function useBookSession(): BookSession {
 }
 
 const NAV = [
-  { href: "/command", label: "Command", hint: "Fund pulse" },
-  { href: "/companies", label: "Companies", hint: "Names on the book" },
-  { href: "/inbox", label: "Inbox", hint: "Confirm before it posts" },
-  { href: "/flags", label: "Flags", hint: "Catalog risks" },
-  { href: "/nav", label: "NAV", hint: "Marks and lock" },
-  { href: "/compare", label: "Compare", hint: "Peer metrics" },
-  { href: "/ask", label: "Ask", hint: "Cite or refuse" },
-  { href: "/reports", label: "Reports", hint: "Packs from the book" },
-  { href: "/vault", label: "Vault", hint: "Source files" },
-  { href: "/settings", label: "Settings", hint: "Firm, people, policy" },
-];
+  { href: "/command", label: "Command", hint: "Fund pulse", Icon: IconCommand },
+  { href: "/companies", label: "Companies", hint: "Names on the book", Icon: IconCompanies },
+  { href: "/inbox", label: "Inbox", hint: "Confirm before it posts", Icon: IconInbox },
+  { href: "/flags", label: "Flags", hint: "Catalog risks", Icon: IconFlags },
+  { href: "/nav", label: "NAV", hint: "Marks and lock", Icon: IconNav },
+  { href: "/compare", label: "Compare", hint: "Peer metrics", Icon: IconCompare },
+  { href: "/ask", label: "Ask", hint: "Cite or refuse", Icon: IconAsk },
+  { href: "/reports", label: "Reports", hint: "Packs from the book", Icon: IconReports },
+  { href: "/vault", label: "Vault", hint: "Source files", Icon: IconVault },
+  { href: "/settings", label: "Settings", hint: "Firm, people, policy", Icon: IconSettings },
+] as const;
+
+function NavLink({
+  href,
+  label,
+  hint,
+  Icon,
+  active,
+  onClick,
+}: {
+  href: string;
+  label: string;
+  hint: string;
+  Icon: ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      title={hint}
+      className={active ? "active" : ""}
+      aria-current={active ? "page" : undefined}
+      onClick={onClick}
+    >
+      <Icon className="nav-ico" />
+      {label}
+    </Link>
+  );
+}
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -140,24 +185,35 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }
 
   const fixture = me?.org?.metadata?.includes("fixtureOnly") || Boolean(me?.org?.name.includes("FIXTURE"));
+  const canWrite = isWriteRole(me?.role);
+  const orgName = me?.org?.name ?? "the book";
 
   if (!ready) {
     return (
-      <div className="auth" role="status" aria-busy="true" data-testid="shell-busy">
-        <p className="lede">Checking your organisation…</p>
+      <div className="auth-shell">
+        <div className="auth" role="status" aria-busy="true" data-testid="shell-busy">
+          <div className="auth-mark">Venture OS · the book</div>
+          <p className="lede">Checking your organisation…</p>
+        </div>
       </div>
     );
   }
+
+  const groups: { title: string; items: typeof NAV }[] = [
+    { title: "Morning", items: NAV.slice(0, 3) as unknown as typeof NAV },
+    { title: "Rituals", items: NAV.slice(3, 8) as unknown as typeof NAV },
+    { title: "Firm", items: NAV.slice(8) as unknown as typeof NAV },
+  ];
 
   return (
     <div className="app" data-testid="shell-ready">
       <a href="#main" className="skip-link">
         Skip to book
       </a>
-      <aside className="rail">
+      <aside className={navOpen ? "rail is-open" : "rail"}>
         <Link href="/command" className="brand">
           Venture OS
-          <span>the book</span>
+          <span>{orgName}</span>
         </Link>
         <button
           type="button"
@@ -169,66 +225,35 @@ export function Shell({ children }: { children: React.ReactNode }) {
           Menu
         </button>
         <nav id="primary-nav" className={navOpen ? "nav is-open" : "nav"} aria-label="Primary">
-          <h2 className="sec">Morning</h2>
-          {NAV.slice(0, 3).map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              title={n.hint}
-              className={path.startsWith(n.href) ? "active" : ""}
-              aria-current={path.startsWith(n.href) ? "page" : undefined}
-              onClick={() => setNavOpen(false)}
-            >
-              {n.label}
-            </Link>
-          ))}
-          <h2 className="sec">Rituals</h2>
-          {NAV.slice(3, 8).map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              title={n.hint}
-              className={path.startsWith(n.href) ? "active" : ""}
-              aria-current={path.startsWith(n.href) ? "page" : undefined}
-              onClick={() => setNavOpen(false)}
-            >
-              {n.label}
-            </Link>
-          ))}
-          <h2 className="sec">Firm</h2>
-          {NAV.slice(8).map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              title={n.hint}
-              className={path.startsWith(n.href) ? "active" : ""}
-              aria-current={path.startsWith(n.href) ? "page" : undefined}
-              onClick={() => setNavOpen(false)}
-            >
-              {n.label}
-            </Link>
+          {groups.map((g) => (
+            <div key={g.title}>
+              <h2 className="sec">{g.title}</h2>
+              {g.items.map((n) => (
+                <NavLink
+                  key={n.href}
+                  href={n.href}
+                  label={n.label}
+                  hint={n.hint}
+                  Icon={n.Icon}
+                  active={path.startsWith(n.href)}
+                  onClick={() => setNavOpen(false)}
+                />
+              ))}
+            </div>
           ))}
         </nav>
-        <div className="account" style={{ marginTop: "auto", fontSize: 12, color: "var(--muted)" }} aria-label="Account">
-          <div>{me?.user?.name}</div>
-          <div>{roleLabel(me?.role)}</div>
-          <button className="btn ghost sm" type="button" style={{ marginTop: 8 }} onClick={signOut}>
-            Sign out
-          </button>
-        </div>
-      </aside>
-      <main className="main" id="main">
-        {fixture && (
-          <div className="banner" role="alert">
-            FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
-          </div>
+        {canWrite && (
+          <Link href="/companies/new" className="btn rail-cta">
+            + New investment
+          </Link>
         )}
-        <div className="top">
-          <div />
-          <div className="row">
-            {orgs.length === 0 ? (
-              <Link href="/onboard">Create organisation</Link>
-            ) : (
+        <div className="account" aria-label="Account">
+          {orgs.length === 0 ? (
+            <Link href="/onboard">Create organisation</Link>
+          ) : (
+            <label className="account-row">
+              <IconOrg />
+              <span className="sr-only">Organisation</span>
               <select
                 value={me?.org?.id ?? ""}
                 onChange={(e) => switchOrg(e.target.value)}
@@ -240,22 +265,52 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   </option>
                 ))}
               </select>
-            )}
+            </label>
+          )}
+          <div className="account-row">
+            <IconUser />
+            <div>
+              <div className="who">{me?.user?.name}</div>
+              <div className="who-meta">{roleLabel(me?.role)}</div>
+            </div>
           </div>
+          <button className="btn ghost sm" type="button" onClick={signOut}>
+            Sign out
+          </button>
         </div>
+      </aside>
+      <main className="main" id="main">
+        {fixture && (
+          <div className="banner" role="alert">
+            FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
+          </div>
+        )}
+        <Pipeline
+          current={
+            path.startsWith("/inbox")
+              ? "proposed"
+              : path.startsWith("/vault") || path.startsWith("/companies/new")
+                ? "source"
+                : path.startsWith("/flags")
+                  ? "reviewed"
+                  : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
+                    ? "analysis"
+                    : "book"
+          }
+        />
         <div className="sr-only" aria-live="polite">
           {orgLive}
         </div>
         <BookSessionContext.Provider
           value={{
             me,
-            canWrite: isWriteRole(me?.role),
+            canWrite,
             isAdmin: isAdminRole(me?.role),
             canLock: isLockRole(me?.role),
             ready: true,
           }}
         >
-          {children}
+          <CiteProvider>{children}</CiteProvider>
         </BookSessionContext.Provider>
       </main>
     </div>
@@ -267,34 +322,40 @@ export function Fact({
   isFact,
   sourcePath,
   note,
+  cite,
 }: {
   display: string;
   isFact: boolean;
   sourcePath?: string;
   note?: string | null;
+  cite?: CitePayload;
 }) {
-  const chip = !isFact ? (
+  const openCite = useCite();
+  const payload: CitePayload | undefined =
+    cite || sourcePath ? { ...cite, display, sourcePath: cite?.sourcePath ?? sourcePath } : undefined;
+  const open = payload ? () => openCite(payload) : undefined;
+  const value = !isFact ? (
     <span className="chip unfact">—</span>
-  ) : sourcePath ? (
-    <button
-      type="button"
-      className="chip"
-      title="Open source"
-      aria-label={`${display} — open source`}
-      onClick={() => downloadAuthed(sourcePath)}
-    >
+  ) : open ? (
+    <button type="button" className="chip" title="Open citation" aria-label={`${display} — open citation`} onClick={open}>
       {display}
     </button>
   ) : (
     <span className="chip">{display}</span>
   );
-  if (!note) return chip;
   return (
-    <span>
-      {chip}
-      <span className="lede" style={{ display: "block", marginTop: 2 }}>
-        {note}
-      </span>
+    <span className="fact">
+      {value}
+      {isFact && open ? (
+        <button type="button" className="cite" onClick={open} aria-label="Open citation">
+          Cite
+        </button>
+      ) : null}
+      {note ? (
+        <span className="lede" style={{ display: "block", width: "100%", marginTop: 2 }}>
+          {note}
+        </span>
+      ) : null}
     </span>
   );
 }

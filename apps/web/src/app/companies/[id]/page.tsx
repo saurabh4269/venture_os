@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
+import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { useCite } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
 
@@ -41,7 +43,14 @@ type Data = {
     confirmedBy?: string | null;
     confirmedAt?: string | null;
   }[];
-  commentary: { id: string; lane: string; body: string; periodEnd: string }[];
+  commentary: {
+    id: string;
+    lane: string;
+    body: string;
+    periodEnd: string;
+    createdBy?: string;
+    createdAt?: string;
+  }[];
   documents: {
     id: string;
     filename: string;
@@ -73,6 +82,21 @@ function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
 }
 
+function citeFor(data: Data, refId?: string | null) {
+  const ref = data.sourceRefs.find((r) => r.id === refId);
+  const doc = ref ? data.documents.find((d) => d.id === ref.documentId) : undefined;
+  const metric = refId ? data.metrics.find((m) => m.sourceRefId === refId) : undefined;
+  return {
+    filename: doc?.filename,
+    locator: ref?.locator,
+    excerpt: ref?.excerpt,
+    periodStart: metric?.periodStart,
+    periodEnd: metric?.periodEnd,
+    confirmedBy: metric?.confirmedBy,
+    confirmedAt: metric?.confirmedAt,
+  };
+}
+
 function evidenceLine(ev: Record<string, unknown> | undefined) {
   if (!ev) return "";
   return Object.entries(ev)
@@ -85,6 +109,7 @@ export default function CompanyPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { canWrite } = useBookSession();
+  const openCite = useCite();
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState("");
   const [lane, setLane] = useState<"objective" | "subjective">("objective");
@@ -204,38 +229,120 @@ export default function CompanyPage() {
   if (!data) {
     return (
       <Shell>
-        <p className="lede">Loading company…</p>
+        <p className="lede">Loading the book…</p>
       </Shell>
     );
   }
 
+  const own = data.positions?.map((p) => p.ownershipPct).find((n) => n != null) ?? null;
+  const latestSubjective = [...data.commentary]
+    .filter((n) => n.lane === "subjective")
+    .sort((a, b) => String(b.createdAt ?? b.periodEnd).localeCompare(String(a.createdAt ?? a.periodEnd)))[0];
+  const revenue = bookRows.find((m) => m.metricKey === "net_revenue");
+  const revenueDual = revenue
+    ? formatDualDisplay({
+        value: revenue.valueNumeric,
+        sourceRefId: revenue.sourceRefId,
+        unit: revenue.unit as never,
+        currency: revenue.currency as never,
+        valueEur: revenue.valueEur,
+        fxRate: revenue.fxRate,
+        fxDate: revenue.fxDate,
+        fxSource: revenue.fxSource,
+      })
+    : null;
+  const evidence = data.sourceRefs.map((ref) => {
+    const doc = data.documents.find((d) => d.id === ref.documentId);
+    const loc = [ref.locator?.sheet, ref.locator?.cell].filter(Boolean).join(" ");
+    const metric = data.metrics.find((m) => m.sourceRefId === ref.id);
+    return {
+      id: ref.id,
+      source: doc?.filename ?? "Source file",
+      kind: (doc?.kind ?? "other").replaceAll("_", " "),
+      date: doc?.createdAt ? new Date(doc.createdAt).toLocaleDateString() : (doc?.periodEnd ?? "—"),
+      cite: loc || "locator",
+      documentId: ref.documentId,
+      excerpt: ref.excerpt,
+      locator: ref.locator,
+      periodStart: metric?.periodStart,
+      periodEnd: metric?.periodEnd,
+      confirmedBy: metric?.confirmedBy,
+      confirmedAt: metric?.confirmedAt,
+    };
+  });
+  const required = (
+    [
+      ["mis", "MIS"],
+      ["board_pack", "Board pack"],
+      ["transcript", "Transcript"],
+    ] as const
+  ).map(([key, label]) => {
+    const docs = data.documents.filter((d) => d.kind === key);
+    let state: "covered" | "missing" | "stale" = "missing";
+    if (docs.length) {
+      const newest = Math.max(...docs.map((d) => (d.createdAt ? new Date(d.createdAt).getTime() : 0)));
+      state = key === "mis" && newest > 0 && Date.now() - newest > 45 * 86_400_000 ? "stale" : "covered";
+    }
+    return { key, label, state };
+  });
+
   return (
     <Shell>
-      <h1>{data.company.name}</h1>
-      <p className="lede">
-        {data.company.legalName ? `${data.company.legalName} · ` : ""}
-        {data.company.sector ?? "—"} · {data.company.stage ?? "—"} · {data.company.country ?? "—"} · FY start month{" "}
-        {data.company.fyStartMonth ?? 4} ({data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
-        {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
-        {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
-      </p>
-      <p className="lede">
-        <Link href="/compare">Compare</Link> · <Link href={`/ask?companyId=${id}`}>Ask</Link> ·{" "}
-        <Link href="/inbox">Inbox</Link> · <Link href="/flags">Flags</Link>
-        {canWrite && (
+      <PageHead
+        title={data.company.name}
+        kicker={[data.company.sector, data.company.country].filter(Boolean).join(" · ") || "Company"}
+        badge={data.company.stage ? <span className="badge">{data.company.stage}</span> : undefined}
+        lede={
           <>
-            {" "}
-            ·{" "}
-            <button type="button" className="chip" onClick={() => setEditing((v) => !v)}>
-              {editing ? "Close editor" : "Edit profile"}
-            </button>
+            {data.company.legalName ? `${data.company.legalName} · ` : ""}
+            {own == null ? (
+              <>
+                Ownership <span className="chip unfact">—</span>
+              </>
+            ) : (
+              <>{formatOwnership(own)} ownership</>
+            )}
             {" · "}
-            <button type="button" className="chip" onClick={draftOnePager}>
-              Draft one-pager
-            </button>
+            FY start month {data.company.fyStartMonth ?? 4} (
+            {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
+            {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
+            {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
+            {data.company.affinityCompanyId ? " · Affinity id on file — vendor deep link is not connected" : ""}
           </>
-        )}
-      </p>
+        }
+        actions={
+          <div className="row">
+            <Link className="btn ghost sm" href="/compare">
+              Compare
+            </Link>
+            <Link className="btn ghost sm" href={`/ask?companyId=${id}`}>
+              Ask
+            </Link>
+            {canWrite && (
+              <a className="btn sm" href="#add-note">
+                Add note
+              </a>
+            )}
+            {canWrite && (
+              <>
+                <button type="button" className="chip" onClick={() => setEditing((v) => !v)}>
+                  {editing ? "Close editor" : "Edit profile"}
+                </button>
+                <button type="button" className="chip" onClick={draftOnePager}>
+                  Draft one-pager
+                </button>
+              </>
+            )}
+          </div>
+        }
+      />
+      <div className="flag-pills">
+        {data.flags.map((f) => (
+          <Link key={f.id} href="/flags" className={`sev-pill ${f.severity === "high" ? "urgent" : f.severity === "med" ? "warning" : "info"}`}>
+            {flagLabel(f.flagKey)}
+          </Link>
+        ))}
+      </div>
       {draftMsg && (
         <p className="sev-high" role="alert">
           {draftMsg}
@@ -369,30 +476,135 @@ export default function CompanyPage() {
         </form>
       )}
 
-      {data.kpi && (
-        <div className="cards">
-          <div className="card">
-            <div className="k">Cash</div>
-            <div className="v">
-              <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
-            </div>
+      <div className="grid-2" style={{ marginBottom: 16 }}>
+        <Panel title="Objective metrics" kicker="Book" className="lane-obj-panel" actions={<span className="lane-chip obj">Objective</span>}>
+          <div className="metric-row">
+            <span className="muted">Cash</span>
+            <span>
+              {data.kpi ? (
+                <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} cite={citeFor(data, data.kpi.cash.sourceRefId)} />
+              ) : (
+                <span className="chip unfact">—</span>
+              )}
+            </span>
           </div>
-          <div className="card">
-            <div className="k">Burn</div>
-            <div className="v">
-              <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
-            </div>
+          <div className="metric-row">
+            <span className="muted">Burn (monthly)</span>
+            <span>
+              {data.kpi ? (
+                <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} cite={citeFor(data, data.kpi.burn.sourceRefId)} />
+              ) : (
+                <span className="chip unfact">—</span>
+              )}
+            </span>
           </div>
-          <div className="card">
-            <div className="k">Runway (3-mo burn)</div>
-            <div className="v">
-              <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} />
-            </div>
+          <div className="metric-row">
+            <span className="muted">Runway (3-mo burn)</span>
+            <span>
+              {data.kpi ? <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} cite={citeFor(data, data.kpi.runway.sourceRefId)} /> : <span className="chip unfact">—</span>}
+            </span>
           </div>
-        </div>
-      )}
+          <div className="metric-row">
+            <span className="muted">Net revenue</span>
+            <span>
+              {revenueDual ? (
+                <Fact
+                  display={revenueDual.display}
+                  isFact={revenueDual.isFact}
+                  sourcePath={pathFor(revenue?.sourceRefId)}
+                  note={revenueDual.fxNote}
+                  cite={citeFor(data, revenue?.sourceRefId)}
+                />
+              ) : (
+                <span className="chip unfact">—</span>
+              )}
+            </span>
+          </div>
+        </Panel>
+        <Panel title="Partner view" kicker="Subjective" className="lane-sub-panel" actions={<span className="lane-chip sub">Judgement</span>}>
+          {latestSubjective ? (
+            <div className="lane-sub" style={{ margin: 0 }}>
+              <p style={{ margin: "0 0 8px" }}>{latestSubjective.body}</p>
+              <p className="lede" style={{ margin: 0 }}>
+                Author {latestSubjective.createdBy ? `${latestSubjective.createdBy.slice(0, 8)}…` : "—"} ·{" "}
+                {latestSubjective.createdAt
+                  ? new Date(latestSubjective.createdAt).toLocaleDateString()
+                  : latestSubjective.periodEnd}
+              </p>
+            </div>
+          ) : (
+            <p className="lede" style={{ margin: 0 }}>
+              No partner commentary on this company. MIS packs never fill this lane.
+            </p>
+          )}
+        </Panel>
+      </div>
 
-      <h2>Positions</h2>
+      <div className="grid-2" style={{ marginBottom: 16 }}>
+        <Panel title="Evidence trail" kicker="Provenance">
+          {evidence.length === 0 ? (
+            <p className="lede" style={{ margin: 0 }}>
+              No citations yet. Confirm an extract to write a locator.
+            </p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Cite</th>
+                </tr>
+              </thead>
+              <tbody>
+                {evidence.map((e) => (
+                  <tr key={e.id}>
+                    <td>{e.source}</td>
+                    <td className="lede">{e.kind}</td>
+                    <td className="lede">{e.date}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="cite"
+                        onClick={() =>
+                          openCite({
+                            display: e.source,
+                            filename: e.source,
+                            sourcePath: `/api/documents/${e.documentId}/file`,
+                            locator: e.locator,
+                            excerpt: e.excerpt,
+                            periodStart: e.periodStart,
+                            periodEnd: e.periodEnd,
+                            confirmedBy: e.confirmedBy,
+                            confirmedAt: e.confirmedAt,
+                          })
+                        }
+                      >
+                        {e.cite}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Panel>
+        <Panel title="Required documentation" kicker="Coverage">
+          <ul className="doc-req">
+            {required.map((r) => (
+              <li key={r.key} className="doc-row">
+                <span>{r.label}</span>
+                <span className={`cover-pill ${r.state}`}>{r.state}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="lede" style={{ fontSize: 12, margin: "12px 0 0" }}>
+            Only kinds this book stores: MIS, board pack, transcript. Stale is MIS older than 45 days.
+          </p>
+        </Panel>
+      </div>
+
+      <Panel title="Positions">
       <p className="lede">
         Booked positions only. Affinity writes ownership only after a mapped numeric field id and a successful sync.
       </p>
@@ -414,7 +626,7 @@ export default function CompanyPage() {
               <tr key={p.id}>
                 <td>{p.fundName}</td>
                 <td>{p.instrument}</td>
-                <td>{p.ownershipPct == null ? "—" : `${p.ownershipPct}%`}</td>
+                <td>{formatOwnership(p.ownershipPct)}</td>
                 <td>
                   {p.costBasis == null
                     ? "—"
@@ -426,8 +638,9 @@ export default function CompanyPage() {
           </tbody>
         </table>
       )}
+      </Panel>
 
-      <h2>Book</h2>
+      <Panel title="Book">
       <label className="lede">
         <input type="checkbox" checked={currentOnly} onChange={(e) => setCurrentOnly(e.target.checked)} /> Current
         version only (highest version per metric+period)
@@ -472,6 +685,7 @@ export default function CompanyPage() {
                       isFact={dual.isFact}
                       sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
                       note={dual.fxNote}
+                      cite={citeFor(data, m.sourceRefId)}
                     />
                   </td>
                   <td>{m.periodEnd}</td>
@@ -491,10 +705,11 @@ export default function CompanyPage() {
           </tbody>
         </table>
       )}
+      </Panel>
 
-      <div className="grid-2" style={{ marginTop: 24 }}>
+      <div className="grid-2" style={{ marginTop: 16 }}>
         <div className="lane-obj">
-          <h3>Objective (MIS)</h3>
+          <h3>Objective <span className="lane-chip obj">MIS</span></h3>
           {data.commentary.filter((n) => n.lane === "objective").map((n) => (
             <p key={n.id}>
               <span className="lede">{n.periodEnd} · objective</span>
@@ -505,7 +720,7 @@ export default function CompanyPage() {
           {data.commentary.filter((n) => n.lane === "objective").length === 0 && <p className="lede">—</p>}
         </div>
         <div className="lane-sub">
-          <h3>Subjective (calls / judgement)</h3>
+          <h3>Subjective <span className="lane-chip sub">calls / judgement</span></h3>
           {data.commentary.filter((n) => n.lane === "subjective").map((n) => (
             <p key={n.id}>
               <span className="lede">{n.periodEnd} · subjective</span>
@@ -518,7 +733,7 @@ export default function CompanyPage() {
       </div>
 
       {canWrite && (
-      <form onSubmit={addNote} style={{ marginTop: 16 }} className="field">
+      <form id="add-note" onSubmit={addNote} style={{ marginTop: 16 }} className="field">
         <label className="field">
           Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
           cannot be confirmed as subjective. Period defaults to the latest booked period, not a hardcoded month.
@@ -544,7 +759,7 @@ export default function CompanyPage() {
       </form>
       )}
 
-      <h2>Flags</h2>
+      <Panel title="Flags">
       <ul>
         {data.flags.map((f) => (
           <li key={f.id} className={`sev-${f.severity}`}>
@@ -554,8 +769,9 @@ export default function CompanyPage() {
         ))}
         {data.flags.length === 0 && <li className="lede">No open flags.</li>}
       </ul>
+      </Panel>
 
-      <h2>Vault</h2>
+      <Panel title="Vault">
       <p className="lede">DOCX is not supported yet — upload XLSX, XLS, CSV, or PDF.</p>
       <label className="field" style={{ maxWidth: 220 }}>
         Kind
@@ -584,6 +800,7 @@ export default function CompanyPage() {
         ))}
       </ul>
       {canWrite && <Upload companyId={id} onDone={load} />}
+      </Panel>
     </Shell>
   );
 }

@@ -12,6 +12,8 @@ import {
   type ConnectorKind,
   type ConnectorStatus,
 } from "@venture-os/core";
+import { PageHead, Panel, SettingsSubnav } from "@/components/BookUI";
+import { IconKey, IconLock } from "@/components/Icons";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -125,6 +127,7 @@ function ConnectorCards() {
       setErr((m) => ({ ...m, [kind]: checked.error }));
       return;
     }
+    const rowHasCred = Boolean(rows.find((r) => r.kind === kind)?.hasCredentials);
     setBusy(`save-${kind}`);
     setErr((m) => ({ ...m, [kind]: "" }));
     try {
@@ -141,7 +144,12 @@ function ConnectorCards() {
           userId: f.userId || undefined,
         }),
       });
-      setMsg((m) => ({ ...m, [kind]: "Saved. Test connection before Connect." }));
+      setMsg((m) => ({
+        ...m,
+        [kind]: rowHasCred
+          ? "Rotated. Plaintext cleared from this form. Test connection before Connect."
+          : "Saved. Plaintext cleared from this form. Test connection before Connect.",
+      }));
       setForms((prev) => ({
         ...prev,
         [kind]: { ...form(kind), clientSecret: "", apiKey: "", clientId: "", tenantId: "" },
@@ -219,11 +227,23 @@ function ConnectorCards() {
 
   return (
     <Shell>
-      <h1>Connectors</h1>
-      <p className="lede">
-        Paste keys here — sync starts automatically after a successful test. Status stays{" "}
-        <strong>not connected</strong> until a health check succeeds. We never invent a last-sync time. Paste
-        steps: <code>docs/connectors/ADDING_KEYS.md</code>.
+      <PageHead
+        kicker="Settings · Connectors / API vault"
+        title="Connectors"
+        badge={
+          isAdmin ? (
+            <span className="badge">
+              <IconLock /> Org Admin
+            </span>
+          ) : (
+            <span className="badge">Read only</span>
+          )
+        }
+        lede="Keys are AES-encrypted at rest. Plaintext never shown after save. Status stays not connected until a health check succeeds — we never invent a last-sync time."
+      />
+      <SettingsSubnav current="connectors" />
+      <p className="lede" style={{ margin: "-4px 0 16px" }}>
+        Paste steps: <code>docs/connectors/ADDING_KEYS.md</code>. Map folder / CRM ids on each company.
       </p>
       {oauthNote && (
         <p className={search.get("error") ? "sev-high" : "lede"} role="status">
@@ -236,6 +256,7 @@ function ConnectorCards() {
         </p>
       )}
 
+      <h2 className="section-title">Active connections</h2>
       <div className="connector-grid" data-testid="connector-cards">
         {CONNECTOR_KINDS.map((kind) => {
           const row = rows.find((r) => r.kind === kind);
@@ -244,17 +265,31 @@ function ConnectorCards() {
           const canConnect = isAdmin && (valid(kind) || Boolean(row?.hasCredentials));
           return (
             <section className="card connector-card" key={kind} data-testid={`connector-card-${kind}`}>
-              <div className="k">{connectorLabel(kind)}</div>
-              <div className="row" style={{ marginTop: 8 }}>
-                <span className={`badge badge-${status}`} data-testid={`connector-status-${kind}`}>
-                  {statusLabel(status)}
-                </span>
-                {row?.usingEnvFallback && <span className="lede">env default</span>}
-                {row?.hasCredentials && (
-                  <span className="lede" data-testid={`connector-hint-${kind}`}>
-                    configured {row.secretHint ?? "••••"}
-                  </span>
-                )}
+              <div className="vault-row">
+                <div className="conn-mark" aria-hidden>
+                  {connectorLabel(kind).slice(0, 1)}
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="row">
+                    <strong>{connectorLabel(kind)}</strong>
+                    <span className={`badge badge-${status}`} data-testid={`connector-status-${kind}`}>
+                      {status === "connected" ? "● Connected" : statusLabel(status)}
+                    </span>
+                  </div>
+                  <div className="row" style={{ marginTop: 6 }}>
+                    {row?.usingEnvFallback && <span className="lede">env default</span>}
+                    {row?.hasCredentials ? (
+                      <span className="lede" data-testid={`connector-hint-${kind}`}>
+                        <IconKey /> {row.secretHint ?? "••••"}
+                      </span>
+                    ) : (
+                      <span className="lede">No org key saved</span>
+                    )}
+                    {row?.lastHealthAt ? (
+                      <span className="lede">Last health {new Date(row.lastHealthAt).toLocaleDateString()}</span>
+                    ) : null}
+                  </div>
+                </div>
               </div>
               <p className="lede" style={{ marginTop: 8 }}>
                 {help[kind]}
@@ -382,7 +417,13 @@ function ConnectorCards() {
                   )}
                   <div className="row">
                     <button className="btn sm" type="submit" disabled={Boolean(busy)}>
-                      {busy === `save-${kind}` ? "Saving…" : "Save"}
+                      {busy === `save-${kind}`
+                        ? row?.hasCredentials
+                          ? "Rotating…"
+                          : "Saving…"
+                        : row?.hasCredentials
+                          ? "Rotate"
+                          : "Save"}
                     </button>
                     <button
                       className="btn ghost sm"
@@ -404,7 +445,7 @@ function ConnectorCards() {
                       {busy === `connect-${kind}` ? "Connecting…" : "Connect"}
                     </button>
                     <button
-                      className="btn ghost sm"
+                      className="btn ghost sm danger-text"
                       type="button"
                       disabled={status === "not_connected" || Boolean(busy)}
                       onClick={() => disconnect(kind)}
@@ -434,6 +475,23 @@ function ConnectorCards() {
         Map a OneDrive folder, Affinity company id, or Granola note id on each{" "}
         <Link href="/companies">company</Link>. Then sync pulls into the same parse / inbox path as upload.
       </p>
+      <Panel title="Vault architecture & permissions" className="vault-card-panel">
+        <div className="vault-card" style={{ marginTop: 0 }}>
+          <div className="vault-ico" aria-hidden>
+            <IconLock />
+          </div>
+          <div>
+            <p style={{ margin: "0 0 8px" }}>
+              Org keys are sealed with AES-256-GCM. Postgres holds ciphertext, nonce, and key version — never the
+              envelope key. After save, this form clears client secret, API key, client id, and tenant id from memory.
+            </p>
+            <p className="lede" style={{ margin: 0 }}>
+              Only Org Admin can paste or rotate. Partners lock NAV; they do not hold vendor keys. Disconnect nulls
+              the envelope. Status is never marked connected without a real health check.
+            </p>
+          </div>
+        </div>
+      </Panel>
     </Shell>
   );
 }
@@ -443,7 +501,7 @@ export default function ConnectorsPage() {
     <Suspense
       fallback={
         <Shell>
-          <p className="lede">Loading connectors…</p>
+          <p className="lede">Loading the book…</p>
         </Shell>
       }
     >
