@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { defaultPriorAsOf, lastCalendarQuarterEnd } from "@venture-os/core";
-import { PageHead, Panel } from "@/components/BookUI";
+import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
@@ -407,7 +407,7 @@ export default function NavPage() {
                 <tr key={p.position.id}>
                   <td>{p.companyName}</td>
                   <td>{p.fundName}</td>
-                  <td>{p.position.ownershipPct == null ? "—" : `${p.position.ownershipPct}%`}</td>
+                  <td>{formatOwnership(p.position.ownershipPct)}</td>
                   <td>{p.cost == null ? "—" : inr(p.cost)}</td>
                   <td>
                     <Fact

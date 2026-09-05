@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG } from "@venture-os/core";
-import { EM, PageHead, Panel } from "@/components/BookUI";
+import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
 import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
@@ -144,7 +144,7 @@ export default function CommandPage() {
         return [
           `"${r.company.name}"`,
           r.company.stage ?? EM,
-          r.ownershipPct == null ? EM : `${(r.ownershipPct * 100).toFixed(1)}%`,
+          formatOwnership(r.ownershipPct),
           r.lastMis ?? EM,
           `"${r.cash.display}"`,
           `"${r.burn.display}"`,
@@ -205,11 +205,12 @@ export default function CommandPage() {
             <div className={`kpi${data.pulse.openFlags > 0 ? " accent-warn" : ""}`}>
               <div className="k">Open flags</div>
               <div className="v">{data.pulse.openFlags}</div>
+              {data.pulse.openFlags > 0 ? <div className="meta">Requires review</div> : null}
             </div>
             <div className={`kpi${gaps > 0 ? " accent-danger" : ""}`}>
               <div className="k">Coverage gaps</div>
               <div className="v">{gaps}</div>
-              <div className="meta">Names with no booked MIS period</div>
+              <div className="meta">{gaps > 0 ? "No booked MIS" : "Names with no booked MIS period"}</div>
             </div>
             <div className="kpi">
               <div className="k">Uncited figures</div>
@@ -294,9 +295,12 @@ export default function CommandPage() {
                       return (
                         <tr key={r.company.id}>
                           <td>
-                            <Link className="company-link" href={`/companies/${r.company.id}`}>
-                              {r.company.name}
-                            </Link>
+                            <div className="company-cell">
+                              <CompanyMark name={r.company.name} />
+                              <Link className="company-link" href={`/companies/${r.company.id}`}>
+                                {r.company.name}
+                              </Link>
+                            </div>
                           </td>
                           <td className="num">{age == null ? EM : `${age}d`}</td>
                           <td className={r.lastMis ? undefined : "miss"}>{r.lastMis ? EM : "MIS"}</td>
@@ -366,14 +370,15 @@ export default function CommandPage() {
                       return (
                         <tr key={r.company.id}>
                           <td>
-                            <Link className="company-link" href={`/companies/${r.company.id}`}>
-                              {r.company.name}
-                            </Link>
+                            <div className="company-cell">
+                              <CompanyMark name={r.company.name} />
+                              <Link className="company-link" href={`/companies/${r.company.id}`}>
+                                {r.company.name}
+                              </Link>
+                            </div>
                           </td>
-                          <td>{r.company.stage ?? EM}</td>
-                          <td className="num">
-                            {r.ownershipPct == null ? EM : `${(r.ownershipPct * 100).toFixed(1)}%`}
-                          </td>
+                          <td>{r.company.stage ? <span className="badge">{r.company.stage}</span> : EM}</td>
+                          <td className="num">{formatOwnership(r.ownershipPct)}</td>
                           <td className="num">{r.lastMis ?? EM}</td>
                           <td>
                             <Fact

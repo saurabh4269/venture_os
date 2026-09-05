@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { PageHead, Panel } from "@/components/BookUI";
+import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -26,11 +26,27 @@ function bookCloseLine(d = new Date()) {
   return `Portfolio companies · book as of ${rest}`;
 }
 
+function exportVisible(rows: { name: string; stage: string | null; sector: string | null; ownership: string; lastMis: string; flags: string; cover: string }[]) {
+  const header = ["Company", "Stage", "Sector", "Ownership", "Last MIS", "Flags", "Coverage"];
+  const lines = [
+    header.join(","),
+    ...rows.map((r) =>
+      [`"${r.name}"`, r.stage ?? EM, r.sector ?? EM, r.ownership, r.lastMis, r.flags, r.cover].join(","),
+    ),
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "companies.csv";
+  a.click();
+}
+
 export default function CompaniesPage() {
   const { canWrite } = useBookSession();
   const [rows, setRows] = useState<Company[]>([]);
   const [coverage, setCoverage] = useState<Coverage[]>([]);
   const [err, setErr] = useState("");
+  const [q, setQ] = useState("");
   const [stage, setStage] = useState("");
   const [own, setOwn] = useState<"all" | "has" | "missing">("all");
   const [cover, setCover] = useState<"all" | "booked" | "gap" | "review">("all");
@@ -47,30 +63,70 @@ export default function CompaniesPage() {
   const stages = useMemo(() => [...new Set(rows.map((c) => c.stage).filter(Boolean))] as string[], [rows]);
   const covById = useMemo(() => new Map(coverage.map((c) => [c.company.id, c])), [coverage]);
   const visible = useMemo(() => {
+    const needle = q.trim().toLowerCase();
     return rows.filter((c) => {
       const cov = covById.get(c.id);
+      if (needle && !c.name.toLowerCase().includes(needle) && !(c.sector ?? "").toLowerCase().includes(needle)) return false;
       if (stage && c.stage !== stage) return false;
-      if (own === "has" && (cov?.ownershipPct == null)) return false;
+      if (own === "has" && cov?.ownershipPct == null) return false;
       if (own === "missing" && cov?.ownershipPct != null) return false;
       const kind = coverageKind(cov);
       if (cover !== "all" && kind !== cover) return false;
       return true;
     });
-  }, [rows, covById, stage, own, cover]);
+  }, [rows, covById, q, stage, own, cover]);
 
-  const filtered = Boolean(stage || own !== "all" || cover !== "all");
+  const filtered = Boolean(q.trim() || stage || own !== "all" || cover !== "all");
 
   return (
     <Shell>
       <PageHead
         title="Companies"
+        testId="companies-ready"
         lede={bookCloseLine()}
         actions={
-          canWrite ? (
-            <Link className="btn" href="/companies/new">
-              Add company
-            </Link>
-          ) : undefined
+          <div className="row">
+            <label className="sr-only" htmlFor="co-search">
+              Search companies
+            </label>
+            <input
+              id="co-search"
+              placeholder="Search companies…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              style={{ minWidth: 200 }}
+            />
+            {visible.length > 0 && (
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() =>
+                  exportVisible(
+                    visible.map((c) => {
+                      const cov = covById.get(c.id);
+                      const kind = coverageKind(cov);
+                      return {
+                        name: c.name,
+                        stage: c.stage,
+                        sector: c.sector,
+                        ownership: formatOwnership(cov?.ownershipPct),
+                        lastMis: cov?.lastMis ?? EM,
+                        flags: cov?.openFlags ? String(cov.openFlags) : EM,
+                        cover: kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review",
+                      };
+                    }),
+                  )
+                }
+              >
+                Export
+              </button>
+            )}
+            {canWrite ? (
+              <Link className="btn" href="/companies/new">
+                Add company
+              </Link>
+            ) : null}
+          </div>
         }
       />
       {err && (
@@ -81,11 +137,8 @@ export default function CompaniesPage() {
       {rows.length > 0 && (
         <div className="row" style={{ marginBottom: 14 }}>
           <div className="tabs filter-pills" aria-label="Stage">
-            <button type="button" className={`filter-pill${!stage ? " on" : ""}`} onClick={() => setStage("")}>
-              All stages
-            </button>
             {stages.map((s) => (
-              <button key={s} type="button" className={`filter-pill${stage === s ? " on" : ""}`} onClick={() => setStage(s)}>
+              <button key={s} type="button" className={`filter-pill${stage === s ? " on" : ""}`} onClick={() => setStage(stage === s ? "" : s)}>
                 {s}
               </button>
             ))}
@@ -94,7 +147,7 @@ export default function CompaniesPage() {
             Ownership
           </label>
           <select id="own-filter" value={own} onChange={(e) => setOwn(e.target.value as typeof own)} aria-label="Ownership">
-            <option value="all">Ownership: all</option>
+            <option value="all">Ownership</option>
             <option value="has">Has booked ownership</option>
             <option value="missing">Ownership —</option>
           </select>
@@ -102,7 +155,7 @@ export default function CompaniesPage() {
             Coverage
           </label>
           <select id="cover-filter" value={cover} onChange={(e) => setCover(e.target.value as typeof cover)} aria-label="Coverage">
-            <option value="all">Coverage: all</option>
+            <option value="all">Coverage</option>
             <option value="booked">Booked</option>
             <option value="gap">Gap</option>
             <option value="review">Review</option>
@@ -112,6 +165,7 @@ export default function CompaniesPage() {
               type="button"
               className="btn ghost sm"
               onClick={() => {
+                setQ("");
                 setStage("");
                 setOwn("all");
                 setCover("all");
@@ -149,17 +203,28 @@ export default function CompaniesPage() {
                   const cov = covById.get(c.id);
                   const kind = coverageKind(cov);
                   return (
-                    <tr key={c.id}>
+                    <tr key={c.id} data-testid="companies-row">
                       <td>
-                        <Link className="company-link" href={`/companies/${c.id}`}>
-                          {c.name}
-                        </Link>
-                        {c.sector ? <div className="lede">{c.sector}</div> : null}
+                        <div className="company-cell">
+                          <CompanyMark name={c.name} />
+                          <div>
+                            <Link className="company-link" href={`/companies/${c.id}`}>
+                              {c.name}
+                            </Link>
+                            {c.sector ? <div className="lede">{c.sector}</div> : null}
+                          </div>
+                        </div>
                       </td>
-                      <td>{c.stage ? <span className="badge">{c.stage}</span> : <span className="lede">—</span>}</td>
-                      <td>{cov?.ownershipPct == null ? "—" : `${cov.ownershipPct}%`}</td>
-                      <td className="lede">{cov?.lastMis ?? "—"}</td>
-                      <td>{cov?.openFlags ? cov.openFlags : "—"}</td>
+                      <td>{c.stage ? <span className="badge">{c.stage}</span> : <span className="lede">{EM}</span>}</td>
+                      <td className="num">{formatOwnership(cov?.ownershipPct)}</td>
+                      <td className="lede">{cov?.lastMis ?? EM}</td>
+                      <td>
+                        {cov?.openFlags ? (
+                          <span className={`flag-n${cov.openFlags >= 2 ? " high" : ""}`}>{cov.openFlags}</span>
+                        ) : (
+                          EM
+                        )}
+                      </td>
                       <td>
                         <span className={`status-chip ${kind}`}>{kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}</span>
                       </td>
@@ -169,13 +234,12 @@ export default function CompaniesPage() {
               </tbody>
             </table>
           </div>
+          <p className="table-foot">
+            Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
+            {filtered ? " matching current filters" : ""}. Last MIS is booked — not a partner note. Coverage is Booked /
+            Gap / Review from evidence, never a score.
+          </p>
         </Panel>
-      )}
-      {rows.length > 0 && (
-        <p className="lede" style={{ marginTop: 12 }}>
-          Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
-          {filtered ? " matching current filters" : ""}. Coverage is Booked / Gap / Review from evidence — not a score.
-        </p>
       )}
     </Shell>
   );

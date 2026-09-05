@@ -40,8 +40,8 @@ NAV / MOIC remain as headline chips under the KPI strip (product pulse). They ar
 | Company | Stage badge, ownership, flag pills, Objective + Partner view, Evidence trail, Required docs | Ownership from booked positions only; no cite unless a locator exists. Objective = booked cash/burn/runway + net revenue if extracted. Partner view = latest **subjective** commentary (violet-slate), never MIS. Required kinds are only `mis` / `board_pack` / `transcript`. STALE = MIS older than 45 days. No invented SAFE / cap table / Affinity deep link. |
 | Inbox | Severity-sorted triage; All / Flags / Docs | Flags = unit ambiguity / unknown unit. Docs = other extracts. Mentions pill is honest empty (not connected). No Mark all read. Owner column is `—` until the book stores an owner. Confirm / Reject unchanged. |
 | Connectors | ORG ADMIN badge, masked keys, Rotate / Disconnect / Connect | Save-when-already-has-credentials is **Rotate**. `secretHint` only. Status stays not connected until healthCheck. No plaintext after save. No Billing / Danger zone. |
-| Companies | Stage pills, ownership/coverage filters, table | Ownership and last MIS from Command coverage only. Coverage chip is Booked / Gap / Review — never a %. Last-note column mapped to Last MIS (no invented partner notes). |
-| Flags | Evidence queue: Severity, Company, Reason, Cite, Status | Expand a row for real evidence fields only. No generated “analysis” or subjective take. Mute / snooze unchanged. |
+| Companies | Stage pills, ownership/coverage filters, initial marks, search, CSV export | Ownership and last MIS from Command coverage only. Coverage chip is Booked / Gap / Review — never a %. Last-note column mapped to Last MIS (no invented partner notes). No Columns control. |
+| Flags | Evidence queue + selected-row inspector | Inspector shows detector evidence in the objective lane only. No generated “analysis” or subjective take. Mute / snooze unchanged. |
 
 ## Loop (polish)
 

@@ -154,12 +154,12 @@ export default function InboxPage() {
         title="Inbox"
         lede="Proposed extracts — confirm to write the book. Sorted by severity. Nothing here is a fact until you say so."
       />
-      <div className="tabs">
+      <div className="tabs filter-pills" aria-label="Status">
         {STATUSES.map((s) => (
           <button
             key={s}
             type="button"
-            className={s === status ? "btn sm" : "btn ghost sm"}
+            className={`filter-pill${s === status ? " on" : ""}`}
             data-testid={`inbox-tab-${s}`}
             onClick={() => setStatus(s)}
           >
@@ -170,12 +170,12 @@ export default function InboxPage() {
       <div className="tabs filter-pills" aria-label="Kind filter">
         {(
           [
-            ["all", `All (${items.length})`],
-            ["flags", `Flags (${flagsCount})`],
-            ["docs", `Docs (${docsCount})`],
-            ["mentions", "Mentions (—)"],
-          ] as const
-        ).map(([k, label]) => (
+            ["all", "All", String(items.length)] as const,
+            ["flags", "Flags", String(flagsCount)] as const,
+            ["docs", "Docs", String(docsCount)] as const,
+            ["mentions", "Mentions", "—"] as const,
+          ]
+        ).map(([k, label, count]) => (
           <button
             key={k}
             type="button"
@@ -183,6 +183,7 @@ export default function InboxPage() {
             onClick={() => setKindFilter(k)}
           >
             {label}
+            <span className="filter-count">{count}</span>
           </button>
         ))}
       </div>
@@ -211,7 +212,7 @@ export default function InboxPage() {
         </div>
       ) : (
         <div className="triage">
-          <div className="triage-row" style={{ background: "transparent", boxShadow: "none", border: 0, padding: "0 14px" }}>
+          <div className="triage-row triage-head">
             <div className="page-kicker">Severity</div>
             <div className="page-kicker">Entity</div>
             <div className="page-kicker">Summary</div>
@@ -226,7 +227,7 @@ export default function InboxPage() {
               .filter(Boolean)
               .join(" ");
             return (
-              <article className="triage-row" key={i.id}>
+              <article className="triage-row" key={i.id} data-testid="inbox-row">
                 <div>
                   <span className={`sev-pill ${sev}`}>{sev}</span>
                 </div>

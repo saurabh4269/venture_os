@@ -1,5 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { formatOwnership } from "@/lib/format";
+
+export { formatOwnership };
 
 export function PageHead({
   title,
@@ -149,3 +152,12 @@ export function AuthFrame({
 }
 
 export const EM = "—";
+
+export function CompanyMark({ name }: { name: string }) {
+  const initial = (name.trim()[0] || "?").toUpperCase();
+  return (
+    <span className="co-mark" aria-hidden>
+      {initial}
+    </span>
+  );
+}

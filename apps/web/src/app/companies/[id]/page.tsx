@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
-import { PageHead, Panel } from "@/components/BookUI";
+import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
@@ -300,7 +300,7 @@ export default function CompanyPage() {
                 Ownership <span className="chip unfact">—</span>
               </>
             ) : (
-              <>{own}% ownership</>
+              <>{formatOwnership(own)} ownership</>
             )}
             {" · "}
             FY start month {data.company.fyStartMonth ?? 4} (
@@ -626,7 +626,7 @@ export default function CompanyPage() {
               <tr key={p.id}>
                 <td>{p.fundName}</td>
                 <td>{p.instrument}</td>
-                <td>{p.ownershipPct == null ? "—" : `${p.ownershipPct}%`}</td>
+                <td>{formatOwnership(p.ownershipPct)}</td>
                 <td>
                   {p.costBasis == null
                     ? "—"

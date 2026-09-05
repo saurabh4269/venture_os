@@ -9,7 +9,8 @@ test.describe("@smoke rituals", () => {
     const reject = await waitForInboxActions(page, "inbox-reject");
     await reject.click();
     await page.getByTestId("inbox-tab-rejected").click();
-    await expect(page.locator("table tbody tr").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("inbox-ready")).toHaveAttribute("data-inbox-status", "rejected", { timeout: 15_000 });
+    await expect(page.getByTestId("inbox-row").first()).toBeVisible({ timeout: 15_000 });
 
     await page.goto("/flags");
     await expect(page.getByTestId("flags-ready")).toBeVisible();
