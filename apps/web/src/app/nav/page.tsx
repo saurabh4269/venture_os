@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { defaultPriorAsOf, lastCalendarQuarterEnd } from "@venture-os/core";
-import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { CompanyMark, formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { IconLock, IconWarn } from "@/components/Icons";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
@@ -84,6 +85,17 @@ function pctIrr(n: number | null | undefined) {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+function quarterLabel(iso: string) {
+  const [y, m] = iso.split("-").map(Number);
+  if (!y || !m) return iso;
+  return `Q${Math.ceil(m / 3)} ${y}`;
+}
+
+function positionMoic(mark: number | null, cost: number | null) {
+  if (mark == null || cost == null || cost === 0) return null;
+  return mark / cost;
+}
+
 type Dual = {
   display: string;
   isFact: boolean;
@@ -114,6 +126,7 @@ export default function NavPage() {
   const [err, setErr] = useState("");
   const [unlockReason, setUnlockReason] = useState("");
   const [lockBusy, setLockBusy] = useState(false);
+  const [cos, setCos] = useState<{ id: string; name: string; stage: string | null }[]>([]);
 
   const qs = useMemo(() => {
     const p = new URLSearchParams({ asOf, priorAsOf });
@@ -130,6 +143,16 @@ export default function NavPage() {
   useEffect(() => {
     load();
   }, [qs]);
+  useEffect(() => {
+    api<{ companies: { id: string; name: string; stage: string | null }[] }>("/api/companies")
+      .then((r) => setCos(r.companies ?? []))
+      .catch(() => setCos([]));
+  }, []);
+
+  const stageById = useMemo(() => new Map(cos.map((c) => [c.id, c.stage])), [cos]);
+  const unmarked = data?.rollup.unmarked ?? [];
+  const unprovenanced = data?.rollup.unprovenanced ?? [];
+  const unofficial = data?.period?.status !== "locked";
 
   async function addMark(e: React.FormEvent) {
     e.preventDefault();
@@ -162,12 +185,47 @@ export default function NavPage() {
       <PageHead
         title="NAV"
         testId="nav-ready"
+        kicker={
+          <span className="row" style={{ gap: 8 }}>
+            <span className="badge">Institutional book</span>
+            <span className={`badge${unofficial ? " status-unofficial" : ""}`}>
+              Status: {unofficial ? "unofficial" : "locked"}
+            </span>
+          </span>
+        }
         lede={
           <>
-            Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
-            rollup is complete. IRR appears only when every sourced mark has an <code>investedAt</code> — we never
-            invent an investment date. Dual EUR only with a complete FX triple. Locking freezes an official JSON pack.
+            Quarterly marks · {quarterLabel(asOf)} · as of {asOf}. Deterministic from positions and marks. Missing is —.
+            MOIC is blank unless the rollup is complete. IRR appears only when every sourced mark has an{" "}
+            <code>investedAt</code>. Dual EUR only with a complete FX triple.
           </>
+        }
+        actions={
+          canLock && unofficial ? (
+            <button
+              type="button"
+              className="btn"
+              data-testid="nav-lock"
+              disabled={lockBusy}
+              onClick={async () => {
+                setLockBusy(true);
+                setErr("");
+                try {
+                  await api("/api/nav/lock", { method: "POST", body: JSON.stringify({ asOf }) });
+                  load();
+                } catch (e) {
+                  setErr(e instanceof Error ? e.message : "Lock failed");
+                } finally {
+                  setLockBusy(false);
+                }
+              }}
+            >
+              <span className="row" style={{ gap: 6 }}>
+                <IconLock />
+                {lockBusy ? "Locking…" : "Lock marks"}
+              </span>
+            </button>
+          ) : undefined
         }
       />
       <div className="row" style={{ flexWrap: "wrap" }}>
@@ -203,28 +261,7 @@ export default function NavPage() {
       )}
       {canLock && (
         <div className="row" style={{ marginBottom: 12 }}>
-          {data?.period?.status !== "locked" ? (
-            <button
-              type="button"
-              className="btn sm"
-              data-testid="nav-lock"
-              disabled={lockBusy}
-              onClick={async () => {
-                setLockBusy(true);
-                setErr("");
-                try {
-                  await api("/api/nav/lock", { method: "POST", body: JSON.stringify({ asOf }) });
-                  load();
-                } catch (e) {
-                  setErr(e instanceof Error ? e.message : "Lock failed");
-                } finally {
-                  setLockBusy(false);
-                }
-              }}
-            >
-              {lockBusy ? "Locking…" : "Lock this as-of"}
-            </button>
-          ) : (
+          {data?.period?.status === "locked" && (
             <>
               <label className="field" style={{ maxWidth: 320 }}>
                 Unlock reason
@@ -290,14 +327,38 @@ export default function NavPage() {
         </p>
       )}
       {!data && !err && <p className="lede">Loading the book…</p>}
-      {data && data.positions.length === 0 && (
-        <div className="empty">
-          No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
-        </div>
-      )}
-      {data && data.positions.length > 0 && (
+      {data && (
         <>
-          <div className="cards">
+          <div className="notice-split">
+            <div className="notice">
+              <strong>Unmarked companies: {unmarked.length}</strong>
+              <p className="lede">
+                {unmarked.length === 0
+                  ? "Every position on this as-of has a mark — or there are no positions yet."
+                  : "Needs a booked mark. We will not invent a figure."}{" "}
+                {unmarked.map((u) => (
+                  <button
+                    key={`${u.companyName}-${u.positionId ?? ""}`}
+                    type="button"
+                    className="chip"
+                    onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
+                  >
+                    {u.companyName}
+                  </button>
+                ))}
+              </p>
+            </div>
+            <div className={`notice${unprovenanced.length ? " warn" : ""}`}>
+              <strong>Unprovenanced figures: {unprovenanced.length}</strong>
+              <p className="lede">
+                {unprovenanced.length === 0
+                  ? "No cited-less marks on this as-of."
+                  : "Missing citations. Headline NAV excludes them — attach a memo to include."}{" "}
+                {unprovenanced.map((u) => u.companyName).join(", ")}
+              </p>
+            </div>
+          </div>
+          <div className="cards cards-4">
             <div className="kpi">
               <div className="k">Cost</div>
               <div className="v">{inr(data.rollup.cost.total)}</div>
@@ -324,33 +385,19 @@ export default function NavPage() {
               <div className="v">{pctIrr(data.irr)}</div>
               {data.irr == null && <div className="meta">Needs investedAt on every sourced mark</div>}
             </div>
-            <div className="kpi">
-              <div className="k">Bridge Δ</div>
-              <div className="v">{data.bridge.deltaNav == null ? "—" : inr(data.bridge.deltaNav)}</div>
-              <div className="meta">vs {data.priorAsOf}</div>
-            </div>
           </div>
-          {data.rollup.unmarked.length > 0 && (
-            <p className="lede">
-              Unmarked:{" "}
-              {data.rollup.unmarked.map((u) => (
-                <button
-                  key={`${u.companyName}-${u.positionId ?? ""}`}
-                  type="button"
-                  className="chip"
-                  onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
-                >
-                  {u.companyName}
-                </button>
-              ))}
-            </p>
-          )}
-          {(data.rollup.unprovenanced ?? []).length > 0 && (
-            <p className="lede">
-              Unprovenanced marks (excluded from headline NAV):{" "}
-              {data.rollup.unprovenanced!.map((u) => u.companyName).join(", ")}. Attach a memo to include them.
-            </p>
-          )}
+          <p className="lede" style={{ marginTop: -8, marginBottom: 16 }}>
+            Bridge Δ {data.bridge.deltaNav == null ? "—" : inr(data.bridge.deltaNav)} vs {data.priorAsOf}.
+          </p>
+        </>
+      )}
+      {data && data.positions.length === 0 && (
+        <div className="empty">
+          No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
+        </div>
+      )}
+      {data && data.positions.length > 0 && (
+        <>
           {data.bridge.unexplained.length > 0 && (
             <p className="lede">
               Unexplained bridge:{" "}
@@ -387,44 +434,68 @@ export default function NavPage() {
               </Panel>
             </>
           )}
-          <Panel title="Positions" flush>
+          <Panel title="Company marks" flush>
+          <div className="table-scroll">
           <table>
             <thead>
               <tr>
                 <th>Company</th>
-                <th>Fund</th>
-                <th>Ownership</th>
+                <th>Stage</th>
                 <th>Cost</th>
-                <th>Mark</th>
-                <th>As-of</th>
-                <th>Method</th>
+                <th>NAV</th>
+                <th>MOIC</th>
                 <th>IRR</th>
-                <th>Rationale</th>
+                <th>Mark date</th>
+                <th>Provenance</th>
               </tr>
             </thead>
             <tbody>
-              {data.positions.map((p) => (
-                <tr key={p.position.id}>
-                  <td>{p.companyName}</td>
-                  <td>{p.fundName}</td>
-                  <td>{formatOwnership(p.position.ownershipPct)}</td>
-                  <td>{p.cost == null ? "—" : inr(p.cost)}</td>
-                  <td>
-                    <Fact
-                      display={p.markDisplay?.display ?? (p.mark == null ? "—" : inr(p.mark))}
-                      isFact={Boolean(p.sourceRefId && p.mark != null)}
-                      note={p.markDisplay?.fxNote ?? null}
-                      sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)}
-                    />
-                  </td>
-                  <td>{p.markAsOf ?? "—"}</td>
-                  <td>{p.method ?? "—"}</td>
-                  <td>{pctIrr(p.irr)}</td>
-                  <td className="lede">{p.rationale || "—"}</td>
-                </tr>
-              ))}
+              {data.positions.map((p) => {
+                const unmarkedRow = p.mark == null;
+                const moic = positionMoic(p.mark, p.cost);
+                return (
+                  <tr key={p.position.id}>
+                    <td>
+                      <div className="company-cell">
+                        {unmarkedRow ? <IconWarn className="nav-ico look-ico" /> : <CompanyMark name={p.companyName} />}
+                        <div>
+                          {p.position.companyId ? (
+                            <Link className="company-link" href={`/companies/${p.position.companyId}`}>
+                              {p.companyName}
+                            </Link>
+                          ) : (
+                            p.companyName
+                          )}
+                          <div className="lede">{p.fundName} · {formatOwnership(p.position.ownershipPct)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{stageById.get(p.position.companyId ?? "") ?? "—"}</td>
+                    <td className="num">{p.cost == null ? "—" : inr(p.cost)}</td>
+                    <td>
+                      <Fact
+                        display={p.markDisplay?.display ?? (p.mark == null ? "—" : inr(p.mark))}
+                        isFact={Boolean(p.sourceRefId && p.mark != null)}
+                        note={p.markDisplay?.fxNote ?? null}
+                        sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)}
+                      />
+                    </td>
+                    <td className="num">{moic == null ? "—" : `${moic.toFixed(2)}x`}</td>
+                    <td className="num">{pctIrr(p.irr)}</td>
+                    <td className="num">{p.markAsOf ?? "—"}</td>
+                    <td>
+                      {p.sourceRefId ? (
+                        <Fact display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)} />
+                      ) : (
+                        <span className="badge">{unmarkedRow ? "Pending" : "—"}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          </div>
           </Panel>
           {canWrite && data.period?.status === "locked" && (
             <p className="lede">This as-of is locked. Unlock with a reason before changing marks.</p>

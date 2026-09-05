@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PageHead, Panel } from "@/components/BookUI";
+import { PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
@@ -12,6 +12,8 @@ type Res = {
   citations: { documentId: string | null; sourceRefId: string | null; excerpt: string }[];
 };
 
+type Doc = { id: string; filename: string; kind: string; createdAt?: string | null; companyName?: string | null };
+
 export default function AskPage() {
   const openCite = useCite();
   const [q, setQ] = useState("");
@@ -19,14 +21,17 @@ export default function AskPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
+  const [docs, setDocs] = useState<Doc[]>([]);
   const [companyId, setCompanyId] = useState("");
-
   const [history, setHistory] = useState<{ question: string; refused: boolean; createdAt?: string }[]>([]);
 
   useEffect(() => {
     api<{ companies: { id: string; name: string }[] }>("/api/companies")
       .then((r) => setCos(r.companies ?? []))
       .catch(() => setCos([]));
+    api<{ documents: Doc[] }>("/api/documents")
+      .then((r) => setDocs(r.documents ?? []))
+      .catch(() => setDocs([]));
     api<{ queries: { question: string; refused: boolean; createdAt?: string }[] }>("/api/ask/history")
       .then((r) => setHistory(r.queries ?? []))
       .catch(() => setHistory([]));
@@ -39,12 +44,14 @@ export default function AskPage() {
     setBusy(true);
     setErr("");
     try {
-      setRes(
-        await api<Res>("/api/ask", {
-          method: "POST",
-          body: JSON.stringify({ question: q, companyId: companyId || undefined }),
-        }),
-      );
+      const next = await api<Res>("/api/ask", {
+        method: "POST",
+        body: JSON.stringify({ question: q, companyId: companyId || undefined }),
+      });
+      setRes(next);
+      api<{ queries: { question: string; refused: boolean; createdAt?: string }[] }>("/api/ask/history")
+        .then((r) => setHistory(r.queries ?? []))
+        .catch(() => undefined);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Ask failed");
     } finally {
@@ -52,100 +59,128 @@ export default function AskPage() {
     }
   }
 
+  const refused = Boolean(res && (res.refused || /will not guess/i.test(res.answer)));
+
   return (
     <Shell>
-      <PageHead
-        title="Ask"
-        testId="ask-ready"
-        lede="Analysis from the book. If it is not in the corpus, the system refuses. Open a cite to verify file and excerpt — we will not invent a locator."
-      />
-      <Panel>
-      <form onSubmit={send} className="field" style={{ maxWidth: 720 }}>
-        <label className="field">
-          Company (optional)
-          <select value={companyId} onChange={(e) => setCompanyId(e.target.value)}>
-            <option value="">All companies</option>
-            {cos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field" htmlFor="ask-q">
-          Question
-          <textarea
-            id="ask-q"
-            data-testid="ask-question"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            rows={3}
-            placeholder="What was last confirmed cash?"
-            required
-            minLength={3}
-          />
-        </label>
-        <button className="btn" disabled={busy} data-testid="ask-submit">
-          {busy ? "Searching the book…" : "Ask"}
-        </button>
-      </form>
-      </Panel>
+      <div className="ask-hero">
+        <PageHead
+          title="Ask"
+          testId="ask-ready"
+          kicker="Institutional research"
+          lede="From the book only. If it is not in the corpus, the system refuses. Open a cite to verify file and excerpt — we will not invent a locator."
+        />
+        <form onSubmit={send}>
+          <label className="field" style={{ textAlign: "left" }}>
+            Company (optional)
+            <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
+              <option value="">All companies</option>
+              {cos.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="ask-bar">
+            <label className="sr-only" htmlFor="ask-q">
+              Question
+            </label>
+            <textarea
+              id="ask-q"
+              data-testid="ask-question"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              rows={2}
+              placeholder="What was last confirmed cash?"
+              required
+              minLength={3}
+            />
+            <button className="btn" disabled={busy} data-testid="ask-submit" aria-label={busy ? "Searching the book" : "Ask"}>
+              {busy ? "…" : "Ask"}
+            </button>
+          </div>
+        </form>
+      </div>
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      {!res && history.length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Recent</h3>
-          <ul>
-            {history.slice(0, 8).map((h, i) => (
-              <li key={`${h.question}-${i}`}>
-                {h.question}
-                {h.refused ? " · refused" : ""}
-              </li>
-            ))}
-          </ul>
+      {res && refused && (
+        <div className="ask-answer" data-testid="ask-refused" role="status">
+          <p className="page-kicker">Insufficient evidence</p>
+          <p className="body">{res.answer}</p>
+          <p className="lede" style={{ marginTop: 10 }}>
+            Related figures stay —. We will not guess.
+          </p>
         </div>
       )}
-      {res && (
-        <div style={{ marginTop: 20 }}>
-          {(res.refused || /will not guess/i.test(res.answer)) && (
-            <div className="banner refuse" data-testid="ask-refused" role="status">
-              {res.answer}
+      {res && !refused && (
+        <div className="ask-answer">
+          <p className="page-kicker">From the book</p>
+          <p className="body" data-testid="ask-answer">
+            {res.answer}
+          </p>
+          <p className="page-kicker" style={{ marginTop: 16 }}>
+            Provenance
+          </p>
+          {res.citations.length === 0 ? (
+            <p className="lede">None — refusal or empty evidence.</p>
+          ) : (
+            <div className="ask-prov">
+              {res.citations.map((c, i) => {
+                const doc = c.documentId ? docs.find((d) => d.id === c.documentId) : undefined;
+                return (
+                  <article key={`${c.documentId ?? "x"}-${i}`}>
+                    {c.documentId || c.excerpt ? (
+                      <button
+                        type="button"
+                        className="cite"
+                        onClick={() =>
+                          openCite({
+                            display: doc?.filename ?? "Ask citation",
+                            sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
+                            excerpt: c.excerpt,
+                          })
+                        }
+                      >
+                        Cite
+                      </button>
+                    ) : (
+                      <span className="lede">unresolved</span>
+                    )}
+                    <div className="look-title" style={{ marginTop: 8 }}>
+                      {doc?.filename ?? "Source file"}
+                    </div>
+                    <p className="lede">
+                      {doc?.companyName ? `${doc.companyName} · ` : ""}
+                      {doc?.kind ? doc.kind.replaceAll("_", " ") : "—"}
+                      {c.excerpt ? ` · ${c.excerpt.slice(0, 140)}` : ""}
+                    </p>
+                  </article>
+                );
+              })}
             </div>
           )}
-          {!res.refused && !/will not guess/i.test(res.answer) && (
-            <p style={{ whiteSpace: "pre-wrap" }} data-testid="ask-answer">
-              {res.answer}
-            </p>
-          )}
-          <h3>Citations</h3>
-          {res.citations.length === 0 && <p className="lede">None — refusal or empty evidence.</p>}
-          <ul>
-            {res.citations.map((c, i) => (
-              <li key={i}>
-                {c.documentId || c.excerpt ? (
-                  <button
-                    type="button"
-                    className="cite"
-                    onClick={() =>
-                      openCite({
-                        display: "Ask citation",
-                        sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
-                        excerpt: c.excerpt,
-                      })
-                    }
-                  >
-                    Cite
-                  </button>
-                ) : (
-                  "unresolved"
-                )}{" "}
-                · {c.excerpt || "—"}
-              </li>
-            ))}
-          </ul>
+        </div>
+      )}
+      {history.length > 0 && (
+        <div className="ask-related">
+          <p className="page-kicker">Recent</p>
+          {history.slice(0, 8).map((h, i) => (
+            <button
+              key={`${h.question}-${i}`}
+              type="button"
+              onClick={() => {
+                setQ(h.question);
+                setRes(null);
+              }}
+            >
+              {h.question}
+              {h.refused ? " · refused" : ""}
+            </button>
+          ))}
         </div>
       )}
     </Shell>

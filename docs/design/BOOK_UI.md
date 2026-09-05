@@ -42,6 +42,8 @@ NAV / MOIC remain as headline chips under the KPI strip (product pulse). They ar
 | Connectors | ORG ADMIN badge, masked keys, Rotate / Disconnect / Connect | Save-when-already-has-credentials is **Rotate**. `secretHint` only. Status stays not connected until healthCheck. No plaintext after save. No Billing / Danger zone. |
 | Companies | Centered search, STAGE pills, Ownership/Coverage, initial marks, table | Ownership and last MIS from Command coverage only. Coverage chip is Booked / Gap / Review — never a %. Last-note column mapped to Last MIS (no invented partner notes). No Columns control. |
 | Flags | Queue table + selected inspector | Severity dots, cite chips, status pills. Inspector: Snooze/Mute (not invented Acknowledge/Resolve). Objective evidence from the detector. Subjective lane is booked partner commentary only — empty shows —. No generated analysis or notification bell. |
+| NAV | Unofficial/locked badges, unmarked + unprovenanced cards, Cost/NAV/MOIC/IRR, Company marks table | Quarter label is derived from the selected as-of. Totals stay — when incomplete. Per-row MOIC only when mark and cost exist. Provenance is Cite or Pending — never a fake memo. Lock does not invent a block on unprovenanced (API still locks). No notification chrome. |
+| Ask | Centered compose, From the book card, provenance tiles, Recent | Sparkle “synthesized intelligence” is not used. Refuse card is the insufficient-evidence state. History is real Ask queries, not invented related questions. No “Request data from Founder”. |
 
 ## Loop (polish)
 
