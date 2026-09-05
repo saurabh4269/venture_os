@@ -228,16 +228,16 @@ export default function NavPage() {
           ) : undefined
         }
       />
-      <div className="row" style={{ flexWrap: "wrap" }}>
-        <label className="field" style={{ maxWidth: 200 }}>
+      <div className="nav-filters">
+        <label className="field">
           As-of
           <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
         </label>
-        <label className="field" style={{ maxWidth: 200 }}>
+        <label className="field">
           Prior as-of
           <input type="date" value={priorAsOf} onChange={(e) => setPriorAsOf(e.target.value)} />
         </label>
-        <label className="field" style={{ maxWidth: 220 }}>
+        <label className="field">
           Fund
           <select value={fundId} onChange={(e) => setFundId(e.target.value)} aria-label="Fund">
             <option value="">All funds</option>
@@ -260,10 +260,10 @@ export default function NavPage() {
         </p>
       )}
       {canLock && (
-        <div className="row" style={{ marginBottom: 12 }}>
+        <div className="nav-unlock-row">
           {data?.period?.status === "locked" && (
             <>
-              <label className="field" style={{ maxWidth: 320 }}>
+              <label className="field">
                 Unlock reason
                 <input
                   value={unlockReason}
@@ -407,14 +407,15 @@ export default function NavPage() {
           {data.bridge.lines.length > 0 && (
             <>
               <Panel title="Period bridge" flush>
+              <div className="table-scroll table-scroll--compact">
               <table>
                 <thead>
                   <tr>
                     <th>Company</th>
                     <th>Prior</th>
-                    <th>Prior as-of</th>
+                    <th className="hide-sm">Prior as-of</th>
                     <th>Current</th>
-                    <th>Current as-of</th>
+                    <th className="hide-sm">Current as-of</th>
                     <th>Δ</th>
                   </tr>
                 </thead>
@@ -423,14 +424,15 @@ export default function NavPage() {
                     <tr key={`${l.companyName}-${l.currentAsOf}`}>
                       <td>{l.companyName}</td>
                       <td>{l.priorMark == null ? "—" : inr(l.priorMark)}</td>
-                      <td>{l.priorAsOf ?? "—"}</td>
+                      <td className="hide-sm">{l.priorAsOf ?? "—"}</td>
                       <td>{l.currentMark == null ? "—" : inr(l.currentMark)}</td>
-                      <td>{l.currentAsOf ?? "—"}</td>
+                      <td className="hide-sm">{l.currentAsOf ?? "—"}</td>
                       <td>{l.delta == null ? "—" : inr(l.delta)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
               </Panel>
             </>
           )}
@@ -440,12 +442,12 @@ export default function NavPage() {
             <thead>
               <tr>
                 <th>Company</th>
-                <th>Stage</th>
+                <th className="hide-sm">Stage</th>
                 <th>Cost</th>
                 <th>NAV</th>
                 <th>MOIC</th>
-                <th>IRR</th>
-                <th>Mark date</th>
+                <th className="hide-sm">IRR</th>
+                <th className="hide-sm">Mark date</th>
                 <th>Provenance</th>
               </tr>
             </thead>
@@ -470,7 +472,7 @@ export default function NavPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{stageById.get(p.position.companyId ?? "") ?? "—"}</td>
+                    <td className="hide-sm">{stageById.get(p.position.companyId ?? "") ?? "—"}</td>
                     <td className="num">{p.cost == null ? "—" : inr(p.cost)}</td>
                     <td>
                       <Fact
@@ -481,8 +483,8 @@ export default function NavPage() {
                       />
                     </td>
                     <td className="num">{moic == null ? "—" : `${moic.toFixed(2)}x`}</td>
-                    <td className="num">{pctIrr(p.irr)}</td>
-                    <td className="num">{p.markAsOf ?? "—"}</td>
+                    <td className="hide-sm num">{pctIrr(p.irr)}</td>
+                    <td className="hide-sm num">{p.markAsOf ?? "—"}</td>
                     <td>
                       {p.sourceRefId ? (
                         <Fact display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)} />
@@ -501,7 +503,7 @@ export default function NavPage() {
             <p className="lede">This as-of is locked. Unlock with a reason before changing marks.</p>
           )}
           {canWrite && data.period?.status !== "locked" && (
-            <form onSubmit={addMark} className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
+            <form onSubmit={addMark} className="nav-mark-form">
               <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required>
                 <option value="">Position</option>
                 {data.positions.map((p) => (
@@ -554,7 +556,7 @@ export default function NavPage() {
                 onChange={(e) => setForm({ ...form, documentId: e.target.value })}
                 aria-label="Mark memo"
               >
-                <option value="">Memo (optional — chip stays — without a file)</option>
+                <option value="">Memo (optional)</option>
                 {(data.documents ?? [])
                   .filter((d) => {
                     const pos = data.positions.find((p) => p.position.id === form.positionId);

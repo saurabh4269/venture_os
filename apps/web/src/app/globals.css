@@ -1134,6 +1134,34 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .reports-export-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .settings-firm-row { align-items: flex-end; }
 .flag-policy-meta { display: none; }
+.nav-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.nav-filters .field { flex: 1 1 160px; max-width: 220px; }
+.nav-unlock-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: flex-end;
+}
+.nav-unlock-row .field { flex: 1 1 220px; max-width: 320px; }
+.nav-mark-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  align-items: flex-end;
+}
+.nav-mark-form select,
+.nav-mark-form input { min-height: 40px; }
+.vault-empty-actions { flex-wrap: wrap; }
+.company-upload-form { flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.company-note-dates { flex-wrap: wrap; gap: 8px; }
+.company-connector-actions { flex-wrap: wrap; gap: 8px; }
 .reports-draft-row { flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .badge {
   display: inline-block;
@@ -2489,6 +2517,13 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
     padding-right: 14px;
     max-width: calc(100% + 28px);
   }
+  .main .panel .table-scroll {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    max-width: calc(100% + 28px);
+  }
   .table-scroll--compact table { min-width: 480px; }
   .table-scroll--wide table { min-width: 360px; }
   .flag-policy-meta { display: block; margin-top: 4px; }
@@ -2506,6 +2541,40 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .reports-export-row { gap: 8px; }
   .reports-export-row .chip { min-height: 32px; padding: 4px 10px; }
   .flag-detail .panel-body { padding-top: 12px; }
+  .nav-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .nav-filters .field { max-width: none; width: 100%; }
+  .nav-filters .field input,
+  .nav-filters .field select { width: 100%; min-height: 40px; }
+  .nav-unlock-row { flex-direction: column; align-items: stretch; }
+  .nav-unlock-row .field { max-width: none; width: 100%; }
+  .nav-unlock-row .btn { width: 100%; justify-content: center; }
+  .nav-mark-form { flex-direction: column; align-items: stretch; }
+  .nav-mark-form select,
+  .nav-mark-form input,
+  .nav-mark-form .btn { width: 100%; }
+  .nav-mark-form label.lede {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    width: 100%;
+  }
+  .vault-empty-actions { flex-direction: column; align-items: stretch; }
+  .vault-empty-actions .btn { width: 100%; justify-content: center; }
+  .company-upload-form { flex-direction: column; align-items: stretch; }
+  .company-upload-form select,
+  .company-upload-form input[type="file"],
+  .company-upload-form .btn { width: 100%; }
+  .company-note-dates { flex-direction: column; align-items: stretch; width: 100%; }
+  .company-note-dates .field { width: 100%; }
+  .company-note-dates input { width: 100%; min-height: 40px; }
+  .company-connector-actions { flex-direction: column; align-items: stretch; }
+  .company-connector-actions .btn { width: 100%; justify-content: center; }
+  .notice-split .chip { margin: 2px 4px 2px 0; }
   .reports-draft-row { flex-direction: column; align-items: stretch; }
   .reports-draft-row input,
   .reports-draft-row select,

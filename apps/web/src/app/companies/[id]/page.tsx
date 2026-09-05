@@ -450,7 +450,7 @@ export default function CompanyPage() {
             Granola note id
             <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} data-testid="map-granola-link" />
           </label>
-          <div className="row">
+          <div className="row company-connector-actions">
             <button className="btn sm" type="submit">
               Save mapping
             </button>
@@ -659,57 +659,57 @@ export default function CompanyPage() {
       ) : (
         <div className="table-scroll">
         <table>
-          <thead>
-            <tr>
-              <th>Metric</th>
-              <th>Value</th>
-              <th>Period</th>
-              <th>Locator</th>
-              <th>Lane</th>
-              <th>Ver.</th>
-              <th>Confirmed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookRows.map((m) => {
-              const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
-              const loc = ref?.locator;
-              const dual = formatDualDisplay({
-                value: m.valueNumeric,
-                sourceRefId: m.sourceRefId,
-                unit: m.unit as never,
-                currency: m.currency as never,
-                valueEur: m.valueEur,
-                fxRate: m.fxRate,
-                fxDate: m.fxDate,
-                fxSource: m.fxSource,
-              });
-              return (
-                <tr key={m.id}>
-                  <td>{m.metricKey}</td>
-                  <td>
-                    <Fact
-                      display={dual.display}
-                      isFact={dual.isFact}
-                      sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
-                      note={dual.fxNote}
-                      cite={citeFor(data, m.sourceRefId)}
-                    />
-                  </td>
-                  <td>{m.periodEnd}</td>
-                  <td className="lede">
-                    {loc?.sheet} {loc?.cell}
-                    {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
-                  </td>
-                  <td>{m.lane}</td>
-                  <td>{m.version}</td>
-                  <td className="lede">
-                    {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
-                    {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
-                  </td>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Value</th>
+                  <th>Period</th>
+                  <th className="hide-sm">Locator</th>
+                  <th className="hide-sm">Lane</th>
+                  <th className="hide-sm">Ver.</th>
+                  <th className="hide-sm">Confirmed</th>
                 </tr>
-              );
-            })}
+              </thead>
+              <tbody>
+                {bookRows.map((m) => {
+                  const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
+                  const loc = ref?.locator;
+                  const dual = formatDualDisplay({
+                    value: m.valueNumeric,
+                    sourceRefId: m.sourceRefId,
+                    unit: m.unit as never,
+                    currency: m.currency as never,
+                    valueEur: m.valueEur,
+                    fxRate: m.fxRate,
+                    fxDate: m.fxDate,
+                    fxSource: m.fxSource,
+                  });
+                  return (
+                    <tr key={m.id}>
+                      <td>{m.metricKey}</td>
+                      <td>
+                        <Fact
+                          display={dual.display}
+                          isFact={dual.isFact}
+                          sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
+                          note={dual.fxNote}
+                          cite={citeFor(data, m.sourceRefId)}
+                        />
+                      </td>
+                      <td>{m.periodEnd}</td>
+                      <td className="hide-sm lede">
+                        {loc?.sheet} {loc?.cell}
+                        {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
+                      </td>
+                      <td className="hide-sm">{m.lane}</td>
+                      <td className="hide-sm">{m.version}</td>
+                      <td className="hide-sm lede">
+                        {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
+                        {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
+                      </td>
+                    </tr>
+                  );
+                })}
           </tbody>
         </table>
         </div>
@@ -751,7 +751,7 @@ export default function CompanyPage() {
             <option value="subjective">Subjective</option>
           </select>
         </label>
-        <div className="row">
+        <div className="row company-note-dates">
           <label className="field">
             Period start
             <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} required />
@@ -852,7 +852,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
     }
   }
   return (
-    <form onSubmit={send} className="row" style={{ marginTop: 8 }}>
+    <form onSubmit={send} className="row company-upload-form" style={{ marginTop: 8 }}>
       <label className="sr-only" htmlFor="kind">
         Document kind
       </label>
