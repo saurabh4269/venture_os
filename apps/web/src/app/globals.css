@@ -10,10 +10,10 @@
   --surface: #ffffff;
   --ink: #09090b;
   --muted: #f4f4f5;
-  --muted-foreground: #71717a;
+  --muted-foreground: #52525b;
   --rule: #e4e4e7;
-  --primary: oklch(0.205 0 0);
-  --primary-ink: #ffffff;
+  --primary: #09090b;
+  --primary-ink: #fafafa;
   --cite: #059669;
   --cite-soft: #d1fae5;
   --subjective: #5b21b6;
@@ -42,10 +42,10 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: #fafafa;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.45 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -85,8 +85,9 @@ h1 { font-size: 34px; line-height: 1.12; margin: 0 0 6px; }
 h2 { font-size: 20px; line-height: 1.2; margin: 0; }
 h3 { font-size: 16px; margin: 0 0 8px; }
 a { color: inherit; text-decoration: none; }
-a:hover { color: var(--ink); }
-button, input, select, textarea { font: inherit; color: inherit; }
+a:hover:not(.btn):not([data-slot="button"]) { color: var(--ink); }
+button, input, select, textarea { font: inherit; }
+input, select, textarea { color: inherit; }
 button { cursor: pointer; }
 :focus-visible {
   outline: 2px solid var(--ink);
@@ -555,6 +556,16 @@ button.chip { font: inherit; color: inherit; }
   padding: 8px 13px;
   border-radius: var(--radius);
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+a.btn, a.btn:hover { color: var(--primary-ink); }
+a.btn.ghost, a.btn.ghost:hover { color: var(--ink); }
+[data-slot="button"].bg-primary,
+[data-slot="button"].bg-primary:hover {
+  background-color: #09090b;
+  color: #fafafa;
 }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn.ghost {
@@ -1127,8 +1138,8 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .mkt-nav a,
 .mkt-login,
 .mkt-foot-links a {
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: 12px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 500;
   color: var(--muted-foreground);
@@ -1144,10 +1155,11 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 }
 .mkt-hero-ctas .btn.ghost { background: var(--chip); }
 .mkt-cta {
-  padding: 8px 14px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 12px;
+  padding: 10px 16px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 14px;
+  min-height: 44px;
 }
 .mkt-menu { display: none; }
 .mkt-mobile {
@@ -1177,8 +1189,8 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   align-items: center;
 }
 .mkt-hero h1 {
-  font-size: clamp(36px, 5vw, 56px);
-  line-height: 1.08;
+  font-size: clamp(40px, 5vw, 56px);
+  line-height: 1.05;
   letter-spacing: -0.03em;
   margin: 0 0 16px;
 }
@@ -1306,8 +1318,9 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   font-weight: 500;
 }
 .mkt-section h2 {
-  font-size: clamp(26px, 3vw, 36px);
+  font-size: clamp(28px, 3vw, 36px);
   margin: 0 0 12px;
+  line-height: 1.12;
 }
 .mkt-lede { max-width: 40rem; margin-bottom: 28px; }
 .mkt-cards {
@@ -1956,13 +1969,49 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .mkt-pipeline li { border-top-color: var(--ink); }
 .auth-shell { background: var(--bg); }
 .auth {
+  width: min(420px, 100%);
   border-radius: var(--radius-lg);
   padding: 32px 28px 28px;
 }
-.auth-brand h1 {
+.auth-back {
+  display: inline-block;
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.auth-back:hover { color: var(--ink); }
+.auth-brand { text-align: center; margin-bottom: 24px; }
+.auth-wordmark {
+  font-family: var(--font-serif), "Newsreader", Georgia, serif;
+  font-size: 28px;
   font-style: italic;
   font-weight: 500;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
 }
+.auth-wordmark a:hover { color: var(--ink); }
+.auth-title {
+  font-family: var(--font-sans), Geist, Inter, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+.auth-lede {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.auth-field-lg { min-height: 48px; height: 48px; font-size: 15px; }
+.auth-submit { min-height: 48px; font-size: 15px; font-weight: 500; }
+
+/* Hide third-party preview chrome on marketing + auth */
+#vercel-toolbar,
+[data-vercel-toolbar],
+.vercel-toolbar,
+iframe[src*="vercel/live-feedback"] { display: none !important; }
+
 .auth-tabs { display: none; }
 .auth-principles, .auth-foot-page { display: none; }
 .auth-page-foot {

@@ -122,19 +122,26 @@ export function AuthFrame({
   children,
   tab,
   footer,
+  title,
+  lede,
 }: {
   children: ReactNode;
   tab?: "signin" | "signup" | "other";
   footer?: ReactNode;
+  title?: string;
+  lede?: string;
 }) {
   const mode = tab ?? "other";
   return (
     <div className="auth-shell">
       <div className="auth">
+        <Link href="/" className="auth-back">← Back to Venture OS</Link>
         <div className="auth-brand">
-          <h1>
+          <p className="auth-wordmark">
             <Link href="/">Venture OS</Link>
-          </h1>
+          </p>
+          {title ? <h1 className="auth-title">{title}</h1> : null}
+          {lede ? <p className="auth-lede">{lede}</p> : null}
         </div>
         {children}
         {footer}

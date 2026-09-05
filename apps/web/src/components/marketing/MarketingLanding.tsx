@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, Flag, LineChart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Building2, FileCheck, Flag, LineChart, ShieldCheck } from "lucide-react";
 import { LandingShell } from "./LandingChrome";
 
 const KPI_LABELS = ["Companies", "Open flags", "Needs look", "Last sync"] as const;
@@ -53,9 +52,9 @@ export function MarketingLanding() {
               Command, <span className="cite-word">cite</span>, and act on portfolio truth — with the file behind every number.
             </p>
             <div className="mkt-hero-ctas">
-              <Button asChild size="lg" data-testid="landing-get-started">
-                <Link href="/signup">Get started</Link>
-              </Button>
+              <Link href="/signup" className="btn" data-testid="landing-get-started">
+                Get started
+              </Link>
             </div>
           </div>
           <div className="mkt-hero-visual">
@@ -170,6 +169,28 @@ export function MarketingLanding() {
                 </div>
               </li>
             ))}
+          </ol>
+        </section>
+
+        <section className="mkt-section" id="how">
+          <p className="mkt-kicker">How partners use it</p>
+          <h2>Three steps to a live row.</h2>
+          <ol className="mkt-steps">
+            <li>
+              <span className="mkt-step-ico" aria-hidden><FileCheck className="size-5" strokeWidth={1.5} /></span>
+              <strong>1. Cite</strong>
+              <p>Every figure needs a source document and locator. Missing stays —.</p>
+            </li>
+            <li>
+              <span className="mkt-step-ico" aria-hidden><ShieldCheck className="size-5" strokeWidth={1.5} /></span>
+              <strong>2. Verify</strong>
+              <p>Confirm Inbox. Resolve units. Check flags against evidence. Corrections survive a re-parse.</p>
+            </li>
+            <li>
+              <span className="mkt-step-ico" aria-hidden><LineChart className="size-5" strokeWidth={1.5} /></span>
+              <strong>3. Report</strong>
+              <p>Command, Flags, NAV, Ask, and Reports use only what you confirmed. Empty is empty.</p>
+            </li>
           </ol>
         </section>
 

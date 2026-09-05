@@ -25,7 +25,8 @@ test.describe("@smoke mobile chrome", () => {
 
   test("auth card fits a phone viewport", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByRole("heading", { name: "Venture OS" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /sign in to your book/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /back to venture os/i })).toBeVisible();
     await expect(page.getByRole("link", { name: "Sign up" })).toBeVisible();
     await expect(page.getByTestId("login-submit")).toBeVisible();
     await expect(page.getByPlaceholder("you@firm.com")).toBeVisible();

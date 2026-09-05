@@ -16,6 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 
+function loginLede(next: string) {
+  if (next === "/command") return "Sign in to open Command and see what needs a look today.";
+  if (next.startsWith("/inbox")) return "Sign in to review Inbox rows before they post to the book.";
+  return "Use your firm credentials. Password reset is through your fund admin.";
+}
+
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -59,7 +65,7 @@ function LoginForm() {
   }
 
   return (
-    <AuthFrame tab="signin">
+    <AuthFrame tab="signin" title="Sign in to your book." lede={loginLede(next)}>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
           <div className="space-y-2">
@@ -72,6 +78,7 @@ function LoginForm() {
               type="email"
               autoComplete="username"
               placeholder="you@firm.com"
+              className="auth-field-lg"
               data-testid="login-email"
               required
             />
@@ -91,12 +98,13 @@ function LoginForm() {
               autoComplete="current-password"
               minLength={MIN_PASSWORD_LENGTH}
               maxLength={MAX_PASSWORD_LENGTH}
+              className="auth-field-lg"
               data-testid="login-password"
               required
             />
           </div>
           {err && <div className="sev-high text-sm" role="alert">{err}</div>}
-          <Button type="submit" disabled={busy || done} className="w-full" data-testid="login-submit">
+          <Button type="submit" disabled={busy || done} className="auth-submit w-full" data-testid="login-submit">
             {done ? "Signed in" : busy ? "Signing in…" : "Sign in"}
           </Button>
           {params.get("id") ? (
@@ -113,7 +121,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<AuthFrame tab="signin"><p className="lede">Loading…</p></AuthFrame>}>
+    <Suspense fallback={<AuthFrame tab="signin" title="Sign in to your book."><p className="lede">Loading…</p></AuthFrame>}>
       <LoginForm />
     </Suspense>
   );

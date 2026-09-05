@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV = [{ href: "/#product", label: "Product" }] as const;
@@ -20,12 +19,10 @@ export function LandingHeader() {
         </nav>
         <div className="mkt-header-actions">
           <Link href="/login" className="mkt-login">Log in</Link>
-          <Button asChild className="mkt-cta">
-            <Link href="/signup">Get started</Link>
-          </Button>
+          <Link href="/signup" className="btn mkt-cta">Get started</Link>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="mkt-menu">Menu</Button>
+              <button type="button" className="mkt-menu btn ghost sm">Menu</button>
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>
@@ -36,9 +33,7 @@ export function LandingHeader() {
                   <a key={n.href} href={n.href} onClick={() => setOpen(false)} className="py-2">{n.label}</a>
                 ))}
                 <Link href="/login" onClick={() => setOpen(false)} className="py-2">Log in</Link>
-                <Button asChild onClick={() => setOpen(false)}>
-                  <Link href="/signup">Get started</Link>
-                </Button>
+                <Link href="/signup" onClick={() => setOpen(false)} className="btn">Get started</Link>
               </nav>
             </SheetContent>
           </Sheet>
