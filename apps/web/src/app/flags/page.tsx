@@ -227,13 +227,13 @@ export default function FlagsPage() {
       </div>
       {data.flags.length === 0 ? (
         <div className="empty">
-          <strong>{status === "open" ? "No open flags" : `No ${status} flags`}</strong>
+          <strong>{status === "open" ? "All clear" : `No ${status} flags`}</strong>
           {status === "open"
-            ? "No open flags right now. Upload fresh MIS or check Inbox after a new pack."
+            ? "Nothing needs attention. Upload fresh MIS or check Inbox after a new pack."
             : `Nothing in ${status}.`}
         </div>
       ) : visible.length === 0 ? (
-        <div className="empty">No flags match this search.</div>
+        <div className="empty">Try a different search or filter.</div>
       ) : (
         <div className="flags-split">
           <Panel flush>

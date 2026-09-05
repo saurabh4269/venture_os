@@ -230,7 +230,7 @@ export default function CommandPage() {
             <CardContent className="p-0">
               {pipeline.length === 0 ? (
                 <div className="text-muted-foreground space-y-2 p-4 text-sm">
-                  <p>No companies on the book yet.</p>
+                  <p>Ready to add your first company.</p>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground/80">
                     SOURCE → PROPOSED → REVIEWED → BOOK → ANALYSIS
                   </p>

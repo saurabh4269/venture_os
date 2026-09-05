@@ -284,7 +284,7 @@ function ConnectorCards() {
                         <IconKey /> {row.secretHint ?? "••••"}
                       </span>
                     ) : (
-                      <span className="lede">No org key saved</span>
+                      <span className="lede">Add your org key below</span>
                     )}
                     {row?.lastHealthAt ? (
                       <span className="lede">Last health {new Date(row.lastHealthAt).toLocaleDateString()}</span>

@@ -234,7 +234,7 @@ export default function CompaniesPage() {
                         )}
                       </td>
                       <td>
-                        <span className={`status-chip ${kind}`}>{kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}</span>
+                        <span className={`status-chip ${kind}`}>{kind === "booked" ? "Booked" : kind === "gap" ? "Upload" : "Review"}</span>
                       </td>
                     </tr>
                   );

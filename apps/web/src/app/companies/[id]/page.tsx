@@ -286,7 +286,7 @@ export default function CompanyPage() {
       const newest = Math.max(...docs.map((d) => (d.createdAt ? new Date(d.createdAt).getTime() : 0)));
       state = key === "mis" && newest > 0 && Date.now() - newest > 45 * 86_400_000 ? "stale" : "covered";
     }
-    return { key, label, state };
+    return { key, label, state, statusLabel: state === "covered" ? "On file" : state === "stale" ? "Stale" : "Upload" };
   });
 
   return (
@@ -547,7 +547,7 @@ export default function CompanyPage() {
         <Panel title="Evidence trail" kicker="Provenance">
           {evidence.length === 0 ? (
             <p className="lede" style={{ margin: 0 }}>
-              No citations yet. Confirm an extract to write a locator.
+              Upload documents to build your evidence trail.
             </p>
           ) : (
             <table>
@@ -597,7 +597,7 @@ export default function CompanyPage() {
             {required.map((r) => (
               <li key={r.key} className="doc-row">
                 <span>{r.label}</span>
-                <span className={`cover-pill ${r.state}`}>{r.state}</span>
+                <span className={`cover-pill ${r.state}`}>{r.statusLabel}</span>
               </li>
             ))}
           </ul>
@@ -612,7 +612,7 @@ export default function CompanyPage() {
         Booked positions only. Affinity writes ownership only after a mapped numeric field id and a successful sync.
       </p>
       {!data.positions?.length ? (
-        <div className="empty">No positions on the book. Add a fund in Settings, then onboard with a fund attached.</div>
+        <div className="empty">Add a fund in Settings, then onboard a company with that fund attached.</div>
       ) : (
         <table>
           <thead>
@@ -650,7 +650,7 @@ export default function CompanyPage() {
       </label>
       {data.metrics.length === 0 ? (
         <div className="empty">
-          No confirmed facts. Upload MIS and <Link href="/inbox">confirm Inbox</Link>.
+          Upload MIS and <Link href="/inbox">confirm in Inbox</Link> to populate the book.
         </div>
       ) : (
         <table>
@@ -770,7 +770,7 @@ export default function CompanyPage() {
             {evidenceLine(f.evidence) && <div className="lede">{evidenceLine(f.evidence)}</div>}
           </li>
         ))}
-        {data.flags.length === 0 && <li className="lede">No open flags.</li>}
+        {data.flags.length === 0 && <li className="lede">All clear — no flags on this company.</li>}
       </ul>
       </Panel>
 
