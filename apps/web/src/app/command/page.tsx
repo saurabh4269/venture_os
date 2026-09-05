@@ -233,7 +233,7 @@ export default function CommandPage() {
                       <TableHead>Company</TableHead>
                       <TableHead>Stage</TableHead>
                       <TableHead className="hide-sm">Source</TableHead>
-                      <TableHead className="text-right">Updated</TableHead>
+                      <TableHead className="text-right hide-sm">Updated</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -242,14 +242,17 @@ export default function CommandPage() {
                         <TableCell>
                           <div className="company-cell flex items-center gap-2">
                             <CompanyMark name={r.company.name} />
-                            <Link className="company-link" href={`/companies/${r.company.id}`}>{r.company.name}</Link>
+                            <div>
+                              <Link className="company-link" href={`/companies/${r.company.id}`}>{r.company.name}</Link>
+                              <div className="lede show-mobile-only">{r.updated}</div>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">{r.pipelineStage}</Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground hide-sm">Book</TableCell>
-                        <TableCell className="text-right tabular-nums">{r.updated}</TableCell>
+                        <TableCell className="text-right tabular-nums hide-sm">{r.updated}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

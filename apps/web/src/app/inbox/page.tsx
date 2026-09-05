@@ -241,7 +241,7 @@ export default function InboxPage() {
                     {status === "pending" && canWrite ? (
                       <input
                         aria-label="Value"
-                        style={{ width: 80 }}
+                        className="inbox-value-input"
                         value={valueEdits[i.id] ?? (i.proposed.valueNumeric ?? "")}
                         onChange={(e) => setValueEdits({ ...valueEdits, [i.id]: e.target.value })}
                       />
@@ -253,7 +253,7 @@ export default function InboxPage() {
                     )}
                   </div>
                   {status === "pending" && canWrite ? (
-                    <div className="row" style={{ marginTop: 4 }}>
+                    <div className="row inbox-period-row">
                       <input
                         type="date"
                         aria-label="Period start"
@@ -286,6 +286,25 @@ export default function InboxPage() {
                   ) : (
                     <div className="lede">
                       {i.proposed.periodStart} – {i.proposed.periodEnd}
+                    </div>
+                  )}
+                  {(loc || i.locator.excerpt || i.proposed.excerpt) && (
+                    <div className="inbox-cite-mobile show-mobile-only">
+                      <button
+                        type="button"
+                        className="cite"
+                        onClick={() =>
+                          openCite({
+                            display: i.proposed.metricKey ?? i.proposed.label ?? i.kind,
+                            locator: i.locator,
+                            excerpt: i.locator.excerpt ?? i.proposed.excerpt,
+                            periodStart: i.proposed.periodStart,
+                            periodEnd: i.proposed.periodEnd,
+                          })
+                        }
+                      >
+                        {loc || "Cite"}
+                      </button>
                     </div>
                   )}
                   {(i.kind === "unit_ambiguity" || !i.proposed.unit || i.proposed.unit === "unknown") &&
