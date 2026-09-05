@@ -96,7 +96,7 @@ function SignupForm() {
     <AuthFrame
       tab="signup"
       title="Create your account."
-      lede="You will be Org Admin. Your book starts empty and ready for your first upload."
+      lede={inviteId ? undefined : "You will be Org Admin. Your book starts empty and ready for your first upload."}
       footer={
         <p className="auth-signup-link">
           Already have an account? <Link href="/login">Sign in</Link>
@@ -106,9 +106,7 @@ function SignupForm() {
       <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }}>
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
-        ) : (
-          <p className="lede">You will be Org Admin. Your book starts empty and ready for your first upload.</p>
-        )}
+        ) : null}
         <label className="field" htmlFor="name">
           Full name
           <input

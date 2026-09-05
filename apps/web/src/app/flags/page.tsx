@@ -229,7 +229,7 @@ export default function FlagsPage() {
         <div className="empty">
           <strong>{status === "open" ? "No open flags" : `No ${status} flags`}</strong>
           {status === "open"
-            ? "Either the book is quiet, or headlines are still unconfirmed."
+            ? "No open flags right now. Upload fresh MIS or check Inbox after a new pack."
             : `Nothing in ${status}.`}
         </div>
       ) : visible.length === 0 ? (
@@ -310,7 +310,7 @@ export default function FlagsPage() {
           >
             <div data-testid="flags-detail">
               {!selected ? (
-                <p className="lede">Select a row to inspect detector evidence. Nothing here is generated commentary.</p>
+                <p className="lede">Select a row to see the source and evidence behind the flag.</p>
               ) : (
                 <>
                   <p className="look-title">{flagLabel(selected.flagKey)}</p>

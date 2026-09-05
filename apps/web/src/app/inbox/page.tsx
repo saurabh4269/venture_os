@@ -195,20 +195,20 @@ export default function InboxPage() {
       )}
       {listReady && (
         <p className="lede" data-testid="inbox-ready" data-inbox-count={items.length} data-inbox-status={status}>
-          {items.length} {status} {items.length === 1 ? "row" : "rows"} — confirm before anything posts to the book.
+          {items.length} {status} {items.length === 1 ? "row" : "rows"} ready for review.
         </p>
       )}
       {items.length === 0 ? (
         <div className="empty" data-testid="inbox-empty">
-          <strong>{status === "pending" ? "Queue is clear" : `No ${status} rows`}</strong>
+          <strong>{status === "pending" ? "All caught up" : `No ${status} rows`}</strong>
           {status === "pending"
-            ? "Upload a pack from Companies if you expect extracts."
+            ? "Upload a company pack when you have new files to review."
             : `Nothing in ${status}.`}
         </div>
       ) : visible.length === 0 ? (
         <div className="empty">
           {kindFilter === "mentions"
-            ? "Mentions are not connected. This book does not invent @-notifications."
+            ? "Mentions need a connected source. Try another filter."
             : "No rows in this filter."}
         </div>
       ) : (

@@ -191,8 +191,7 @@ export default function CompaniesPage() {
       {rows.length === 0 ? (
         <div className="empty">
           <strong>Empty book</strong>
-          {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."}{" "}
-          (15-minute path).
+          {canWrite ? <Link href="/companies/new">Add your first company</Link> : "Ask your Org Admin to add a company."}
         </div>
       ) : visible.length === 0 ? (
         <div className="empty">No companies match these filters.</div>
