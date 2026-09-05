@@ -16,7 +16,7 @@ export async function signupAdmin(page: Page, stamp = Date.now().toString(36)) {
   await page.getByTestId("signup-confirm").fill(password);
   await page.getByTestId("signup-org").fill(org);
   await page.getByTestId("signup-submit").click();
-  const rateLimited = page.getByRole("alert", { name: /too many requests/i });
+  const rateLimited = page.getByRole("alert", { name: /too many (requests|sign-in attempts)/i });
   if (await rateLimited.isVisible({ timeout: 5000 }).catch(() => false)) {
     throw new Error("signup_rate_limited");
   }

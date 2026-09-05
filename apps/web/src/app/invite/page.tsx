@@ -101,7 +101,7 @@ function InviteInner() {
         </p>
       )}
       {pending && !signedIn && (
-        <div className="row" style={{ marginTop: 16 }}>
+        <div className="auth-actions">
           <Link className="btn" href={`/signup?invite=${id}`}>
             Create user
           </Link>
@@ -117,7 +117,7 @@ function InviteInner() {
         </p>
       )}
       {pending && emailMatch && (
-        <div className="row" style={{ marginTop: 16 }}>
+        <div className="auth-actions">
           <button className="btn" type="button" disabled={busy} onClick={accept}>
             {busy ? "Joining…" : "Accept invite"}
           </button>

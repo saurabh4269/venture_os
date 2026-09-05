@@ -99,7 +99,7 @@ export default function OnboardPage() {
             {err}
           </div>
         )}
-        <button className="btn" type="submit" disabled={busy}>
+        <button className="btn auth-submit" type="submit" disabled={busy}>
           {busy ? "Creating…" : "Create organisation"}
         </button>
       </form>

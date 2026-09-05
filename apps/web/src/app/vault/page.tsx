@@ -44,7 +44,7 @@ export default function VaultPage() {
           <p className="lede" style={{ margin: "8px 0 12px" }}>
             Upload MIS or board packs from a company page, then confirm rows in Inbox.
           </p>
-          <div className="row vault-empty-actions" style={{ justifyContent: "center", gap: 8 }}>
+          <div className="row vault-empty-actions">
             <Link href="/companies" className="btn ghost sm">View companies</Link>
             <Link href="/companies/new" className="btn sm">Add company</Link>
           </div>

@@ -1222,7 +1222,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .reports-draft-row input,
 .reports-draft-row select { min-height: 44px; }
 .reports-export-row .chip { min-height: 36px; padding: 6px 12px; }
-.vault-empty-actions { flex-wrap: wrap; }
+.vault-empty-actions { flex-wrap: wrap; justify-content: center; gap: 8px; }
 .company-upload-form { flex-wrap: wrap; gap: 8px; align-items: flex-end; }
 .company-upload-btn { min-height: 36px; }
 .company-upload-form .lede { flex: 1 1 100%; }
@@ -1354,7 +1354,12 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   border-radius: var(--radius);
   text-align: left;
 }
-.ask-bar .btn { min-width: 56px; padding: 0 16px; }
+.ask-bar .btn {
+  min-width: 56px;
+  min-height: 56px;
+  padding: 0 16px;
+  align-self: stretch;
+}
 .ask-answer {
   max-width: 760px;
   margin: 0 auto 16px;
@@ -2527,6 +2532,21 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
 .auth-signup-link a { color: var(--ink); font-weight: 600; }
 .auth .btn.auth-submit,
 .auth-form .btn.auth-submit { width: 100%; }
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.auth-actions .btn {
+  flex: 1 1 140px;
+  min-height: 44px;
+  justify-content: center;
+}
+@media (max-width: 767px) {
+  .auth-actions { flex-direction: column; align-items: stretch; }
+  .auth-actions .btn { width: 100%; flex: 1 1 auto; }
+}
 .field input {
   background: var(--paper-2);
   border-color: transparent;
