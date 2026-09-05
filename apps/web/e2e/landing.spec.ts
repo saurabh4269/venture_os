@@ -9,7 +9,7 @@ test.describe("@smoke marketing landing", () => {
 
     await page.goto("/");
     await expect(page.getByTestId("marketing-landing")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /truth you can cite/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /the book for the investment team/i })).toBeVisible();
     await expect(page.getByText("Opening the book")).toHaveCount(0);
     await expect(page.getByTestId("landing-get-started")).toHaveAttribute("href", "/signup");
     await expect(page.getByTestId("landing-log-in")).toHaveAttribute("href", "/login");
@@ -17,15 +17,15 @@ test.describe("@smoke marketing landing", () => {
       "href",
       "/signup",
     );
-    await expect(page.getByRole("heading", { name: /cite everything/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /dash, not zero/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /human confirms/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /uncompromising clarity/i })).toBeVisible();
+    await expect(page.getByText(/cite or refuse/i).first()).toBeVisible();
+    await expect(page.getByText(/missing is —/i).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: /precision architecture/i })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: /ask\. refuse/i })).toHaveCount(0);
     await expect(page.getByText(/\$250M|Acme Corp/i)).toHaveCount(0);
+    await expect(page.getByText("42")).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Platform" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Pricing" })).toHaveCount(0);
-    await expect(page.getByText("142")).toHaveCount(0);
     await expect(page.getByText(/sequoia|a16z|index ventures/i)).toHaveCount(0);
     await expect(page.getByRole("contentinfo").getByRole("link", { name: "Methodology" })).toHaveAttribute(
       "href",

@@ -6,7 +6,7 @@ test.describe("@smoke mobile chrome", () => {
   test("marketing landing stacks and opens Menu", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("marketing-landing")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /truth you can cite/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /the book for the investment team/i })).toBeVisible();
     await expect(page.getByRole("banner").getByRole("link", { name: /get started/i })).toBeVisible();
 
     const started = await page.getByTestId("landing-get-started").boundingBox();
@@ -14,7 +14,7 @@ test.describe("@smoke mobile chrome", () => {
     expect(started && login).toBeTruthy();
     expect(login!.y).toBeGreaterThan(started!.y + started!.height - 2);
 
-    await expect(page.getByRole("heading", { name: /cite everything/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /uncompromising clarity/i })).toBeVisible();
 
     await page.getByRole("button", { name: "Menu" }).click();
     await expect(page.getByRole("navigation", { name: "Marketing menu" }).getByRole("link", { name: "Product" })).toBeVisible();

@@ -43,6 +43,7 @@ test.describe("@smoke happy path", () => {
     await expect(page.getByRole("link", { name: `E2E Co ${stamp}` }).first()).toBeVisible();
 
     await page.getByRole("button", { name: "Account" }).click();
+    await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
     await page.getByRole("menuitem", { name: "Sign out" }).click();
     await expect(page.getByTestId("login-submit")).toBeVisible({ timeout: 15_000 });
 

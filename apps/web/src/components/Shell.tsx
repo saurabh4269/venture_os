@@ -87,17 +87,22 @@ export function useBookSession(): BookSession {
   };
 }
 
-const NAV = [
+const NAV_PRIMARY = [
   { href: "/command", label: "Command", Icon: LayoutDashboard },
   { href: "/inbox", label: "Inbox", Icon: Inbox },
   { href: "/flags", label: "Flags", Icon: Flag },
   { href: "/companies", label: "Companies", Icon: Building2 },
+] as const;
+
+const NAV_SECONDARY = [
   { href: "/ask", label: "Ask", Icon: MessageCircleQuestion },
   { href: "/nav", label: "NAV", Icon: TrendingUp },
   { href: "/compare", label: "Compare", Icon: BarChart3 },
   { href: "/reports", label: "Reports", Icon: FileText },
   { href: "/vault", label: "Vault", Icon: Vault },
 ] as const;
+
+const NAV = [...NAV_PRIMARY, ...NAV_SECONDARY];
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -214,14 +219,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const railLink = (n: (typeof NAV)[number]) => {
+  const railLink = (n: (typeof NAV)[number], secondary = false) => {
     const active = path.startsWith(n.href);
     return (
       <Tooltip key={n.href}>
         <TooltipTrigger asChild>
           <Link
             href={n.href}
-            className={`grid size-10 place-items-center rounded-md transition-colors ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            className={`grid size-10 place-items-center rounded-md transition-colors ${secondary ? "rail-secondary" : ""} ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
             aria-current={active ? "page" : undefined}
             aria-label={n.label}
           >
@@ -239,7 +244,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <a href="#main" className="skip-link">Skip to book</a>
       <aside className="rail hidden md:flex" aria-label="Primary navigation">
         <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
-        <nav className="nav flex flex-col items-center gap-1">{NAV.map(railLink)}</nav>
+        <nav className="nav flex flex-col items-center gap-1">
+          {NAV_PRIMARY.map((n) => railLink(n))}
+          <div className="rail-divider" aria-hidden />
+          {NAV_SECONDARY.map((n) => railLink(n, true))}
+        </nav>
         <div className="rail-spacer" />
         <div className="rail-foot">
           <Tooltip>

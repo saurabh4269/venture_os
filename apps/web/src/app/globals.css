@@ -167,6 +167,14 @@ button { cursor: pointer; }
 .rail .nav a.active .nav-ico { opacity: 1; }
 .rail .nav .sec { display: none; }
 .rail-spacer { flex: 1; }
+.rail-divider {
+  width: 20px;
+  height: 1px;
+  background: var(--rule);
+  margin: 6px 0;
+}
+.rail-secondary { opacity: 0.72; }
+.rail-secondary:hover { opacity: 1; }
 .rail-foot {
   display: flex;
   flex-direction: column;
@@ -376,7 +384,7 @@ button { cursor: pointer; }
   font-weight: 500;
 }
 .card .v, .kpi .v {
-  font-family: var(--font-serif), "Source Serif 4", Georgia, serif;
+  font-family: var(--font-serif), "Newsreader", Georgia, serif;
   font-size: 30px;
   line-height: 1.1;
   margin-top: 8px;
@@ -624,7 +632,7 @@ input[type="date"], input[type="file"], select, textarea {
 }
 .auth-brand { text-align: center; margin-bottom: 18px; }
 .auth-brand h1, .auth-brand .wordmark {
-  font-family: var(--font-serif), "Source Serif 4", Georgia, serif;
+  font-family: var(--font-serif), "Newsreader", Georgia, serif;
   font-size: 36px;
   margin: 0;
   letter-spacing: -0.02em;
@@ -1083,14 +1091,14 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 /* Marketing landing — Stitch public homepage */
 .mkt {
   min-height: 100vh;
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
 }
 .mkt-header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(243, 239, 230, 0.94);
+  background: rgba(250, 250, 250, 0.94);
   border-bottom: 1px solid var(--rule);
   backdrop-filter: blur(8px);
 }
@@ -1104,7 +1112,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   gap: 24px;
 }
 .mkt-logo {
-  font-family: var(--font-serif), "Source Serif 4", Georgia, serif;
+  font-family: var(--font-serif), "Newsreader", Georgia, serif;
   font-size: 22px;
   letter-spacing: -0.03em;
   font-weight: 560;
@@ -1175,11 +1183,11 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   margin: 0 0 16px;
 }
 .mkt-sub {
-  font-size: 18px;
+  font-size: 17px;
   color: var(--muted-foreground);
   margin: 0 0 28px;
   max-width: 34rem;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 .mkt-hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
 .mkt-hero-ctas .btn { min-height: 44px; padding: 10px 18px; }
@@ -1203,6 +1211,9 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
 }
+.mkt-frame-kpis-4 {
+  grid-template-columns: 1fr 1fr;
+}
 .mkt-frame-kpis > div {
   border: 1px solid var(--rule);
   background: var(--paper);
@@ -1217,7 +1228,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   font-weight: 500;
 }
 .mkt-frame-kpis .v {
-  font-family: var(--font-serif), "Source Serif 4", Georgia, serif;
+  font-family: var(--font-serif), "Newsreader", Georgia, serif;
   font-size: 28px;
   letter-spacing: -0.03em;
   margin-top: 6px;
@@ -1338,7 +1349,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
-  color: var(--forest);
+  color: var(--ink);
   flex: 0 0 28px;
 }
 .mkt-clarity h3 {
@@ -1367,7 +1378,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--forest);
+  color: var(--cite);
   font-weight: 600;
   flex: 0 0 auto;
 }
@@ -1382,7 +1393,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   gap: 12px;
 }
 .mkt-pipeline li {
-  border-top: 2px solid var(--forest);
+  border-top: 2px solid var(--ink);
   padding-top: 12px;
   color: var(--muted-foreground);
   font-size: 13px;
@@ -1421,7 +1432,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
-  color: var(--forest);
+  color: var(--ink);
   margin-bottom: 12px;
 }
 .mkt-steps strong {
@@ -1483,7 +1494,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 }
 .mkt-footer {
   border-top: 1px solid var(--rule);
-  background: var(--paper);
+  background: var(--bg);
 }
 .mkt-footer-inner {
   max-width: 1120px;
@@ -1737,12 +1748,22 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .org-menu .who-meta { font-size: 11px; color: var(--muted-foreground); }
 
 /* V3 Scratch — marketing overrides */
-.mkt-header {
-  background: rgba(250, 250, 250, 0.92);
-}
-.mkt-hero h1 .cite-word {
+.mkt-hero h1 .cite-word,
+.mkt-sub .cite-word {
   color: var(--cite);
   font-style: italic;
+}
+.mkt-soft-close { padding-bottom: 40px; }
+.mkt-soft-login {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.mkt-soft-login a {
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .mkt-feature-row {
   display: grid;
@@ -1930,7 +1951,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   color: var(--primary-ink);
 }
 .mkt-final-btn { background: var(--surface); color: var(--ink); }
-.mkt-clarity-ico { color: var(--cite); }
+.mkt-clarity-ico { color: var(--ink); }
 .mkt-step-ico { color: var(--ink); }
 .mkt-pipeline li { border-top-color: var(--ink); }
 .auth-shell { background: var(--bg); }
