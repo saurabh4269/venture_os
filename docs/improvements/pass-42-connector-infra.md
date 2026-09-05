@@ -25,6 +25,7 @@
 18. **P3 — Copy.** “Paste keys here — sync starts automatically after a successful test.” Docs: `docs/connectors/README.md`, `ADDING_KEYS.md`.
 19. **P3 — Invalid key UX.** Client + API format checks (`grn_` for Granola, min length, tenant shape) before any vendor HTTP.
 20. **Residual — Live OAuth.** Needs operator Azure/Affinity/Granola secrets. Tests are mock HTTP only. Do not claim production sync until a real healthCheck against the vendor succeeds.
+21. **P0 — Nested parse transaction.** `runParseJob` opens its own `withOrg()` and could not see documents inserted in the still-open sync transaction. OneDrive parse now runs after commit (same inbox pipeline as upload).
 
 ## Tests
 
