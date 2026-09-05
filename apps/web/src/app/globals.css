@@ -521,7 +521,16 @@ button { cursor: pointer; }
   border-color: #d4d4d8;
   color: var(--ink);
 }
-.command-start { margin-top: 16px; text-align: center; }
+.command-start { margin-top: 20px; text-align: center; }
+.command-start .lede { margin: 0 auto 16px; max-width: 32rem; }
+.command-start-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.command-start-actions .btn { min-height: 36px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
@@ -1943,12 +1952,16 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
     width: 100%;
     justify-content: center;
   }
+  .mkt-hero-visual { width: 100%; }
+  .mkt-frame { max-width: 100%; }
+  .mkt-schematic { text-align: center; }
   .mkt-section,
   .mkt-trust,
   .mkt-final,
   .mkt-partner-line {
     padding-left: 20px;
     padding-right: 20px;
+    padding-bottom: 28px;
   }
   .mkt-trust { padding-top: 8px; padding-bottom: 36px; }
   .mkt-clarity article { padding: 18px 16px 16px; }
@@ -2403,6 +2416,9 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   width: min(420px, 100%);
   border-radius: var(--radius-lg);
   padding: 32px 28px 28px;
+  background: var(--chip);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
 }
 .auth-back {
   display: inline-block;
@@ -2433,6 +2449,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   font-size: 15px;
   line-height: 1.5;
   color: var(--muted-foreground);
+  max-width: 22rem;
 }
 .auth-field-lg { min-height: 48px; height: 48px; font-size: 15px; }
 .auth-submit,
@@ -2498,6 +2515,8 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .auth-back { margin-bottom: 16px; }
   .auth-brand { margin-bottom: 20px; }
   .auth-title { font-size: 20px; }
+  .auth-login-link { margin-bottom: 8px; }
+  .auth-lede { max-width: none; }
 }
 
 /* Hide third-party preview chrome on marketing + auth */
@@ -2526,6 +2545,7 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
 .auth-forgot {
   font-size: 12px;
   color: var(--muted-foreground);
+  white-space: nowrap;
 }
 .auth-forgot:hover { color: var(--ink); }
 .auth-signup-link { text-align: center; margin-top: 16px; font-size: 14px; color: var(--muted-foreground); }
@@ -2832,6 +2852,9 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
     text-align: center;
   }
   .page-actions-row { width: 100%; }
+  .command-start-actions { flex-direction: column; align-items: stretch; }
+  .command-start-actions .btn { width: 100%; justify-content: center; min-height: 44px; }
+  .command-home-grid { gap: 12px; }
   .command-card-head { flex-direction: column; align-items: flex-start !important; }
   .mkt-notes,
   .mkt-steps-plain { grid-template-columns: 1fr; }

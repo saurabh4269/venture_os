@@ -169,7 +169,7 @@ export default function CommandPage() {
                 <CardTitle className="font-serif text-lg">
                   Needs a look{needsLook > 0 ? ` · ${needsLook}` : ""}
                 </CardTitle>
-                {inboxPending > 0 ? (
+                {emptyBook ? null : inboxPending > 0 ? (
                   <Link href="/inbox" className="btn ghost sm">Inbox · {inboxPending}</Link>
                 ) : (
                   <Link href="/inbox" className="btn ghost sm">Open Inbox</Link>
@@ -180,19 +180,7 @@ export default function CommandPage() {
               {look.length === 0 ? (
                 <div className="command-empty-hint space-y-2">
                   {emptyBook ? (
-                    <>
-                      <p>All clear for now.</p>
-                      {canWrite ? (
-                        <p className="lede">
-                          <Link href="/companies/new">Add a company</Link>
-                          {" "}or open{" "}
-                          <Link href="/inbox">Inbox</Link>
-                          {" "}when files arrive.
-                        </p>
-                      ) : (
-                        <p className="lede">Open <Link href="/inbox">Inbox</Link> when new files arrive.</p>
-                      )}
-                    </>
+                    <p className="lede">No companies yet. Add one when you&apos;re ready.</p>
                   ) : (
                     <p className="lede">You&apos;re up to date. Check <Link href="/inbox">Inbox</Link> after new uploads.</p>
                   )}
@@ -223,7 +211,11 @@ export default function CommandPage() {
             <CardContent className="p-0">
               {pipeline.length === 0 ? (
                 <div className="command-empty-hint p-4">
-                  <p>Ready to add your first company.</p>
+                  <p className="lede">
+                    {emptyBook
+                      ? "Pipeline fills in after your first company and upload."
+                      : "No recent pipeline activity."}
+                  </p>
                 </div>
               ) : (
                 <div className="table-scroll command-pipeline-scroll">
@@ -267,13 +259,23 @@ export default function CommandPage() {
       )}
 
       {emptyBook && !loading && (
-        <div className="empty command-start">
+        <div className="empty command-start" data-testid="command-empty">
           <strong>Start your book</strong>
           <p className="lede">
-            {canWrite ? (
-              <><Link href="/companies/new">Add a company</Link> and upload your first MIS pack.</>
-            ) : "Ask your Org Admin to add the first company."}
+            {canWrite
+              ? "Add a company and upload your first MIS pack. Nothing posts to the book until you confirm in Inbox."
+              : "Ask your Org Admin to add the first company."}
           </p>
+          {canWrite ? (
+            <div className="command-start-actions">
+              <Link href="/companies/new" className="btn sm">Add company</Link>
+              <Link href="/inbox" className="btn ghost sm">Open Inbox</Link>
+            </div>
+          ) : (
+            <div className="command-start-actions">
+              <Link href="/inbox" className="btn ghost sm">Open Inbox</Link>
+            </div>
+          )}
         </div>
       )}
     </Shell>
