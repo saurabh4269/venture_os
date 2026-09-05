@@ -834,7 +834,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
       );
       setMsg(
         res.duplicateOf
-          ? "Same SHA as a vault file already stored. Extract queued — confirm Inbox; do not treat as a new source."
+          ? "This file matches one already in the vault. Extract is queued — review it in Inbox."
           : "Queued. Confirm extracts in Inbox when ready.",
       );
       if (res.document?.id) await pollParse(res.document.id);

@@ -107,12 +107,20 @@ export default function CommandPage() {
 
   const look = useMemo(() => {
     if (!data) return [];
+    const inboxByCompany = new Map<string, number>();
+    for (const i of data.needsALook.inbox) {
+      inboxByCompany.set(i.companyName, (inboxByCompany.get(i.companyName) ?? 0) + 1);
+    }
+    const inboxRows = [...inboxByCompany.entries()].map(([company, count]) => ({
+      id: `inbox-${company}`,
+      href: "/inbox",
+      company,
+      copy: count > 1 ? `${count} Inbox rows ready to review.` : "Inbox row ready to review.",
+      severity: "med" as const,
+      cite: false,
+    }));
     return [
-      ...data.needsALook.inbox.map((i) => ({
-        id: `inbox-${i.id}`, href: "/inbox", company: i.companyName,
-        copy: `Inbox ${i.kind.replaceAll("_", " ")} — confirm before it posts.`,
-        severity: "med" as const, cite: false,
-      })),
+      ...inboxRows,
       ...data.needsALook.flags.map((f) => ({
         id: `flag-${f.id}`, href: "/flags", company: f.companyName,
         copy: `${flagLabel(f.flagKey)} (${f.severity}).`,
@@ -139,7 +147,7 @@ export default function CommandPage() {
       <header className="page-head">
         <div>
           <h1 data-testid="command-ready">Command</h1>
-          <p className="lede">Is the book current, and what needs a human?</p>
+          <p className="lede">Your portfolio at a glance — what needs attention today.</p>
         </div>
         <div className="page-actions">
           <Button variant="outline" size="sm" type="button" onClick={load} disabled={busy}>
@@ -180,20 +188,20 @@ export default function CommandPage() {
                 <div className="text-muted-foreground space-y-2 text-sm">
                   {emptyBook ? (
                     <>
-                      <p>Empty book — nothing yet needs a look.</p>
+                      <p>All clear for now.</p>
                       {canWrite ? (
                         <p>
                           <Link href="/companies/new" className="text-foreground underline">Add a company</Link>
-                          {" "}or check{" "}
+                          {" "}or open{" "}
                           <Link href="/inbox" className="text-foreground underline">Inbox</Link>
-                          {" "}when MIS arrives.
+                          {" "}when files arrive.
                         </p>
                       ) : (
-                        <p>Ask an Org Admin to add the first company, or check <Link href="/inbox" className="text-foreground underline">Inbox</Link>.</p>
+                        <p>Open <Link href="/inbox" className="text-foreground underline">Inbox</Link> when new files arrive.</p>
                       )}
                     </>
                   ) : (
-                    <p>No pending inbox rows or open flags. Check <Link href="/inbox" className="text-foreground underline">Inbox</Link> after uploads.</p>
+                    <p>You're up to date. Check <Link href="/inbox" className="text-foreground underline">Inbox</Link> after new uploads.</p>
                   )}
                 </div>
               ) : (
@@ -266,11 +274,11 @@ export default function CommandPage() {
       {emptyBook && !loading && (
         <Card className="mt-4">
           <CardContent className="py-8 text-center">
-            <strong className="font-serif text-lg">The book is empty</strong>
+            <strong className="font-serif text-lg">Start your book</strong>
             <p className="text-muted-foreground mt-2 text-sm">
               {canWrite ? (
-                <><Link href="/companies/new" className="text-foreground underline">Add a company</Link> and upload the first MIS. No illustrative NAV.</>
-              ) : "Ask an Org Admin to add the first name."}
+                <><Link href="/companies/new" className="text-foreground underline">Add a company</Link> and upload your first MIS pack.</>
+              ) : "Ask your Org Admin to add the first company."}
             </p>
           </CardContent>
         </Card>

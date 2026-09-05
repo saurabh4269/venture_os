@@ -51,7 +51,7 @@ export function friendlyAuthError(raw: string): string {
     return "That work email is already on the book. Sign in instead.";
   }
   if (t.includes("invalid email or password")) {
-    return "Email or password is wrong. Check the firm address — we will not say which.";
+    return "Email or password is wrong. Check both and try again.";
   }
   if (
     t.includes("password too short") ||

@@ -118,7 +118,7 @@ export default function SettingsPage() {
         body: JSON.stringify(invite),
       });
       setInviteMsg(
-        `Invite created. Email delivery is not connected — copy the link and send it to ${invite.email}.`,
+        `Invite created for ${invite.email}. Copy the link below and send it to them.`,
       );
       setCopied(res.acceptUrl);
       setInvite({ email: "", role: "analyst" });
@@ -195,8 +195,7 @@ export default function SettingsPage() {
       </Panel>
       <Panel title="Mapping">
       <p className="lede">
-        Firm-wide metric aliases are not configured yet. Company OneDrive / Affinity / Granola ids are optional
-        fields on each company — paste vendor values only. Unit and currency hints live on the company profile.
+        Optional vendor ids on each company profile. Unit and currency hints live there too.
       </p>
       </Panel>
 
@@ -265,8 +264,7 @@ export default function SettingsPage() {
 
       <Panel title="Invite">
       <p className="lede">
-        Locked roles: Org Admin, Partner, Analyst, Viewer. Viewer cannot write or confirm. There is no email
-        sender yet — copy the accept link.
+        Invite teammates by role. Copy the accept link and send it by email.
       </p>
       {isAdmin ? (
       <form onSubmit={inviteMember} className="row">
@@ -345,9 +343,8 @@ export default function SettingsPage() {
       <Panel title="Connectors" flush>
       <div className="panel-body">
       <p className="lede" id="connector-honest">
-        Paste keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a successful
-        test. Last-sync is shown only after a real sync. Upload remains the fallback:{" "}
-        <Link href="/vault">Vault</Link>. Domain auto-join and SMTP are not connected.
+        Add connector keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a
+        successful health check. You can always upload files in the <Link href="/vault">Vault</Link>.
       </p>
       <table>
         <thead>
@@ -362,7 +359,7 @@ export default function SettingsPage() {
           {(data?.connectors ?? []).map((c) => (
             <tr key={c.kind}>
               <td>{connectorLabel(c.kind)}</td>
-              <td>{c.status === "not_connected" ? "not connected" : c.status.replaceAll("_", " ")}</td>
+              <td>{c.status === "not_connected" ? "Setup" : c.status.replaceAll("_", " ")}</td>
               <td>{c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : "—"}</td>
               <td className="lede">{c.lastError ?? "—"}</td>
             </tr>
@@ -385,16 +382,13 @@ export default function SettingsPage() {
 
       <Panel title="Session">
       <p className="lede">
-        Cookies are HttpOnly + SameSite=Lax. A session lasts 7 days and refreshes after 24 hours of use. Sign-out is
-        idempotent. SSO, password reset by email, and idle rotation for viewers are not connected.
+        Sessions last seven days and refresh with use. Sign out anytime from the account menu.
       </p>
       </Panel>
 
       <Panel title="Flag policy">
       <p className="lede">
-        Firm thresholds persist for this organisation. Flags reads these values, not only catalog defaults. Missing
-        keys keep the catalog default. Org Admin can edit thresholds for your firm.
-        Recompute Flags after a save.
+        Set firm-wide thresholds for flag detectors. Org Admin can edit values; save to refresh Flags.
       </p>
       <form
         onSubmit={async (e) => {
@@ -520,7 +514,7 @@ export default function SettingsPage() {
       <Panel title="Funds">
       {funds.length === 0 ? (
         <div className="empty">
-          No funds yet. Add a fund here, then attach positions when you onboard a company. NAV is empty without both.
+          Add your first fund here, then attach positions when you onboard a company.
         </div>
       ) : (
         <table>

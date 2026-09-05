@@ -94,7 +94,7 @@ export default function NewCompanyPage() {
         { method: "POST", body: fd },
       );
       if (res.duplicateOf) {
-        setMsg("This file matches a vault object already stored (same SHA). Extract still queued — confirm Inbox, do not treat as a new source.");
+        setMsg("This file matches one already in the vault. Extract is queued — review it in Inbox.");
       }
       setStep(3);
       await api(`/api/parse/${res.document.id}`, { method: "POST", body: "{}" }).catch(() => null);

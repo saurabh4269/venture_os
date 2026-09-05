@@ -124,7 +124,7 @@ button { cursor: pointer; }
   border-right: 1px solid var(--rule);
   padding: 12px 8px;
   background: var(--surface);
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: stretch;
   gap: 4px;
@@ -133,6 +133,9 @@ button { cursor: pointer; }
   height: 100vh;
   overflow: auto;
   z-index: 5;
+}
+@media (min-width: 768px) {
+  .rail { display: flex; }
 }
 .rail-expanded {
   width: var(--rail-wide);
@@ -2175,9 +2178,11 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
 }
 @media (max-width: 767px) {
   .topbar-search { display: none; }
-  .topbar-title { display: none; }
+  .topbar-title { display: inline; font-size: 15px; }
   .app { grid-template-columns: 1fr; }
   .main { padding: 16px 16px 32px; }
+  .topbar { padding: 10px 12px; gap: 8px; }
+  .topbar-actions .btn { font-size: 13px; padding: 0 12px; }
   .mkt-notes,
   .mkt-steps-plain { grid-template-columns: 1fr; }
   .mkt-header-actions .mkt-login-btn,

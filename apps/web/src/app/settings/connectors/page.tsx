@@ -60,7 +60,7 @@ const EMPTY: FormState = {
 };
 
 function statusLabel(status: ConnectorStatus) {
-  if (status === "not_connected") return "not connected";
+  if (status === "not_connected") return "Setup";
   return status.replaceAll("_", " ");
 }
 
@@ -483,12 +483,10 @@ function ConnectorCards() {
           </div>
           <div>
             <p style={{ margin: "0 0 8px" }}>
-              Org keys are sealed with AES-256-GCM. Postgres holds ciphertext, nonce, and key version — never the
-              envelope key. After save, this form clears client secret, API key, client id, and tenant id from memory.
+              Connector keys are encrypted at rest. Only Org Admins can add or rotate them.
             </p>
             <p className="lede" style={{ margin: 0 }}>
-              Only Org Admin can paste or rotate. Partners lock NAV; they do not hold vendor keys. Disconnect nulls
-              the envelope. Status is never marked connected without a real health check.
+              Connected status appears after a successful health check. Upload in the Vault works anytime.
             </p>
           </div>
         </div>
