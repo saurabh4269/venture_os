@@ -148,7 +148,7 @@ export function AuthFrame({
       </div>
       <footer className="auth-page-foot" aria-hidden={mode === "other"}>
         <span>© 2026 Venture OS. All rights reserved.</span>
-        <Link href="/security">Methodology</Link>
+        <Link href="/security">How we work</Link>
       </footer>
     </div>
   );
