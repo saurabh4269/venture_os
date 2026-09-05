@@ -161,7 +161,7 @@ export default function SettingsPage() {
       )}
       {data?.settings && isAdmin && (
         <form
-          className="row"
+          className="row settings-form-row"
           onSubmit={async (e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
@@ -205,6 +205,7 @@ export default function SettingsPage() {
       {members.length === 0 ? (
         <div className="empty">Members will appear here once invites are accepted.</div>
       ) : (
+        <div className="table-scroll table-scroll--compact">
         <table>
           <thead>
             <tr>
@@ -260,6 +261,7 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
@@ -268,7 +270,7 @@ export default function SettingsPage() {
         Invite teammates by role. Copy the accept link and send it by email.
       </p>
       {isAdmin ? (
-      <form onSubmit={inviteMember} className="row">
+      <form onSubmit={inviteMember} className="row settings-form-row">
         <label className="sr-only" htmlFor="invite-email">
           Invite email
         </label>
@@ -314,7 +316,8 @@ export default function SettingsPage() {
       )}
 
       {pending.length > 0 && (
-        <table style={{ marginTop: 12 }}>
+        <div className="table-scroll table-scroll--compact settings-pending-table">
+        <table>
           <thead>
             <tr>
               <th>Pending</th>
@@ -338,6 +341,7 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
@@ -347,6 +351,7 @@ export default function SettingsPage() {
         Add connector keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a
         successful health check. You can always upload files in the <Link href="/vault">Vault</Link>.
       </p>
+      <div className="table-scroll table-scroll--compact">
       <table>
         <thead>
           <tr>
@@ -367,7 +372,8 @@ export default function SettingsPage() {
           ))}
         </tbody>
       </table>
-      <p>
+      </div>
+      <p className="settings-cta-row">
         <Link className="btn sm" href="/settings/connectors">
           Open connector settings
         </Link>
@@ -425,6 +431,7 @@ export default function SettingsPage() {
           }
         }}
       >
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -476,8 +483,9 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
         {isAdmin && (
-          <button className="btn sm" type="submit" style={{ marginTop: 10 }} data-testid="save-flag-policy">
+          <button className="btn sm settings-save-row" type="submit" data-testid="save-flag-policy">
             Save flag policy
           </button>
         )}
@@ -489,7 +497,8 @@ export default function SettingsPage() {
       )}
       {(data?.flagPolicyAudits ?? []).length > 0 && (
         <>
-          <h3>Policy audit</h3>
+          <h3 className="settings-audit-title">Policy audit</h3>
+          <div className="table-scroll table-scroll--compact">
           <table>
             <thead>
               <tr>
@@ -508,6 +517,7 @@ export default function SettingsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </>
       )}
 
@@ -518,6 +528,7 @@ export default function SettingsPage() {
           Add your first fund here, then attach positions when you onboard a company.
         </div>
       ) : (
+        <div className="table-scroll table-scroll--compact">
         <table>
           <thead>
             <tr>
@@ -538,9 +549,10 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       {canWrite && (
-      <form onSubmit={addFund} className="row" style={{ flexWrap: "wrap" }}>
+      <form onSubmit={addFund} className="row settings-form-row">
         <label className="sr-only" htmlFor="fund-name">
           Fund name
         </label>

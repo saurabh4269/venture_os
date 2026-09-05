@@ -173,7 +173,7 @@ export default function ComparePage() {
           {err}
         </p>
       )}
-      <div className="row compare-filters" style={{ margin: "12px 0", flexWrap: "wrap" }}>
+      <div className="row compare-filters compare-pickers">
         <label className="field">
           Period
           <select value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period">
@@ -215,14 +215,14 @@ export default function ComparePage() {
           Export CSV
         </button>
       </div>
-      <div className="row">
+      <div className="row compare-companies">
         {(data?.companies ?? []).map((c) => (
           <label key={c.id} className="lede">
             <input type="checkbox" checked={checked(c.id)} onChange={() => toggleCo(c.id)} /> {c.name}
           </label>
         ))}
       </div>
-      <div className="row" style={{ marginTop: 8 }}>
+      <div className="row compare-metrics">
         {ALL_METRICS.map((m) => (
           <label key={m} className="lede">
             <input type="checkbox" checked={metrics.includes(m)} onChange={() => toggleMetric(m)} />{" "}

@@ -243,7 +243,7 @@ function ConnectorCards() {
         lede="Connector keys are encrypted at rest. Status shows connected after a successful health check."
       />
       <SettingsSubnav current="connectors" />
-      <p className="lede" style={{ margin: "-4px 0 16px" }}>
+      <p className="lede connectors-intro">
         Paste steps: <code>docs/connectors/ADDING_KEYS.md</code>. Map folder / CRM ids on each company.
       </p>
       {oauthNote && (
@@ -416,7 +416,7 @@ function ConnectorCards() {
                       />
                     </label>
                   )}
-                  <div className="row">
+                  <div className="row connector-actions">
                     <button className="btn sm" type="submit" disabled={Boolean(busy)}>
                       {busy === `save-${kind}`
                         ? row?.hasCredentials
@@ -472,7 +472,7 @@ function ConnectorCards() {
           );
         })}
       </div>
-      <p className="lede" style={{ marginTop: 16 }}>
+      <p className="lede connectors-foot">
         Map a OneDrive folder, Affinity company id, or Granola note id on each{" "}
         <Link href="/companies">company</Link>. Then sync pulls into the same parse / inbox path as upload.
       </p>

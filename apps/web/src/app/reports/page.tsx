@@ -70,7 +70,7 @@ export default function ReportsPage() {
         </p>
       )}
       {canWrite && (
-      <div className="row">
+      <div className="row reports-draft-row">
         <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period end" />
         <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
           <option value="">Select company (required for one-pager)</option>
@@ -99,6 +99,7 @@ export default function ReportsPage() {
         </div>
       ) : !loading ? (
         <Panel flush>
+        <div className="table-scroll table-scroll--compact">
         <table>
           <thead>
             <tr>
@@ -130,6 +131,7 @@ export default function ReportsPage() {
             ))}
           </tbody>
         </table>
+        </div>
         </Panel>
       ) : null}
     </Shell>

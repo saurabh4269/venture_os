@@ -550,6 +550,7 @@ export default function CompanyPage() {
               Upload documents to build your evidence trail.
             </p>
           ) : (
+            <div className="table-scroll table-scroll--compact">
             <table>
               <thead>
                 <tr>
@@ -590,6 +591,7 @@ export default function CompanyPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </Panel>
         <Panel title="Required documentation" kicker="Coverage">
@@ -614,6 +616,7 @@ export default function CompanyPage() {
       {!data.positions?.length ? (
         <div className="empty">Add a fund in Settings, then onboard a company with that fund attached.</div>
       ) : (
+        <div className="table-scroll table-scroll--compact">
         <table>
           <thead>
             <tr>
@@ -640,6 +643,7 @@ export default function CompanyPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
@@ -653,6 +657,7 @@ export default function CompanyPage() {
           Upload MIS and <Link href="/inbox">confirm in Inbox</Link> to populate the book.
         </div>
       ) : (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -707,6 +712,7 @@ export default function CompanyPage() {
             })}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
