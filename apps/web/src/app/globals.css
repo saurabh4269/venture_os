@@ -193,6 +193,48 @@ button { cursor: pointer; }
 }
 .pipeline .on { color: var(--ink); font-weight: 600; }
 .pipeline-rule { margin: 0 6px; opacity: 0.45; }
+.cite-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+}
+.cite-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(28, 25, 21, 0.18);
+  cursor: pointer;
+}
+.cite-drawer {
+  position: relative;
+  width: min(400px, 100%);
+  height: 100%;
+  background: var(--chip);
+  border-left: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  padding: 22px 22px 32px;
+  overflow: auto;
+}
+.cite-drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.cite-drawer-head h2 { font-size: 22px; }
+.cite-dl { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.cite-dl div { padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.cite-dl dt {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.cite-dl dd { margin: 0; font-size: 14px; }
 .lede { color: var(--muted); max-width: 52rem; margin: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

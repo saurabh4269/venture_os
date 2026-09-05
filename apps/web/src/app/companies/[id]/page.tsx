@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
 import { PageHead, Panel } from "@/components/BookUI";
+import { useCite } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
 
@@ -81,6 +82,21 @@ function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
 }
 
+function citeFor(data: Data, refId?: string | null) {
+  const ref = data.sourceRefs.find((r) => r.id === refId);
+  const doc = ref ? data.documents.find((d) => d.id === ref.documentId) : undefined;
+  const metric = refId ? data.metrics.find((m) => m.sourceRefId === refId) : undefined;
+  return {
+    filename: doc?.filename,
+    locator: ref?.locator,
+    excerpt: ref?.excerpt,
+    periodStart: metric?.periodStart,
+    periodEnd: metric?.periodEnd,
+    confirmedBy: metric?.confirmedBy,
+    confirmedAt: metric?.confirmedAt,
+  };
+}
+
 function evidenceLine(ev: Record<string, unknown> | undefined) {
   if (!ev) return "";
   return Object.entries(ev)
@@ -93,6 +109,7 @@ export default function CompanyPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { canWrite } = useBookSession();
+  const openCite = useCite();
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState("");
   const [lane, setLane] = useState<"objective" | "subjective">("objective");
@@ -237,6 +254,7 @@ export default function CompanyPage() {
   const evidence = data.sourceRefs.map((ref) => {
     const doc = data.documents.find((d) => d.id === ref.documentId);
     const loc = [ref.locator?.sheet, ref.locator?.cell].filter(Boolean).join(" ");
+    const metric = data.metrics.find((m) => m.sourceRefId === ref.id);
     return {
       id: ref.id,
       source: doc?.filename ?? "Source file",
@@ -244,6 +262,12 @@ export default function CompanyPage() {
       date: doc?.createdAt ? new Date(doc.createdAt).toLocaleDateString() : (doc?.periodEnd ?? "—"),
       cite: loc || "locator",
       documentId: ref.documentId,
+      excerpt: ref.excerpt,
+      locator: ref.locator,
+      periodStart: metric?.periodStart,
+      periodEnd: metric?.periodEnd,
+      confirmedBy: metric?.confirmedBy,
+      confirmedAt: metric?.confirmedAt,
     };
   });
   const required = (
@@ -458,7 +482,7 @@ export default function CompanyPage() {
             <span className="muted">Cash</span>
             <span>
               {data.kpi ? (
-                <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
+                <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} cite={citeFor(data, data.kpi.cash.sourceRefId)} />
               ) : (
                 <span className="chip unfact">—</span>
               )}
@@ -468,7 +492,7 @@ export default function CompanyPage() {
             <span className="muted">Burn (monthly)</span>
             <span>
               {data.kpi ? (
-                <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
+                <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} cite={citeFor(data, data.kpi.burn.sourceRefId)} />
               ) : (
                 <span className="chip unfact">—</span>
               )}
@@ -477,7 +501,7 @@ export default function CompanyPage() {
           <div className="metric-row">
             <span className="muted">Runway (3-mo burn)</span>
             <span>
-              {data.kpi ? <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} /> : <span className="chip unfact">—</span>}
+              {data.kpi ? <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} cite={citeFor(data, data.kpi.runway.sourceRefId)} /> : <span className="chip unfact">—</span>}
             </span>
           </div>
           <div className="metric-row">
@@ -489,6 +513,7 @@ export default function CompanyPage() {
                   isFact={revenueDual.isFact}
                   sourcePath={pathFor(revenue?.sourceRefId)}
                   note={revenueDual.fxNote}
+                  cite={citeFor(data, revenue?.sourceRefId)}
                 />
               ) : (
                 <span className="chip unfact">—</span>
@@ -541,7 +566,19 @@ export default function CompanyPage() {
                       <button
                         type="button"
                         className="cite"
-                        onClick={() => downloadAuthed(`/api/documents/${e.documentId}/file`, e.source)}
+                        onClick={() =>
+                          openCite({
+                            display: e.source,
+                            filename: e.source,
+                            sourcePath: `/api/documents/${e.documentId}/file`,
+                            locator: e.locator,
+                            excerpt: e.excerpt,
+                            periodStart: e.periodStart,
+                            periodEnd: e.periodEnd,
+                            confirmedBy: e.confirmedBy,
+                            confirmedAt: e.confirmedAt,
+                          })
+                        }
                       >
                         {e.cite}
                       </button>
@@ -648,6 +685,7 @@ export default function CompanyPage() {
                       isFact={dual.isFact}
                       sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
                       note={dual.fxNote}
+                      cite={citeFor(data, m.sourceRefId)}
                     />
                   </td>
                   <td>{m.periodEnd}</td>

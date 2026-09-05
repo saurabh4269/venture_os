@@ -167,7 +167,7 @@ export default function CommandPage() {
         title="Command"
         testId="command-ready"
         kicker={bookCloseLine()}
-        lede="Fund pulse from booked facts only. Missing is —, never 0. Click a chip to open the source."
+        lede="Is the book current, and what needs a human? Pulse from booked facts only. Missing is —, never 0. Cite opens the footnote — file, locator, excerpt, period, confirmed by."
         actions={
           <>
             <span className="lede">
@@ -218,6 +218,16 @@ export default function CommandPage() {
             </div>
           </div>
 
+          <p className="lede" style={{ margin: "-8px 0 14px" }}>
+            {data.pulse.companies === 0
+              ? "Empty book — nothing for a human yet."
+              : data.pulse.inboxPending + data.pulse.openFlags + gaps === 0
+                ? "Current — no inbox and no open flags."
+                : `${data.pulse.inboxPending} to confirm · ${data.pulse.openFlags} open flags · ${gaps} coverage gaps.`}
+            {!data.pulse.nav.nav.complete
+              ? ` NAV incomplete — ${data.pulse.nav.nav.missing} values missing.`
+              : ""}
+          </p>
           <div className="headline-strip">
             <span className="chip unfact">
               NAV {data.pulse.nav.nav.total == null ? EM : data.pulse.nav.nav.total.toLocaleString("en-IN")}

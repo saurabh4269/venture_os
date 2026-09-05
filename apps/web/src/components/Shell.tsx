@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
-import { api, downloadAuthed } from "@/lib/api";
+import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
 import { Pipeline } from "@/components/BookUI";
+import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
 import {
   IconAsk,
   IconCommand,
@@ -290,9 +291,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
               ? "proposed"
               : path.startsWith("/vault") || path.startsWith("/companies/new")
                 ? "source"
-                : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
-                  ? "analysis"
-                  : "book"
+                : path.startsWith("/flags")
+                  ? "reviewed"
+                  : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
+                    ? "analysis"
+                    : "book"
           }
         />
         <div className="sr-only" aria-live="polite">
@@ -307,7 +310,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             ready: true,
           }}
         >
-          {children}
+          <CiteProvider>{children}</CiteProvider>
         </BookSessionContext.Provider>
       </main>
     </div>
@@ -319,22 +322,22 @@ export function Fact({
   isFact,
   sourcePath,
   note,
+  cite,
 }: {
   display: string;
   isFact: boolean;
   sourcePath?: string;
   note?: string | null;
+  cite?: CitePayload;
 }) {
+  const openCite = useCite();
+  const payload: CitePayload | undefined =
+    cite || sourcePath ? { ...cite, display, sourcePath: cite?.sourcePath ?? sourcePath } : undefined;
+  const open = payload ? () => openCite(payload) : undefined;
   const value = !isFact ? (
     <span className="chip unfact">—</span>
-  ) : sourcePath ? (
-    <button
-      type="button"
-      className="chip"
-      title="Open source"
-      aria-label={`${display} — open source`}
-      onClick={() => downloadAuthed(sourcePath)}
-    >
+  ) : open ? (
+    <button type="button" className="chip" title="Open citation" aria-label={`${display} — open citation`} onClick={open}>
       {display}
     </button>
   ) : (
@@ -343,8 +346,8 @@ export function Fact({
   return (
     <span className="fact">
       {value}
-      {isFact && sourcePath ? (
-        <button type="button" className="cite" onClick={() => downloadAuthed(sourcePath)} aria-label="Open citation">
+      {isFact && open ? (
+        <button type="button" className="cite" onClick={open} aria-label="Open citation">
           Cite
         </button>
       ) : null}

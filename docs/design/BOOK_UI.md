@@ -43,9 +43,13 @@ NAV / MOIC remain as headline chips under the KPI strip (product pulse). They ar
 | Companies | Stage pills, ownership/coverage filters, table | Ownership and last MIS from Command coverage only. Coverage chip is Booked / Gap / Review — never a %. Last-note column mapped to Last MIS (no invented partner notes). |
 | Flags | Evidence queue: Severity, Company, Reason, Cite, Status | Expand a row for real evidence fields only. No generated “analysis” or subjective take. Mute / snooze unchanged. |
 
+## Loop (polish)
+
+On every ritual page the chrome is: **know what matters → see why → verify (cite drawer) → act**. The pipeline under the fixture banner is SOURCE → PROPOSED → REVIEWED → BOOK → ANALYSIS (Inbox = proposed, Flags = reviewed, Vault = source, Ask/Reports/Compare = analysis). Command’s first sentence is whether the book is current and what needs a human. Incomplete NAV says how many values are missing — never a health score.
+
 ## Atoms
 
-- **Fact chip** — click downloads source. Unfact = `—`.
+- **Fact chip** — click opens the citation drawer (file, locator, excerpt, period, confirmed by/at). Unfact = `—`. Open source file from the drawer. Missing fields stay `—`.
 - **Objective / subjective** — forest vs violet surfaces; never a single “notes” column.
 - **Empty book** — expensive paper, no demo charts, no celebratory “all clear” on an empty org.
 - **Refuse** — Ask uses the same honesty weight as the fixture banner.

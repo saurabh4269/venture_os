@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { PageHead, Panel } from "@/components/BookUI";
+import { useCite } from "@/components/Cite";
 import { Shell } from "@/components/Shell";
-import { api, downloadAuthed } from "@/lib/api";
+import { api } from "@/lib/api";
 
 type Res = {
   answer: string;
@@ -12,6 +13,7 @@ type Res = {
 };
 
 export default function AskPage() {
+  const openCite = useCite();
   const [q, setQ] = useState("");
   const [res, setRes] = useState<Res | null>(null);
   const [busy, setBusy] = useState(false);
@@ -55,7 +57,7 @@ export default function AskPage() {
       <PageHead
         title="Ask"
         testId="ask-ready"
-        lede="Grounded on FTS + booked facts. If it is not in the corpus, the system refuses. Citations must resolve. Numbers that are not in evidence cause a refuse."
+        lede="Analysis from the book. If it is not in the corpus, the system refuses. Open a cite to verify file and excerpt — we will not invent a locator."
       />
       <Panel>
       <form onSubmit={send} className="field" style={{ maxWidth: 720 }}>
@@ -123,18 +125,24 @@ export default function AskPage() {
           <ul>
             {res.citations.map((c, i) => (
               <li key={i}>
-                {c.documentId ? (
+                {c.documentId || c.excerpt ? (
                   <button
                     type="button"
-                    className="chip"
-                    onClick={() => downloadAuthed(`/api/documents/${c.documentId}/file`)}
+                    className="cite"
+                    onClick={() =>
+                      openCite({
+                        display: "Ask citation",
+                        sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
+                        excerpt: c.excerpt,
+                      })
+                    }
                   >
-                    source
+                    Cite
                   </button>
                 ) : (
                   "unresolved"
                 )}{" "}
-                · {c.excerpt}
+                · {c.excerpt || "—"}
               </li>
             ))}
           </ul>

@@ -28,7 +28,7 @@ export default function VaultPage() {
     <Shell>
       <PageHead
         title="Vault"
-        lede="Company vault — MIS, board packs, transcripts. Firm library is thin. LP room is Phase 2."
+        lede="Source files. Upload here, confirm in Inbox, then they become book facts. Firm library is thin. LP room is Phase 2."
       />
       {err && (
         <p className="sev-high" role="alert">

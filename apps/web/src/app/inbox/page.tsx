@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHead } from "@/components/BookUI";
+import { useCite } from "@/components/Cite";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -46,6 +47,7 @@ function relTime(iso?: string | null) {
 
 export default function InboxPage() {
   const { canWrite, ready: sessionReady } = useBookSession();
+  const openCite = useCite();
   const [items, setItems] = useState<Item[]>([]);
   const [periodEdits, setPeriodEdits] = useState<Record<string, { start: string; end: string }>>({});
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("pending");
@@ -150,7 +152,7 @@ export default function InboxPage() {
     <Shell>
       <PageHead
         title="Inbox"
-        lede="Needs a look — sorted by severity. Parser proposes; you confirm. Nothing here is a fact until you say so."
+        lede="Proposed extracts — confirm to write the book. Sorted by severity. Nothing here is a fact until you say so."
       />
       <div className="tabs">
         {STATUSES.map((s) => (
@@ -309,8 +311,25 @@ export default function InboxPage() {
                   )}
                 </div>
                 <div className="hide-sm">
-                  {loc ? <span className="cite">{loc}</span> : <span className="lede">—</span>}
-                  {i.locator.excerpt ? <div className="lede">{i.locator.excerpt}</div> : null}
+                  {loc || i.locator.excerpt || i.proposed.excerpt ? (
+                    <button
+                      type="button"
+                      className="cite"
+                      onClick={() =>
+                        openCite({
+                          display: i.proposed.metricKey ?? i.proposed.label ?? i.kind,
+                          locator: i.locator,
+                          excerpt: i.locator.excerpt ?? i.proposed.excerpt,
+                          periodStart: i.proposed.periodStart,
+                          periodEnd: i.proposed.periodEnd,
+                        })
+                      }
+                    >
+                      {loc || "Cite"}
+                    </button>
+                  ) : (
+                    <span className="lede">—</span>
+                  )}
                 </div>
                 <div className="hide-sm num">{relTime(i.createdAt)}</div>
                 <div className="hide-sm lede">—</div>
