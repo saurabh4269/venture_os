@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -284,7 +284,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </Link>
     );
 
-    if (railExpanded) return <div key={n.href} className="rail-item-wrap">{link}</div>;
+    if (railExpanded) return <Fragment key={n.href}>{link}</Fragment>;
 
     return (
       <Tooltip key={n.href}>

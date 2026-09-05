@@ -208,7 +208,10 @@ button { cursor: pointer; }
 .rail-expanded .rail-item {
   justify-content: flex-start;
   width: 100%;
+  min-width: 0;
+  max-width: none;
   padding: 0 10px;
+  align-self: stretch;
 }
 .rail:not(.rail-expanded) .rail-item {
   justify-content: center;
