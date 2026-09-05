@@ -82,47 +82,45 @@ export default function CompaniesPage() {
 
   return (
     <Shell>
-      {rows.length > 0 && (
-        <div className="page-toolbar">
-          <label className="sr-only" htmlFor="co-search">
-            Search companies
-          </label>
-          <input
-            id="co-search"
-            className="look-search"
-            placeholder="Search companies…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <div className="toolbar-actions">
-            {visible.length > 0 && (
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() =>
-                  exportVisible(
-                    visible.map((c) => {
-                      const cov = covById.get(c.id);
-                      const kind = coverageKind(cov);
-                      return {
-                        name: c.name,
-                        stage: c.stage,
-                        sector: c.sector,
-                        ownership: formatOwnership(cov?.ownershipPct),
-                        lastMis: cov?.lastMis ?? EM,
-                        flags: cov?.openFlags ? String(cov.openFlags) : EM,
-                        cover: kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review",
-                      };
-                    }),
-                  )
-                }
-              >
-                Export
-              </button>
-            )}
-          </div>
+      <div className="page-toolbar">
+        <label className="sr-only" htmlFor="co-search">
+          Search companies
+        </label>
+        <input
+          id="co-search"
+          className="look-search"
+          placeholder="Search companies…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <div className="toolbar-actions">
+          {visible.length > 0 && (
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() =>
+                exportVisible(
+                  visible.map((c) => {
+                    const cov = covById.get(c.id);
+                    const kind = coverageKind(cov);
+                    return {
+                      name: c.name,
+                      stage: c.stage,
+                      sector: c.sector,
+                      ownership: formatOwnership(cov?.ownershipPct),
+                      lastMis: cov?.lastMis ?? EM,
+                      flags: cov?.openFlags ? String(cov.openFlags) : EM,
+                      cover: kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review",
+                    };
+                  }),
+                )
+              }
+            >
+              Export
+            </button>
+          )}
         </div>
-      )}
+      </div>
       <PageHead
         title="Companies"
         testId="companies-ready"
@@ -140,12 +138,12 @@ export default function CompaniesPage() {
           {err}
         </p>
       )}
-      {rows.length > 0 && (
-        <div className="filter-bar">
+      <div className="filter-bar">
           <span className="page-kicker" style={{ margin: 0 }}>
             Stage
           </span>
           <div className="tabs filter-pills" style={{ margin: 0 }} aria-label="Stage">
+            {stages.length === 0 ? <span className="lede">—</span> : null}
             {stages.map((s) => (
               <button
                 key={s}
@@ -189,7 +187,6 @@ export default function CompaniesPage() {
             </button>
           )}
         </div>
-      )}
       {rows.length === 0 ? (
         <div className="empty">
           <strong>Empty book</strong>
