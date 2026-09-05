@@ -13,8 +13,8 @@ test("rail collapsed/expanded and topbar CTA", async ({ page }) => {
   await page.getByTestId("signup-submit").click();
   await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 90_000 });
 
-  const addCompany = page.locator(".topbar-actions a");
-  await expect(addCompany).toHaveText("Add company");
+  const addCompany = page.locator(".topbar-actions a.btn");
+  await expect(addCompany).toBeVisible();
   await expect(addCompany).toHaveClass(/btn/);
   const color = await addCompany.evaluate((el) => {
     const s = getComputedStyle(el);

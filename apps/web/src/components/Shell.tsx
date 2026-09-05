@@ -451,9 +451,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </form>
           <div className="topbar-actions">
             {canWrite && !path.startsWith("/companies/new") ? (
-              <Link href="/companies/new" className="btn sm btn-add-company-short">
-                <span className="btn-label-long">Add company</span>
-                <span className="btn-label-short">Add</span>
+              <Link href="/companies/new" className="btn sm" aria-label="Add company">
+                <span className="max-md:hidden">Add company</span>
+                <span className="hidden max-md:inline">Add</span>
               </Link>
             ) : null}
           </div>

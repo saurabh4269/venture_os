@@ -69,7 +69,7 @@ test.describe("happy path visual walk", () => {
     await page.keyboard.press("Escape");
 
     await page.goto("/companies/new");
-    await expect(page.locator(".topbar-actions .btn-add-company-short")).toHaveCount(0);
+    await expect(page.locator(".topbar-actions a.btn")).toHaveCount(0);
     await page.getByTestId("company-name").fill(`HP MCo ${stamp}`);
     await page.getByTestId("create-company").click();
     await page.getByTestId("mis-file").setInputFiles(fixture);
