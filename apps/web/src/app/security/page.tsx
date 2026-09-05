@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   return (
-    <LandingShell>
+    <LandingShell testId="security-ready">
       <main id="main" className="mkt-legal">
         <p className="mkt-kicker">Trust</p>
         <h1>How we work</h1>
@@ -47,6 +47,11 @@ export default function SecurityPage() {
             <Link href="/signup">get started</Link>. Existing users <Link href="/login">log in</Link>.
           </p>
         </section>
+        <p className="mkt-soft-login mkt-legal-back">
+          <Link href="/">← Back to Venture OS</Link>
+          {" · "}
+          <Link href="/blog">Notes</Link>
+        </p>
       </main>
     </LandingShell>
   );

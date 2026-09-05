@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-const NAV = [{ href: "/#notes", label: "Notes" }] as const;
+const NAV = [
+  { href: "/security", label: "How we work" },
+  { href: "/blog", label: "Notes" },
+] as const;
 
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
@@ -67,9 +70,15 @@ export function LandingFooter() {
   );
 }
 
-export function LandingShell({ children }: { children: ReactNode }) {
+export function LandingShell({
+  children,
+  testId = "marketing-landing",
+}: {
+  children: ReactNode;
+  testId?: string;
+}) {
   return (
-    <div className="mkt" data-testid="marketing-landing">
+    <div className="mkt" data-testid={testId}>
       <a href="#main" className="skip-link">Skip to content</a>
       <LandingHeader />
       {children}

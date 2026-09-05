@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LandingShell } from "@/components/marketing/LandingChrome";
 
 export const metadata: Metadata = {
   title: "Notes — Venture OS",
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function BlogPage() {
   return (
-    <div className="mkt">
-      <main className="mkt-legal">
+    <LandingShell testId="blog-ready">
+      <main id="main" className="mkt-legal">
         <p className="mkt-kicker">Notes</p>
         <h1>Build notes</h1>
         <p className="lede">
@@ -29,10 +30,12 @@ export default function BlogPage() {
             confirmed.
           </p>
         </section>
-        <p className="mkt-soft-login">
+        <p className="mkt-soft-login mkt-legal-back">
           <Link href="/">← Back to Venture OS</Link>
+          {" · "}
+          <Link href="/security#methodology">Standards</Link>
         </p>
       </main>
-    </div>
+    </LandingShell>
   );
 }
