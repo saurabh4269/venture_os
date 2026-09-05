@@ -41,6 +41,7 @@ export function Panel({
   flush,
   className,
   kicker,
+  id,
 }: {
   title?: ReactNode;
   actions?: ReactNode;
@@ -48,9 +49,10 @@ export function Panel({
   flush?: boolean;
   className?: string;
   kicker?: ReactNode;
+  id?: string;
 }) {
   return (
-    <section className={`panel${className ? ` ${className}` : ""}`}>
+    <section id={id} className={`panel${className ? ` ${className}` : ""}`}>
       {(title || actions || kicker) && (
         <div className="panel-head">
           <div>

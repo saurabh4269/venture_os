@@ -54,6 +54,7 @@ export default function SettingsPage() {
   const [invite, setInvite] = useState({ email: "", role: "analyst" });
   const [inviteMsg, setInviteMsg] = useState("");
   const [inviteErr, setInviteErr] = useState("");
+  const [lastInviteUrl, setLastInviteUrl] = useState("");
   const [copied, setCopied] = useState("");
   const [busy, setBusy] = useState(false);
   const [policyDraft, setPolicyDraft] = useState<Record<string, string>>({});
@@ -120,7 +121,8 @@ export default function SettingsPage() {
       setInviteMsg(
         `Invite created for ${invite.email}. Copy the link below and send it to them.`,
       );
-      setCopied(res.acceptUrl);
+      setLastInviteUrl(res.acceptUrl);
+      setCopied("");
       setInvite({ email: "", role: "analyst" });
       load();
     } catch (ex) {
@@ -265,7 +267,7 @@ export default function SettingsPage() {
       )}
       </Panel>
 
-      <Panel title="Invite">
+      <Panel title="Invite" id="invite">
       <p className="lede">
         Invite teammates by role. Copy the accept link and send it by email.
       </p>
@@ -277,6 +279,7 @@ export default function SettingsPage() {
         <input
           id="invite-email"
           type="email"
+          data-testid="invite-email"
           value={invite.email}
           onChange={(e) => setInvite({ ...invite, email: e.target.value })}
           placeholder="analyst@firm"
@@ -297,7 +300,7 @@ export default function SettingsPage() {
             </option>
           ))}
         </select>
-        <button className="btn sm" type="submit" disabled={busy}>
+        <button className="btn sm settings-invite-btn" type="submit" disabled={busy} data-testid="invite-submit">
           {busy ? "Creating…" : "Create invite"}
         </button>
       </form>
@@ -314,6 +317,18 @@ export default function SettingsPage() {
           {inviteMsg}
         </p>
       )}
+      {lastInviteUrl && (
+        <div className="settings-invite-link-row">
+          <button
+            type="button"
+            className="btn ghost sm settings-invite-copy"
+            data-testid="invite-copy-link"
+            onClick={() => copy(lastInviteUrl)}
+          >
+            {copied === lastInviteUrl ? "Copied" : "Copy link"}
+          </button>
+        </div>
+      )}
 
       {pending.length > 0 && (
         <div className="table-scroll table-scroll--compact settings-pending-table">
@@ -322,7 +337,7 @@ export default function SettingsPage() {
             <tr>
               <th>Pending</th>
               <th>Role</th>
-              <th>Expires</th>
+              <th className="hide-sm">Expires</th>
               <th></th>
             </tr>
           </thead>
@@ -331,7 +346,7 @@ export default function SettingsPage() {
               <tr key={i.id}>
                 <td>{i.email}</td>
                 <td>{roleLabel(i.role)}</td>
-                <td>{new Date(i.expiresAt).toLocaleDateString()}</td>
+                <td className="hide-sm">{new Date(i.expiresAt).toLocaleDateString()}</td>
                 <td>
                   <button className="btn ghost sm" type="button" onClick={() => copy(i.acceptUrl)}>
                     {copied === i.acceptUrl ? "Copied" : "Copy link"}

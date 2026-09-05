@@ -163,7 +163,7 @@ export default function FlagsPage() {
           {err}
         </p>
       )}
-      <div className="page-toolbar">
+      <div className="page-toolbar flags-toolbar">
         <label className="sr-only" htmlFor="flag-search">
           Search flags
         </label>
