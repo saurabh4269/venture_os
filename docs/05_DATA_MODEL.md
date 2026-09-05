@@ -34,7 +34,7 @@ Every tenant table includes `org_id` (UUID) and is covered by **RLS**. Platform 
 | **Flag** | Risk/anomaly instance | catalog_key, severity, company_id, period?, evidence_refs[], status (open/snoozed/muted) |
 | **FlagPolicy** | Firm thresholds | catalog_key, params JSON, spectrum config |
 | **AskSession / AskMessage** | Q&A audit | org_id, citations[], refused bool |
-| **ConnectorAccount** | OAuth | provider, status (`not_connected` / `connected` / `error`), scopes, encrypted tokens |
+| **ConnectorAccount** | OAuth / API key | provider, status (`not_connected` / `configured` / `connected` / `error`), `secret_ciphertext` + `nonce` + `key_version` (never plaintext), last_sync_at only after real sync |
 | **SyncCursor** | Connector progress | connector_id, cursor, last_success_at |
 | **AuditEvent** | Tamper-evident log | actor, action, entity_ref, payload, created_at |
 | **ReportArtifact** | Generated export | type, storage_key, params, created_by |

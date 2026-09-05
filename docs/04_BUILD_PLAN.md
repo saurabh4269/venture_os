@@ -170,7 +170,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 ### Acceptance criteria
 
-- [ ] Connected OneDrive folder yields inbox items without manual re-key of file bytes.
+- [x] Connected OneDrive folder yields inbox items without manual re-key of file bytes. *(Pass 42: download → object store → same parse/inbox; mock HTTP in CI. Live Graph waits on operator secrets)*
 - [x] Disconnect / not-connected states honest (no fake success). *(Pass 42: status machine + wipe on disconnect)*
 - [x] New company path measured: create → map → first structured output ≤15 minutes on happy path. *(upload fallback; connector map waits on OAuth)*
 - [x] Granola-linked subjective text never written into objective metric cells. *(Pass 42: transcript + commentary lane only)*

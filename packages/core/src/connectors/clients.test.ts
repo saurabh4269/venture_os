@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { affinityConnector, granolaConnector, onedriveConnector, transcriptToText } from "./clients.js";
 
+function fetchUrl(input: string | URL): string {
+  return typeof input === "string" ? input : input.toString();
+}
+
 function fetchOk(urlMatch: string | RegExp, body: unknown, status = 200): typeof fetch {
-  return (async (input: string | URL | Request) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+  return (async (input: string | URL) => {
+    const url = fetchUrl(input);
     const ok = typeof urlMatch === "string" ? url.includes(urlMatch) : urlMatch.test(url);
     if (!ok) return new Response("unexpected", { status: 599 });
     return Response.json(body, { status });
