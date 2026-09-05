@@ -173,7 +173,7 @@ export default function ComparePage() {
           {err}
         </p>
       )}
-      <div className="row" style={{ margin: "12px 0", flexWrap: "wrap" }}>
+      <div className="row compare-filters" style={{ margin: "12px 0", flexWrap: "wrap" }}>
         <label className="field">
           Period
           <select value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period">
@@ -233,7 +233,7 @@ export default function ComparePage() {
       {loading && <p className="lede">Loading the book…</p>}
       {!loading && !err && visible.length === 0 ? (
         <div className="empty">
-          <strong>Nothing to compare</strong>
+          <strong>Ready to compare</strong>
           Add companies and confirm metrics, or turn off “hide empty rows.”
         </div>
       ) : (

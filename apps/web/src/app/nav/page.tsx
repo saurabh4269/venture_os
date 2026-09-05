@@ -393,7 +393,7 @@ export default function NavPage() {
       )}
       {data && data.positions.length === 0 && (
         <div className="empty">
-          No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
+          Add a fund in <Link href="/settings">Settings</Link>, then onboard a company with that fund.
         </div>
       )}
       {data && data.positions.length > 0 && (

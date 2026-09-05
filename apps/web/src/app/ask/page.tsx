@@ -110,7 +110,7 @@ export default function AskPage() {
       )}
       {res && refused && (
         <div className="ask-answer" data-testid="ask-refused" role="status">
-          <p className="page-kicker">Insufficient evidence</p>
+          <p className="page-kicker">Need more sources</p>
           <p className="body">{res.answer}</p>
           <p className="lede" style={{ marginTop: 10 }}>
             Upload more files or confirm Inbox rows to give Ask more to work with.
@@ -127,7 +127,7 @@ export default function AskPage() {
             Provenance
           </p>
           {res.citations.length === 0 ? (
-            <p className="lede">No citations for this answer yet.</p>
+            <p className="lede">Citations will appear when the answer is grounded in the book.</p>
           ) : (
             <div className="ask-prov">
               {res.citations.map((c, i) => {

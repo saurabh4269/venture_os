@@ -194,7 +194,7 @@ export default function CompaniesPage() {
           {canWrite ? <Link href="/companies/new">Add your first company</Link> : "Ask your Org Admin to add a company."}
         </div>
       ) : visible.length === 0 ? (
-        <div className="empty">No companies match these filters.</div>
+        <div className="empty">Try different filters or add a company.</div>
       ) : (
         <Panel flush>
           <div className="table-scroll">

@@ -153,6 +153,16 @@ export default function FlagsPage() {
 
   return (
     <Shell>
+      <PageHead
+        title="Flags"
+        testId="flags-ready"
+        lede="Evidence queue for your portfolio. Each flag links to the source that triggered it."
+      />
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
       <div className="page-toolbar">
         <label className="sr-only" htmlFor="flag-search">
           Search flags
@@ -177,16 +187,6 @@ export default function FlagsPage() {
           ) : null}
         </div>
       </div>
-      <PageHead
-        title="Flags"
-        testId="flags-ready"
-        lede="Evidence queue for your portfolio. Each flag links to the source that triggered it."
-      />
-      {err && (
-        <p className="sev-high" role="alert">
-          {err}
-        </p>
-      )}
       <div className="filter-bar">
         <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
           <option value="">Severity</option>
@@ -306,11 +306,11 @@ export default function FlagsPage() {
                 "Evidence"
               )
             }
-            title={selected ? (selected.companyName ?? "—") : "Inspect a row"}
+            title={selected ? (selected.companyName ?? "—") : "Flag detail"}
           >
             <div data-testid="flags-detail">
               {!selected ? (
-                <p className="lede">Select a row to see the source and evidence behind the flag.</p>
+                <p className="lede">Pick a row to see the source and evidence behind the flag.</p>
               ) : (
                 <>
                   <p className="look-title">{flagLabel(selected.flagKey)}</p>
@@ -345,7 +345,7 @@ export default function FlagsPage() {
                   <div className="lane-obj">
                     <div className="page-kicker">Objective fact</div>
                     {evidenceEntries(selected.evidence ?? {}).length === 0 ? (
-                      <p className="lede">No evidence fields on this row.</p>
+                      <p className="lede">Evidence will appear here once the flag rule has source fields.</p>
                     ) : (
                       evidenceEntries(selected.evidence ?? {}).map(([k, v]) => (
                         <div className="metric-row" key={k}>
@@ -367,7 +367,7 @@ export default function FlagsPage() {
                     {take ? (
                       <p>{take.body}</p>
                     ) : (
-                      <p className="lede">No partner commentary on the book yet for this flag.</p>
+                      <p className="lede">Add partner notes on the company page to see them here.</p>
                     )}
                   </div>
                   {selected.note ? (

@@ -94,7 +94,7 @@ export default function ReportsPage() {
       {loading && !err && <p className="lede">Loading the book…</p>}
       {!loading && rows.length === 0 ? (
         <div className="empty">
-          <strong>No drafts yet</strong>
+          <strong>Ready to draft</strong>
           Pick a company and draft a one-pager, or draft the monthly pack from confirmed facts.
         </div>
       ) : !loading ? (

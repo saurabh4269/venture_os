@@ -203,7 +203,7 @@ export default function SettingsPage() {
       <Panel title="People" flush>
       <div id="people" />
       {members.length === 0 ? (
-        <div className="empty">No members loaded.</div>
+        <div className="empty">Members will appear here once invites are accepted.</div>
       ) : (
         <table>
           <thead>

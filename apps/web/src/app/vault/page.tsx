@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageHead, Panel } from "@/components/BookUI";
 import { Shell } from "@/components/Shell";
@@ -39,8 +40,14 @@ export default function VaultPage() {
       )}
       {docs.length === 0 ? (
         <div className="empty">
-          <strong>No documents</strong>
-          Open a company and upload.
+          <strong>Vault is empty</strong>
+          <p className="lede" style={{ margin: "8px 0 12px" }}>
+            Upload MIS or board packs from a company page, then confirm rows in Inbox.
+          </p>
+          <div className="row" style={{ justifyContent: "center", gap: 8 }}>
+            <Link href="/companies" className="btn ghost sm">View companies</Link>
+            <Link href="/companies/new" className="btn sm">Add company</Link>
+          </div>
         </div>
       ) : (
         <Panel flush>

@@ -2227,11 +2227,18 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   border-color: transparent;
 }
 
+.compare-filters .field { min-width: 140px; }
+.compare-filters .lede { align-self: center; }
+.empty .row { margin-top: 4px; }
+
 @media (max-width: 1279px) {
   .command-home-grid { grid-template-columns: 1fr; }
   .mkt-arch-grid, .mkt-refuse-inner, .mkt-feature-row { grid-template-columns: 1fr; }
 }
 @media (max-width: 767px) {
+  .compare-filters { gap: 8px; }
+  .compare-filters .field { flex: 1 1 45%; min-width: 0; }
+  .compare-filters + .row { flex-wrap: wrap; gap: 6px; }
   .topbar-search { display: none; }
   .topbar-title { display: inline; font-size: 15px; }
   .app { grid-template-columns: 1fr; }

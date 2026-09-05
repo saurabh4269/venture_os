@@ -301,7 +301,7 @@ function ConnectorCards() {
                 </p>
               )}
               <p className="lede">
-                Last successful sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "—"}
+                Last successful sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "Ready after first sync"}
               </p>
 
               {isAdmin ? (

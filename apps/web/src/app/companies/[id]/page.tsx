@@ -537,7 +537,7 @@ export default function CompanyPage() {
             </div>
           ) : (
             <p className="lede" style={{ margin: 0 }}>
-              No partner commentary yet. Add notes in the subjective lane below.
+              Add partner notes on the company page to see them here.
             </p>
           )}
         </Panel>
