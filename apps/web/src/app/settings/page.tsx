@@ -146,6 +146,7 @@ export default function SettingsPage() {
       <PageHead
         kicker="Organisation"
         title="Settings"
+        testId="settings-ready"
         lede="Firm defaults, members, connectors, and flag policy. FY starts April–March unless you change it here."
       />
       <SettingsSubnav current="firm" />
