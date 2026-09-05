@@ -24,10 +24,9 @@ type ConnectorView = {
   lastHealthAt: string | null;
   hasCredentials: boolean;
   usingEnvFallback: boolean;
+  secretHint: string | null;
   config: {
     authMode?: "auth_code" | "client_credentials";
-    tenantId?: string;
-    clientId?: string;
     ownershipFieldId?: string;
     driveId?: string;
     userId?: string;
@@ -74,6 +73,7 @@ function ConnectorCards() {
   const oauthNote = search.get("onedrive") || search.get("error");
 
   function load() {
+    if (!isAdmin) return;
     api<{ connectors: ConnectorView[] }>("/api/connectors")
       .then((r) => {
         setRows(r.connectors);
@@ -82,8 +82,10 @@ function ConnectorCards() {
           for (const c of r.connectors) {
             next[c.kind] = {
               ...(next[c.kind] ?? EMPTY),
-              clientId: c.config.clientId ?? next[c.kind]?.clientId ?? "",
-              tenantId: c.config.tenantId ?? next[c.kind]?.tenantId ?? "",
+              clientId: "",
+              clientSecret: "",
+              tenantId: "",
+              apiKey: "",
               authMode: c.config.authMode ?? "auth_code",
               ownershipFieldId: c.config.ownershipFieldId ?? "",
               driveId: c.config.driveId ?? "",
@@ -98,7 +100,7 @@ function ConnectorCards() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [isAdmin]);
 
   function form(kind: string): FormState {
     return forms[kind] ?? EMPTY;
@@ -140,7 +142,10 @@ function ConnectorCards() {
         }),
       });
       setMsg((m) => ({ ...m, [kind]: "Saved. Test connection before Connect." }));
-      setForms((prev) => ({ ...prev, [kind]: { ...form(kind), clientSecret: "", apiKey: "" } }));
+      setForms((prev) => ({
+        ...prev,
+        [kind]: { ...form(kind), clientSecret: "", apiKey: "", clientId: "", tenantId: "" },
+      }));
       load();
     } catch (e) {
       setErr((m) => ({ ...m, [kind]: e instanceof Error ? e.message : "save_failed" }));
@@ -245,6 +250,11 @@ function ConnectorCards() {
                   {statusLabel(status)}
                 </span>
                 {row?.usingEnvFallback && <span className="lede">env default</span>}
+                {row?.hasCredentials && (
+                  <span className="lede" data-testid={`connector-hint-${kind}`}>
+                    configured {row.secretHint ?? "••••"}
+                  </span>
+                )}
               </div>
               <p className="lede" style={{ marginTop: 8 }}>
                 {help[kind]}

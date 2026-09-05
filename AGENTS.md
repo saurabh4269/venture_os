@@ -145,7 +145,7 @@ If Redis is up and the worker is down, parse jobs sit queued — start the worke
 
 ## Never invent connector fields
 
-Wave A infra lives in `packages/core` (types/status/validate/map) and `@venture-os/core/server` (seal + HTTP). Vendor docs: `docs/connectors/README.md`. Do not add Graph / Affinity / Granola fields that are not in those docs or a `FIXTURE_ONLY` fixture. Settings is no longer a stub — still never fake `connected` or `lastSyncAt`.
+Wave A infra lives in `packages/core` (types/status/validate/map/redact) and `@venture-os/core/server` (envelope seal + HTTP). Vendor docs: `docs/connectors/README.md`. Secrets: `docs/connectors/SECURITY.md` — ciphertext/nonce/key_version, `CONNECTOR_SECRETS_KEY` in env only, Org Admin endpoints, no plaintext in `org_settings`. Do not add Graph / Affinity / Granola fields that are not in those docs or a `FIXTURE_ONLY` fixture. Never fake `connected` or `lastSyncAt`.
 
 ---
 

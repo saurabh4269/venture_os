@@ -1,22 +1,20 @@
 import { randomUUID } from "node:crypto";
-import { deriveConnectorStatus, publicLastSyncAt, statusAfterDisconnect, statusAfterHealth } from "@venture-os/core";
+import { statusAfterDisconnect, statusAfterHealth } from "@venture-os/core";
 import type { ConnectorKind, ConnectorStatus, MappedAffinityLink } from "@venture-os/core";
 import {
   CONNECTORS,
   clientCredentialsOnedriveToken,
   httpWith,
   refreshOnedriveToken,
-  sealJson,
   transcriptToText,
-  unsealJson,
   type FetchLike,
 } from "@venture-os/core/server";
-import { loadEnv } from "@venture-os/config";
 import { and, eq } from "drizzle-orm";
 import { getDb, withOrg, type Database } from "./client.js";
 import { organization } from "./schema.js";
 import {
   companies,
+  connectorAudits,
   connectorCursors,
   connectors,
   documents,
@@ -27,144 +25,41 @@ import {
 } from "./schema.js";
 import { createObjectStore, sha256 } from "./objects.js";
 import { runParseJob } from "./ingest.js";
+import {
+  persistSecretColumns,
+  resolveSecrets,
+  type ConnectorAuditAction,
+  type ConnectorSecrets,
+} from "./connector-secrets.js";
 
-export type ConnectorSecrets = {
-  clientId?: string;
-  clientSecret?: string;
-  tenantId?: string;
-  apiKey?: string;
-  refreshToken?: string;
-  accessToken?: string;
-  accessTokenExpiresAt?: number;
-  authMode?: "auth_code" | "client_credentials";
-  ownershipFieldId?: string;
-  driveId?: string;
-  userId?: string;
-};
+export {
+  envFallbackSecrets,
+  readSealedSecrets,
+  resolveSecrets,
+  toPublicView,
+  writeSealedSecrets,
+  persistSecretColumns,
+} from "./connector-secrets.js";
+export type {
+  ConnectorPublicConfig,
+  ConnectorPublicView,
+  ConnectorSecrets,
+  ConnectorAuditAction,
+} from "./connector-secrets.js";
 
-export type ConnectorPublicConfig = {
-  authMode?: "auth_code" | "client_credentials";
-  tenantId?: string;
-  clientId?: string;
-  ownershipFieldId?: string;
-  driveId?: string;
-  userId?: string;
-  hasRefreshToken?: boolean;
-};
-
-export type ConnectorPublicView = {
-  kind: ConnectorKind;
-  status: ConnectorStatus;
-  lastError: string | null;
-  lastSyncAt?: string;
-  lastHealthAt: string | null;
-  hasCredentials: boolean;
-  usingEnvFallback: boolean;
-  config: ConnectorPublicConfig;
-};
-
-function sealKey(): string {
-  const env = loadEnv();
-  return env.CONNECTOR_SEAL_SECRET || env.BETTER_AUTH_SECRET;
-}
-
-export function envFallbackSecrets(kind: ConnectorKind): ConnectorSecrets | null {
-  const env = loadEnv();
-  if (kind === "onedrive") {
-    if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET || !env.MICROSOFT_TENANT_ID) return null;
-    return {
-      clientId: env.MICROSOFT_CLIENT_ID,
-      clientSecret: env.MICROSOFT_CLIENT_SECRET,
-      tenantId: env.MICROSOFT_TENANT_ID,
-      authMode: "client_credentials",
-    };
-  }
-  if (kind === "affinity" && env.AFFINITY_API_KEY) return { apiKey: env.AFFINITY_API_KEY };
-  if (kind === "granola" && env.GRANOLA_API_KEY) return { apiKey: env.GRANOLA_API_KEY };
-  return null;
-}
-
-export function readSealedSecrets(blob: string | null | undefined): ConnectorSecrets | null {
-  if (!blob) return null;
-  try {
-    return unsealJson<ConnectorSecrets>(blob, sealKey());
-  } catch {
-    return null;
-  }
-}
-
-export function writeSealedSecrets(secrets: ConnectorSecrets): string {
-  return sealJson(secrets, sealKey());
-}
-
-export function resolveSecrets(
-  row: { sealedCredentials: string | null; config: unknown },
+export async function recordConnectorAudit(
+  tx: Database,
+  orgId: string,
   kind: ConnectorKind,
-): { secrets: ConnectorSecrets | null; usingEnvFallback: boolean } {
-  const sealed = readSealedSecrets(row.sealedCredentials);
-  if (sealed && hasKindSecrets(kind, sealed)) return { secrets: mergeConfig(sealed, row.config), usingEnvFallback: false };
-  const env = envFallbackSecrets(kind);
-  if (env) return { secrets: mergeConfig(env, row.config), usingEnvFallback: true };
-  return { secrets: null, usingEnvFallback: false };
-}
-
-function mergeConfig(secrets: ConnectorSecrets, config: unknown): ConnectorSecrets {
-  const c = config && typeof config === "object" ? (config as ConnectorPublicConfig) : {};
-  return {
-    ...secrets,
-    authMode: secrets.authMode ?? c.authMode,
-    ownershipFieldId: secrets.ownershipFieldId ?? c.ownershipFieldId,
-    driveId: secrets.driveId ?? c.driveId,
-    userId: secrets.userId ?? c.userId,
-    tenantId: secrets.tenantId ?? c.tenantId,
-    clientId: secrets.clientId ?? c.clientId,
-  };
-}
-
-function hasKindSecrets(kind: ConnectorKind, s: ConnectorSecrets): boolean {
-  if (kind === "onedrive") return Boolean(s.clientId && s.clientSecret && s.tenantId);
-  return Boolean(s.apiKey);
-}
-
-export function toPublicView(
-  kind: ConnectorKind,
-  row: {
-    status: string;
-    lastError: string | null;
-    lastSyncAt: Date | null;
-    lastHealthAt: Date | null;
-    sealedCredentials: string | null;
-    config: unknown;
-  },
-): ConnectorPublicView {
-  const { secrets, usingEnvFallback } = resolveSecrets(row, kind);
-  const hasCredentials = Boolean(secrets && hasKindSecrets(kind, secrets));
-  const lastHealthOk =
-    row.status === "connected" ? true : row.status === "error" ? false : null;
-  const status = deriveConnectorStatus({
-    hasCredentials,
-    lastHealthOk,
-    lastError: row.lastError,
-  });
-  const cfg = (row.config && typeof row.config === "object" ? row.config : {}) as ConnectorPublicConfig;
-  return {
+  action: ConnectorAuditAction,
+  actorUserId?: string | null,
+) {
+  await tx.insert(connectorAudits).values({
+    orgId,
     kind,
-    status,
-    lastError: row.lastError,
-    lastSyncAt: publicLastSyncAt(row.lastSyncAt),
-    lastHealthAt: row.lastHealthAt ? row.lastHealthAt.toISOString() : null,
-    hasCredentials,
-    usingEnvFallback,
-    config: {
-      authMode: secrets?.authMode ?? cfg.authMode,
-      tenantId: secrets?.tenantId ?? cfg.tenantId,
-      clientId: secrets?.clientId ?? cfg.clientId,
-      ownershipFieldId: secrets?.ownershipFieldId ?? cfg.ownershipFieldId,
-      driveId: secrets?.driveId ?? cfg.driveId,
-      userId: secrets?.userId ?? cfg.userId,
-      hasRefreshToken: Boolean(secrets?.refreshToken),
-    },
-  };
+    action,
+    actorUserId: actorUserId || null,
+  });
 }
 
 async function ensureAccessToken(
@@ -228,11 +123,12 @@ export async function runConnectorHealth(
   orgId: string,
   kind: ConnectorKind,
   fetchImpl: FetchLike = globalThis.fetch,
+  actorUserId?: string | null,
 ): Promise<{ status: ConnectorStatus; error?: string }> {
   return withOrg(orgId, async (tx) => {
     const [row] = await tx.select().from(connectors).where(eq(connectors.kind, kind));
     if (!row) throw new Error("connector_not_found");
-    let { secrets } = resolveSecrets(row, kind);
+    let { secrets, usingEnvFallback } = resolveSecrets(row, kind);
     if (!secrets) {
       await tx
         .update(connectors)
@@ -244,16 +140,17 @@ export async function runConnectorHealth(
       secrets = await ensureAccessToken(kind, secrets, fetchImpl);
       const health = await CONNECTORS[kind].healthCheck(httpWith(fetchImpl), connectorParams(secrets));
       const status = statusAfterHealth(health.ok, health.ok ? null : health.error, true);
-      const nextSealed = writeSealedSecrets(secrets);
+      const persist = !usingEnvFallback ? persistSecretColumns(secrets) : {};
       await tx
         .update(connectors)
         .set({
           status,
           lastError: health.ok ? null : health.error,
           lastHealthAt: health.ok ? new Date() : row.lastHealthAt,
-          sealedCredentials: row.sealedCredentials ? nextSealed : row.sealedCredentials,
+          ...persist,
         })
         .where(eq(connectors.id, row.id));
+      if (actorUserId !== undefined) await recordConnectorAudit(tx, orgId, kind, "test", actorUserId);
       return health.ok ? { status } : { status, error: health.error };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -262,6 +159,7 @@ export async function runConnectorHealth(
         .update(connectors)
         .set({ status, lastError: message })
         .where(eq(connectors.id, row.id));
+      if (actorUserId !== undefined) await recordConnectorAudit(tx, orgId, kind, "test", actorUserId);
       return { status, error: message };
     }
   });
@@ -270,15 +168,16 @@ export async function runConnectorHealth(
 export async function runConnectorSync(
   orgId: string,
   kind: ConnectorKind,
-  opts?: { companyId?: string; fetchImpl?: FetchLike; parse?: boolean },
+  opts?: { companyId?: string; fetchImpl?: FetchLike; parse?: boolean; actorUserId?: string | null },
 ): Promise<{ status: ConnectorStatus; ingested: number; error?: string }> {
   const fetchImpl = opts?.fetchImpl ?? globalThis.fetch;
   const parse = opts?.parse !== false;
   const pendingParse: string[] = [];
+  const actorUserId = opts?.actorUserId;
   const result = await withOrg(orgId, async (tx) => {
     const [row] = await tx.select().from(connectors).where(eq(connectors.kind, kind));
     if (!row) throw new Error("connector_not_found");
-    let { secrets } = resolveSecrets(row, kind);
+    let { secrets, usingEnvFallback } = resolveSecrets(row, kind);
     if (!secrets) {
       await tx.update(connectors).set({ status: "not_connected", lastError: "missing_credentials" }).where(eq(connectors.id, row.id));
       return { status: "not_connected" as const, ingested: 0, error: "missing_credentials" };
@@ -298,7 +197,7 @@ export async function runConnectorSync(
       else if (kind === "affinity") ingested = await syncAffinity(tx, orgId, secrets, mapped, fetchImpl);
       else ingested = await syncGranola(tx, orgId, secrets, mapped, fetchImpl);
 
-      const nextSealed = writeSealedSecrets(secrets);
+      const persist = usingEnvFallback ? {} : persistSecretColumns(secrets);
       await tx
         .update(connectors)
         .set({
@@ -306,9 +205,10 @@ export async function runConnectorSync(
           lastError: null,
           lastHealthAt: new Date(),
           lastSyncAt: new Date(),
-          sealedCredentials: row.sealedCredentials ? nextSealed : row.sealedCredentials,
+          ...persist,
         })
         .where(eq(connectors.id, row.id));
+      await recordConnectorAudit(tx, orgId, kind, "sync", actorUserId ?? null);
       return { status: "connected" as const, ingested };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -517,7 +417,7 @@ async function upsertCursor(tx: Database, orgId: string, kind: string, companyId
   });
 }
 
-export async function disconnectConnector(orgId: string, kind: ConnectorKind) {
+export async function disconnectConnector(orgId: string, kind: ConnectorKind, actorUserId?: string | null) {
   return withOrg(orgId, async (tx) => {
     const [row] = await tx.select().from(connectors).where(eq(connectors.kind, kind));
     if (!row) return { status: statusAfterDisconnect() };
@@ -526,12 +426,17 @@ export async function disconnectConnector(orgId: string, kind: ConnectorKind) {
       .set({
         status: "not_connected",
         sealedCredentials: null,
+        secretCiphertext: null,
+        secretNonce: null,
+        secretKeyVersion: null,
+        secretUpdatedAt: null,
         lastError: null,
         lastSyncAt: null,
         lastHealthAt: null,
         config: {},
       })
       .where(eq(connectors.id, row.id));
+    await recordConnectorAudit(tx, orgId, kind, "disconnect", actorUserId ?? null);
     return { status: statusAfterDisconnect() };
   });
 }

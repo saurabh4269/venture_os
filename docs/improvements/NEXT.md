@@ -28,7 +28,7 @@
 
 ## Closed in Pass 42
 
-- **Connector infra** — sealed per-org creds, env fallbacks, Graph/Affinity/Granola clients (official fields only), BullMQ `connector.sync` / `health` / schedule no-op, Settings → Connectors cards, company mapping, onboard pull, mock-HTTP tests, Playwright cards + invalid key.
+- **Connector infra** — envelope-sealed per-org creds (`CONNECTOR_SECRETS_KEY`), env fallbacks, Graph/Affinity/Granola clients (official fields only), BullMQ `connector.sync` / `health` / schedule no-op, Settings → Connectors cards, company mapping, onboard pull, mock-HTTP tests, Playwright cards + invalid key. P0 secrets: ciphertext/nonce/key_version, admin-only settings API, audit, rate-limit, `docs/connectors/SECURITY.md`.
 
 ## Explicitly deferred (need operator secrets or Phase 6)
 

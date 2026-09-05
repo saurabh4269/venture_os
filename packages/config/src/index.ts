@@ -63,7 +63,15 @@ const Env = z.object({
   SEED_DEMO: z.string().optional().default("0"),
   SEED_DEMO_EMAIL: z.string().default("analyst@fixture.local"),
   SEED_DEMO_PASSWORD: z.string().default("fixture-only-password"),
-  /** Optional dedicated seal key. Falls back to BETTER_AUTH_SECRET. Never commit a live value. */
+  /**
+   * Preferred connector envelope key (AES-256-GCM). Never commit a live value.
+   * Fallback: CONNECTOR_SEAL_SECRET, then BETTER_AUTH_SECRET.
+   */
+  CONNECTOR_SECRETS_KEY: z.string().optional().default(""),
+  /** Previous envelope key during rotation. Used only to decrypt key_version - 1. */
+  CONNECTOR_SECRETS_KEY_PREVIOUS: z.string().optional().default(""),
+  CONNECTOR_SECRETS_KEY_VERSION: z.coerce.number().int().min(1).optional().default(1),
+  /** @deprecated Prefer CONNECTOR_SECRETS_KEY. Still accepted as an alias. */
   CONNECTOR_SEAL_SECRET: z.string().optional().default(""),
   MICROSOFT_CLIENT_ID: z.string().optional().default(""),
   MICROSOFT_CLIENT_SECRET: z.string().optional().default(""),

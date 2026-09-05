@@ -2,7 +2,7 @@
 
 OneDrive (Microsoft Graph), Affinity CRM, and Granola are wired end-to-end: **save keys → test → connect → sync**. Live vendor calls happen only when credentials are present. Tests use mock HTTP. The UI never invents `lastSyncAt` or a `connected` badge.
 
-Paste-later guide: [`ADDING_KEYS.md`](ADDING_KEYS.md).
+Paste-later guide: [`ADDING_KEYS.md`](ADDING_KEYS.md). Secrets model: [`SECURITY.md`](SECURITY.md).
 
 ## Status
 
@@ -88,4 +88,4 @@ OneDrive files reuse `runParseJob` (same as upload). Granola does not.
 
 ## Secrets
 
-Per-org credentials are AES-256-GCM sealed (`@venture-os/core/server`) with `CONNECTOR_SEAL_SECRET` or `BETTER_AUTH_SECRET`. Never stored in git. `GET /api/settings` does not return `config` or secrets.
+Per-org credentials are AES-256-GCM envelopes (`secret_ciphertext` + `secret_nonce` + `secret_key_version`) sealed with `CONNECTOR_SECRETS_KEY` (fallback `CONNECTOR_SEAL_SECRET` / `BETTER_AUTH_SECRET`). The key is never stored in Postgres. `GET /api/settings` does not return `config` or secrets. Org Admin only on `/api/connectors`. Details: [`SECURITY.md`](SECURITY.md).

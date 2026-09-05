@@ -3,7 +3,7 @@ import { loadEnv } from "@venture-os/config";
 import { sql } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, describe, expect, it } from "vitest";
-import { companies, flagPolicyAudits, navPeriodLocks, organization, orgSettings, user } from "./schema.js";
+import { companies, connectorAudits, connectors, flagPolicyAudits, navPeriodLocks, organization, orgSettings, user } from "./schema.js";
 import { drizzle } from "drizzle-orm/postgres-js";
 
 loadEnv();
@@ -104,5 +104,40 @@ describe.skipIf(!url)("RLS org isolation", () => {
     const asA = await db.select().from(flagPolicyAudits);
     expect(asA).toHaveLength(1);
     expect(asA[0]?.orgId).toBe(orgA);
+  });
+
+  it("org A cannot read org B connector ciphertext or audits", async () => {
+    const orgA = "rls_conn_a_" + randomUUID();
+    const orgB = "rls_conn_b_" + randomUUID();
+    await db.execute(sql`select set_config('app.current_org_id', '', false)`);
+    await db.insert(organization).values([
+      { id: orgA, name: "A conn", slug: orgA },
+      { id: orgB, name: "B conn", slug: orgB },
+    ]);
+
+    await db.execute(sql`select set_config('app.current_org_id', ${orgA}, false)`);
+    await db.insert(connectors).values({
+      orgId: orgA,
+      kind: "affinity",
+      status: "configured",
+      secretCiphertext: "FIXTURE.ct",
+      secretNonce: "FIXTURE.nonce",
+      secretKeyVersion: 1,
+    });
+    await db.insert(connectorAudits).values({
+      orgId: orgA,
+      kind: "affinity",
+      action: "save",
+    });
+
+    await db.execute(sql`select set_config('app.current_org_id', ${orgB}, false)`);
+    expect(await db.select().from(connectors)).toEqual([]);
+    expect(await db.select().from(connectorAudits)).toEqual([]);
+
+    await db.execute(sql`select set_config('app.current_org_id', ${orgA}, false)`);
+    const asA = await db.select().from(connectors);
+    expect(asA).toHaveLength(1);
+    expect(asA[0]?.orgId).toBe(orgA);
+    expect(asA[0]?.secretCiphertext).toBe("FIXTURE.ct");
   });
 });

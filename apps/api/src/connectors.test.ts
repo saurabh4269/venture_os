@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadEnv } from "@venture-os/config";
+import { publicPayloadLeaksSecret } from "@venture-os/core";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "./app.js";
 import { runConnectorSync } from "@venture-os/db";
@@ -144,6 +145,9 @@ describe.skipIf(!url)("connector infra (mock HTTP)", () => {
     const od = saved.connectors.find((c) => c.kind === "onedrive");
     expect(od?.status).toBe("configured");
     expect(od?.lastSyncAt).toBeUndefined();
+    expect(publicPayloadLeaksSecret(saved)).toBe(false);
+    expect(JSON.stringify(saved)).not.toContain("super-secret-value");
+    expect(JSON.stringify(saved)).not.toMatch(/"clientId":"11111111/);
 
     const test = await app.request("/api/connectors/onedrive/test", {
       method: "POST",
@@ -220,5 +224,63 @@ describe.skipIf(!url)("connector infra (mock HTTP)", () => {
     );
     const comment = inbox.items.find((i) => i.kind === "commentary");
     expect(comment?.proposed.lane).toBe("subjective");
+
+    const listed = await json<{ connectors: Record<string, unknown>[] }>(
+      await app.request("/api/connectors", { headers: { cookie } }),
+    );
+    expect(publicPayloadLeaksSecret(listed)).toBe(false);
+    expect(JSON.stringify(listed)).not.toContain("affinity-live-key-ok");
+    expect(JSON.stringify(listed)).not.toContain("grn_workspace_key");
+
+    const settings = await json<Record<string, unknown>>(
+      await app.request("/api/settings", { headers: { cookie } }),
+    );
+    expect(publicPayloadLeaksSecret(settings)).toBe(false);
+    expect(JSON.stringify(settings)).not.toContain("affinity-live-key-ok");
+    expect(JSON.stringify(settings)).not.toContain("grn_workspace_key");
+    expect(JSON.stringify(settings)).not.toContain("super-secret-value");
+  });
+
+  it("forbids analyst/viewer from connector settings and wipes ciphertext on disconnect", async () => {
+    const analystEmail = `conn-an-${stamp}@alpha.test`;
+    const inv = await json<{ invitation: { id: string } }>(
+      await app.request("/api/invitations", {
+        method: "POST",
+        headers: { ...origin, cookie },
+        body: JSON.stringify({ email: analystEmail, role: "analyst" }),
+      }),
+    );
+    const signup = await app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: origin,
+      body: JSON.stringify({ email: analystEmail, password: "password123", name: "Conn Analyst" }),
+    });
+    const analystCookie = cookieFrom(signup);
+    await app.request(`/api/invitations/${inv.invitation.id}/accept`, {
+      method: "POST",
+      headers: { ...origin, cookie: analystCookie },
+    });
+    const denied = await app.request("/api/connectors", { headers: { cookie: analystCookie } });
+    expect(denied.status).toBe(403);
+    const saveDenied = await app.request("/api/connectors/affinity/credentials", {
+      method: "POST",
+      headers: { ...origin, cookie: analystCookie },
+      body: JSON.stringify({ apiKey: "affinity-live-key-ok" }),
+    });
+    expect(saveDenied.status).toBe(403);
+
+    const disc = await app.request("/api/connectors/affinity/disconnect", {
+      method: "POST",
+      headers: { ...origin, cookie },
+      body: "{}",
+    });
+    expect(disc.status).toBe(200);
+    const after = await json<{ connectors: { kind: string; hasCredentials: boolean; secretHint: string | null }[] }>(
+      disc,
+    );
+    const aff = after.connectors.find((c) => c.kind === "affinity");
+    expect(aff?.hasCredentials).toBe(false);
+    expect(aff?.secretHint).toBeNull();
+    expect(publicPayloadLeaksSecret(after)).toBe(false);
   });
 });

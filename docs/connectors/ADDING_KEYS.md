@@ -11,7 +11,7 @@ You do not need an engineer after this pack. Paste credentials in the product (o
    - Success → status becomes **connected**. Sync is queued.  
    - Failure → status **error** and the vendor message is shown. We do not invent a last-sync time.
 5. **Connect** stays disabled until the form validates (or keys are already saved). OneDrive delegated mode opens Microsoft sign-in.
-6. **Disconnect** wipes sealed credentials and last-sync for that connector.
+6. **Disconnect** wipes ciphertext / nonce / key version and last-sync for that connector.
 7. On each company (or the onboard wizard), paste:
    - OneDrive folder **id** and/or path (e.g. `/MIS`)
    - Affinity company **id** (digits)
@@ -38,8 +38,13 @@ MICROSOFT_CLIENT_SECRET=
 MICROSOFT_TENANT_ID=
 AFFINITY_API_KEY=
 GRANOLA_API_KEY=
-# optional; otherwise BETTER_AUTH_SECRET seals org-pasted keys
-CONNECTOR_SEAL_SECRET=
+# Preferred envelope key (32+). Else CONNECTOR_SEAL_SECRET, else BETTER_AUTH_SECRET.
+CONNECTOR_SECRETS_KEY=
+CONNECTOR_SECRETS_KEY_VERSION=1
 ```
+
+**Precedence:** org-sealed envelope (multi-tenant) wins over env fallback (single-tenant). Env keys are never written into `org_settings`. Status stays **configured** until Test succeeds.
+
+Threat model and rotation: [`SECURITY.md`](SECURITY.md).
 
 Never commit a live `.env`. Fixtures and tests use mock HTTP only.

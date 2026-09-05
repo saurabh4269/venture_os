@@ -70,14 +70,14 @@ export async function enqueueFlags(orgId: string, companyId?: string) {
   }
 }
 
-export async function enqueueConnectorSync(orgId: string, kind: string, companyId?: string) {
+export async function enqueueConnectorSync(orgId: string, kind: string, companyId?: string, actorUserId?: string) {
   try {
-    await withRedisTimeout(getConnectorSyncQueue().add("sync", { orgId, kind, companyId }));
+    await withRedisTimeout(getConnectorSyncQueue().add("sync", { orgId, kind, companyId, actorUserId }));
     return "queued";
   } catch (err) {
     log("warn", "redis_unavailable_inline_connector_sync", { err: String(err) });
     const { runConnectorSync } = await import("@venture-os/db");
-    await runConnectorSync(orgId, kind as "onedrive" | "affinity" | "granola", { companyId });
+    await runConnectorSync(orgId, kind as "onedrive" | "affinity" | "granola", { companyId, actorUserId });
     return "inline";
   }
 }

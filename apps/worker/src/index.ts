@@ -1,5 +1,6 @@
 import { Queue, Worker } from "bullmq";
 import { loadEnv } from "@venture-os/config";
+import { redactSecretsForLog } from "@venture-os/core";
 import { listConnectedOrgs, runConnectorHealth, runConnectorSync, runFlagJob, runParseJob, runReportJob } from "@venture-os/db";
 
 const env = loadEnv();
@@ -9,7 +10,8 @@ const connection = () => {
 };
 
 function log(msg: string, extra: Record<string, unknown> = {}) {
-  console.log(JSON.stringify({ ts: new Date().toISOString(), level: "info", msg, ...extra }));
+  const safe = redactSecretsForLog(extra) as Record<string, unknown>;
+  console.log(JSON.stringify({ ts: new Date().toISOString(), level: "info", msg, ...safe }));
 }
 
 async function start() {
@@ -78,7 +80,10 @@ async function start() {
     "connector.sync",
     async (job) => {
       log("connector_sync_start", { jobId: job.id, ...job.data });
-      const r = await runConnectorSync(job.data.orgId, job.data.kind, { companyId: job.data.companyId });
+      const r = await runConnectorSync(job.data.orgId, job.data.kind, {
+        companyId: job.data.companyId,
+        actorUserId: job.data.actorUserId,
+      });
       log("connector_sync_done", { jobId: job.id, ...r });
       return r;
     },

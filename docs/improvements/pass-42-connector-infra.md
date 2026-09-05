@@ -26,6 +26,11 @@
 19. **P3 — Invalid key UX.** Client + API format checks (`grn_` for Granola, min length, tenant shape) before any vendor HTTP.
 20. **Residual — Live OAuth.** Needs operator Azure/Affinity/Granola secrets. Tests are mock HTTP only. Do not claim production sync until a real healthCheck against the vendor succeeds.
 21. **P0 — Nested parse transaction.** `runParseJob` opens its own `withOrg()` and could not see documents inserted in the still-open sync transaction. OneDrive parse now runs after commit (same inbox pipeline as upload).
+22. **P0 — Plaintext risk in jsonb.** Envelope columns (`secret_ciphertext`, `secret_nonce`, `secret_key_version`, `secret_updated_at`) replace a single blob. `config` is metadata only. Never `org_settings` keys.
+23. **P0 — API leak.** Public DTOs omit apiKey / clientSecret / tokens / clientId. UI clears paste fields after save. Mask `••••` + last 4 when safe.
+24. **P0 — RBAC.** GET `/api/connectors` + Save/Test/Connect/Disconnect are `org_admin` only. Partners documented as NAV lockers, not key holders.
+25. **P1 — Audit + rate-limit.** `connector_audits` (no secret material). Save/Test limited 30/15m. `log()` redacts secret keys.
+26. **P1 — Rotation.** `CONNECTOR_SECRETS_KEY` + version + previous; re-encrypt on write. Disconnect wipes ciphertext. Docs: `docs/connectors/SECURITY.md`.
 
 ## Tests
 

@@ -18,16 +18,18 @@ import {
   connectors,
   disconnectConnector,
   ensureOrgDefaults,
+  persistSecretColumns,
+  recordConnectorAudit,
   resolveSecrets,
   runConnectorHealth,
-  runConnectorSync,
   toPublicView,
   withOrg,
-  writeSealedSecrets,
   type ConnectorSecrets,
 } from "@venture-os/db";
-import { HttpError, requireAdmin, requireOrg, requireWrite } from "./context.js";
+import { HttpError, requireAdmin, requireWrite } from "./context.js";
 import { enqueueConnectorHealth, enqueueConnectorSync } from "./queues.js";
+import { CONNECTOR_MUTATE_LIMIT, CONNECTOR_MUTATE_WINDOW_MS, allowRequestShared } from "./rate-limit.js";
+import { log } from "./log.js";
 
 export const connectorRoutes = new Hono();
 
@@ -43,7 +45,16 @@ function redirectUri(): string {
 
 function oauthSecret(): string {
   const env = loadEnv();
-  return env.CONNECTOR_SEAL_SECRET || env.BETTER_AUTH_SECRET;
+  return env.CONNECTOR_SECRETS_KEY || env.CONNECTOR_SEAL_SECRET || env.BETTER_AUTH_SECRET;
+}
+
+async function rateLimitConnector(orgId: string, userId: string, action: string) {
+  const ok = await allowRequestShared(
+    `connector:${action}:${orgId}:${userId}`,
+    CONNECTOR_MUTATE_LIMIT,
+    CONNECTOR_MUTATE_WINDOW_MS,
+  );
+  if (!ok) throw new HttpError(429, "rate_limited");
 }
 
 function signOauthState(orgId: string): string {
@@ -87,7 +98,7 @@ async function publicConnectors(orgId: string) {
 }
 
 connectorRoutes.get("/api/connectors", async (c) => {
-  const s = requireOrg(c);
+  const s = requireAdmin(c);
   return c.json({ connectors: await publicConnectors(s.orgId) });
 });
 
@@ -104,6 +115,7 @@ connectorRoutes.post("/api/connectors/:kind/credentials", async (c) => {
     authMode: body.authMode,
   });
   if (!checked.ok) return c.json({ error: checked.error, fields: checked.fields }, 400);
+  await rateLimitConnector(s.orgId, s.user.id, "save");
 
   const secrets: ConnectorSecrets = {
     clientId: body.clientId,
@@ -118,6 +130,7 @@ connectorRoutes.post("/api/connectors/:kind/credentials", async (c) => {
   await withOrg(s.orgId, async (tx) => {
     const [existing] = await tx.select().from(connectors).where(eq(connectors.kind, kind));
     const prev = existing ? resolveSecrets(existing, kind).secrets : null;
+    const hadOrgSecret = Boolean(existing?.secretCiphertext || existing?.sealedCredentials);
     const merged: ConnectorSecrets = {
       ...prev,
       ...secrets,
@@ -125,47 +138,42 @@ connectorRoutes.post("/api/connectors/:kind/credentials", async (c) => {
       accessToken: kind === "onedrive" ? undefined : prev?.accessToken,
       accessTokenExpiresAt: kind === "onedrive" ? undefined : prev?.accessTokenExpiresAt,
     };
-    const config = {
-      authMode: merged.authMode,
-      tenantId: merged.tenantId,
-      clientId: merged.clientId,
-      ownershipFieldId: merged.ownershipFieldId,
-      driveId: merged.driveId,
-      userId: merged.userId,
-    };
+    const persist = persistSecretColumns(merged);
     if (!existing) {
       await tx.insert(connectors).values({
         orgId: s.orgId,
         kind,
         status: statusAfterSave(true),
-        sealedCredentials: writeSealedSecrets(merged),
-        config,
+        ...persist,
         lastError: null,
         lastSyncAt: null,
         lastHealthAt: null,
       });
-      return;
+    } else {
+      await tx
+        .update(connectors)
+        .set({
+          status: statusAfterSave(true),
+          ...persist,
+          lastError: null,
+        })
+        .where(eq(connectors.id, existing.id));
     }
-    await tx
-      .update(connectors)
-      .set({
-        status: statusAfterSave(true),
-        sealedCredentials: writeSealedSecrets(merged),
-        config,
-        lastError: null,
-      })
-      .where(eq(connectors.id, existing.id));
+    await recordConnectorAudit(tx, s.orgId, kind, hadOrgSecret ? "rotate" : "save", s.user.id);
   });
+  log("info", "connector_credentials_saved", { orgId: s.orgId, userId: s.user.id, kind });
   return c.json({ connectors: await publicConnectors(s.orgId) });
 });
 
 connectorRoutes.post("/api/connectors/:kind/test", async (c) => {
   const s = requireAdmin(c);
   const kind = kindParam(c.req.param("kind"));
-  const result = await runConnectorHealth(s.orgId, kind);
+  await rateLimitConnector(s.orgId, s.user.id, "test");
+  const result = await runConnectorHealth(s.orgId, kind, globalThis.fetch, s.user.id);
   if (result.status === "connected") {
     await enqueueConnectorHealth(s.orgId, kind);
   }
+  log("info", "connector_test", { orgId: s.orgId, userId: s.user.id, kind, status: result.status });
   return c.json({ ...result, connectors: await publicConnectors(s.orgId) }, result.status === "connected" ? 200 : 400);
 });
 
@@ -188,18 +196,22 @@ connectorRoutes.post("/api/connectors/:kind/connect", async (c) => {
         redirectUri: redirectUri(),
         state: signOauthState(s.orgId),
       });
-      return c.json({ authorizeUrl: url, connectors: await publicConnectors(s.orgId) });
+      await withOrg(s.orgId, (tx) => recordConnectorAudit(tx, s.orgId, "onedrive", "connect", s.user.id));
+      log("info", "connector_connect", { orgId: s.orgId, userId: s.user.id, kind, status: "authorize" });
+      return c.json({ authorizeUrl: url });
     }
   }
-  const result = await runConnectorHealth(s.orgId, kind);
+  const result = await runConnectorHealth(s.orgId, kind, globalThis.fetch, s.user.id);
   if (result.status === "connected") await enqueueConnectorSync(s.orgId, kind);
+  log("info", "connector_connect", { orgId: s.orgId, userId: s.user.id, kind, status: result.status });
   return c.json({ ...result, connectors: await publicConnectors(s.orgId) }, result.status === "connected" ? 200 : 400);
 });
 
 connectorRoutes.post("/api/connectors/:kind/disconnect", async (c) => {
   const s = requireAdmin(c);
   const kind = kindParam(c.req.param("kind"));
-  await disconnectConnector(s.orgId, kind);
+  await disconnectConnector(s.orgId, kind, s.user.id);
+  log("info", "connector_disconnect", { orgId: s.orgId, userId: s.user.id, kind });
   return c.json({ connectors: await publicConnectors(s.orgId) });
 });
 
@@ -207,8 +219,9 @@ connectorRoutes.post("/api/connectors/:kind/sync", async (c) => {
   const s = requireWrite(c);
   const kind = kindParam(c.req.param("kind"));
   const body = await c.req.json().catch(() => ({} as { companyId?: string }));
-  const queued = await enqueueConnectorSync(s.orgId, kind, body.companyId);
-  return c.json({ queued, connectors: await publicConnectors(s.orgId) });
+  const queued = await enqueueConnectorSync(s.orgId, kind, body.companyId, s.user.id);
+  log("info", "connector_sync_enqueued", { orgId: s.orgId, userId: s.user.id, kind });
+  return c.json({ queued, accepted: true });
 });
 
 connectorRoutes.get("/api/connectors/onedrive/callback", async (c) => {
@@ -251,12 +264,12 @@ connectorRoutes.get("/api/connectors/onedrive/callback", async (c) => {
       await tx
         .update(connectors)
         .set({
-          sealedCredentials: writeSealedSecrets(next),
           status: "configured",
           lastError: null,
-          config: { ...(row.config as object), authMode: "auth_code", hasRefreshToken: Boolean(next.refreshToken) },
+          ...persistSecretColumns(next),
         })
         .where(eq(connectors.id, row.id));
+      await recordConnectorAudit(tx, orgId, "onedrive", "oauth_callback", null);
     });
     const health = await runConnectorHealth(orgId, "onedrive");
     if (health.status === "connected") await enqueueConnectorSync(orgId, "onedrive");

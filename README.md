@@ -9,7 +9,7 @@ This is the book — Command, Inbox (HITL), Flags, NAV, Compare, Ask, Reports, V
 ## Docs
 
 Start at [`docs/00_README.md`](docs/00_README.md). Agent rules: [`AGENTS.md`](AGENTS.md).  
-Connector keys (paste-later): [`docs/connectors/ADDING_KEYS.md`](docs/connectors/ADDING_KEYS.md).
+Connector keys (paste-later): [`docs/connectors/ADDING_KEYS.md`](docs/connectors/ADDING_KEYS.md). Secrets model: [`docs/connectors/SECURITY.md`](docs/connectors/SECURITY.md).
 
 Requirement briefs (Markdown + PDF): [`docs/brief/`](docs/brief/).  
 Locked stack: [`docs/DECISION.md`](docs/DECISION.md) D5 and [`docs/03_ARCHITECTURE.md`](docs/03_ARCHITECTURE.md).  

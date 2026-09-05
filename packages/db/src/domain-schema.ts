@@ -344,13 +344,33 @@ export const connectors = pgTable(
     orgId: orgId(),
     kind: text("kind").notNull(),
     status: text("status").notNull().default("not_connected"),
+    /** Non-secret metadata only (authMode, ownershipFieldId, drive/user ids). Never API keys. */
     config: jsonb("config").notNull().default({}),
+    /** @deprecated Legacy combined blob. New writes use ciphertext/nonce/key_version. */
     sealedCredentials: text("sealed_credentials"),
+    secretCiphertext: text("secret_ciphertext"),
+    secretNonce: text("secret_nonce"),
+    secretKeyVersion: integer("secret_key_version"),
+    secretUpdatedAt: timestamp("secret_updated_at"),
     lastError: text("last_error"),
     lastSyncAt: timestamp("last_sync_at"),
     lastHealthAt: timestamp("last_health_at"),
   },
   (t) => [uniqueIndex("connectors_org_kind_uidx").on(t.orgId, t.kind)],
+);
+
+/** Who saved / rotated / tested / synced a connector. Never stores secret material. */
+export const connectorAudits = pgTable(
+  "connector_audits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    actorUserId: text("actor_user_id").references(() => user.id, { onDelete: "set null" }),
+    kind: text("kind").notNull(),
+    action: text("action").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("connector_audits_org_idx").on(t.orgId, t.createdAt)],
 );
 
 /** Per-connector sync cursor. last_success_at is only written after a real sync. */
