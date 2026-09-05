@@ -9,6 +9,7 @@ export async function signupAdmin(page: Page, stamp = Date.now().toString(36)) {
   const email = `e2e-admin-${stamp}@example.test`;
   const org = `E2E ${stamp}`;
   await page.goto("/signup");
+  await expect(page.getByTestId("signup-name")).toBeVisible({ timeout: 30_000 });
   await page.getByTestId("signup-name").fill("E2E Admin");
   await page.getByTestId("signup-email").fill(email);
   await page.getByTestId("signup-password").fill(password);
@@ -19,7 +20,7 @@ export async function signupAdmin(page: Page, stamp = Date.now().toString(36)) {
   if (await rateLimited.isVisible({ timeout: 5000 }).catch(() => false)) {
     throw new Error("signup_rate_limited");
   }
-  await expect(page.getByTestId("command-ready").or(page.getByTestId("shell-ready"))).toBeVisible({
+  await expect(page.getByTestId("command-ready")).toBeVisible({
     timeout: 90_000,
   });
   return { email, password, org, stamp };

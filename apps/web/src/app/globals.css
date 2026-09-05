@@ -1133,6 +1133,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .ask-company-field select { width: 100%; min-height: 44px; }
 .reports-export-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .settings-firm-row { align-items: flex-end; }
+.flag-policy-meta { display: none; }
 .reports-draft-row { flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .badge {
   display: inline-block;
@@ -2489,7 +2490,9 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
     max-width: calc(100% + 28px);
   }
   .table-scroll--compact table { min-width: 480px; }
-  .table-scroll--wide table { min-width: 520px; }
+  .table-scroll--wide table { min-width: 360px; }
+  .flag-policy-meta { display: block; margin-top: 4px; }
+  .table-scroll--wide td input[type="number"] { width: 100%; min-width: 0; min-height: 40px; }
   .settings-firm-row { flex-direction: column; align-items: stretch; }
   .settings-firm-row .field input { width: 100%; min-height: 40px; }
   .settings-form-row input,

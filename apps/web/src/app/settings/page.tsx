@@ -436,8 +436,8 @@ export default function SettingsPage() {
           <thead>
             <tr>
               <th>Flag</th>
-              <th>Catalog default</th>
-              <th>Bounds</th>
+              <th className="hide-sm">Catalog default</th>
+              <th className="hide-sm">Bounds</th>
               <th>This firm</th>
             </tr>
           </thead>
@@ -451,9 +451,14 @@ export default function SettingsPage() {
               }))
             ).map((f) => (
               <tr key={f.key}>
-                <td>{f.label}</td>
-                <td>{f.defaultThreshold}</td>
-                <td className="lede">
+                <td>
+                  {f.label}
+                  <div className="lede flag-policy-meta">
+                    Default {f.defaultThreshold} · {f.min ?? 0}–{f.max ?? "—"} {f.unit ?? ""}
+                  </div>
+                </td>
+                <td className="hide-sm">{f.defaultThreshold}</td>
+                <td className="hide-sm lede">
                   {f.min ?? 0}–{f.max ?? "—"} {f.unit ?? ""}
                 </td>
                 <td>
