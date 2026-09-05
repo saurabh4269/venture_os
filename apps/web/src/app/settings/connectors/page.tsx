@@ -16,6 +16,7 @@ import { PageHead, Panel, SettingsSubnav } from "@/components/BookUI";
 import { IconKey, IconLock } from "@/components/Icons";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type ConnectorView = {
   kind: ConnectorKind;
@@ -97,7 +98,7 @@ function ConnectorCards() {
           return next;
         });
       })
-      .catch((e: Error) => setErr({ page: e.message }));
+      .catch((e: Error) => setErr({ page: bookErrorMessage(e.message) }));
   }
 
   useEffect(() => {

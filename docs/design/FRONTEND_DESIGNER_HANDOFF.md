@@ -170,6 +170,11 @@ A flag **does not fire** without evidence. Missing inputs ≠ flag.
 
 ```
 Unauthenticated
+  /                 Long-scroll marketing landing (Stitch). Soft-redirect if session cookie.
+                    Desktop: two-column hero. ≤960px: stacked hero / trust / clarity /
+                    vertical STAGE timeline / steps / forest CTA. CTAs: Get started → /signup,
+                    Log in → /login. No waitlist, no invented logos or portfolio figures.
+  /security         Optional methodology (no Terms/Privacy contract, no invented certifications)
   /login
   /signup
   /invite?id=
@@ -196,7 +201,7 @@ Signed in, in org  (left rail)
     /settings/connectors
 ```
 
-`/` redirects to `/command` when the session has an org.
+`/` is the public marketing landing. A signed-in visitor is soft-redirected to `/command` (or `/onboard`) after first paint — the landing HTML does not wait on `/api/me`.
 
 ### 4.2 Shell (global chrome)
 

@@ -38,6 +38,18 @@ Env names (no secrets): README “Free-tier preview” — only keys from `.env.
 
 **Hobby sleep:** session cookies survive; in-flight parse dies. Retry after the API wakes. `/health` `ok` is Postgres; `ready` is Postgres+Redis.
 
+**Public `/` does not wait on the API.** Anonymous visitors get the marketing landing from the Next app (static/SSR). Signed-in users are soft-redirected after paint via a Next-only `/api/session-hint` (cookie presence) and then `/api/me`.
+
+**Keep-alive (prefer portable, $0):** ping `GET /health` on the API origin, or `GET /api/health` on the Vercel web origin, every 10 minutes from any uptime monitor (UptimeRobot, cron-job.org). That wakes Render/Fly before a partner hits Command.
+
+| Option | Cost | What it does |
+| --- | --- | --- |
+| External GET `/health` or `/api/health` every 10 min | $0 | Best free-tier keep-alive |
+| Vercel Cron `GET /api/cron/wake` (`0 8 * * *` in `apps/web/vercel.json`) | $0 on Hobby | **Once daily** on Hobby — not enough to prevent 15-minute sleep. Set `CRON_SECRET` in production. |
+| Render Cron curling `/health` | **$1/month** | Optional paid plan; not in `render.yaml` so a blueprint apply does not create a bill |
+
+**Cold vs warm check:** hit `/` in a private window (should paint immediately). Then open `/login` or `/command` after 15+ minutes idle — expect “Waking the book” / retry, not a blank hang. A warm API returns `/health` `{ ok: true }` in tens of milliseconds; a cold Render free instance can take tens of seconds.
+
 ## 3. Azure later (when the firm wants it)
 
 | Band | Shape |

@@ -8,6 +8,7 @@ import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
 import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Settings = {
   settings: { fyStartMonth: number; baseCurrency: string; displayCurrency: string } | null;
@@ -74,7 +75,7 @@ export default function SettingsPage() {
         }
         setPolicyDraft(next);
       })
-      .catch((e: Error) => setLoadErr(e.message));
+      .catch((e: Error) => setLoadErr(bookErrorMessage(e.message)));
     api<{
       funds: { id: string; name: string; vintage?: number | null; currency?: string; committedCapital?: number | null }[];
     }>("/api/funds")
@@ -194,8 +195,8 @@ export default function SettingsPage() {
       </Panel>
       <Panel title="Mapping">
       <p className="lede">
-        Firm metric dictionary is still a stub. Company OneDrive / Affinity / Granola ids are real optional fields on
-        the company page — paste vendor values only. Unit/currency hints live on each company profile.
+        Firm-wide metric aliases are not configured yet. Company OneDrive / Affinity / Granola ids are optional
+        fields on each company — paste vendor values only. Unit and currency hints live on the company profile.
       </p>
       </Panel>
 
@@ -391,9 +392,9 @@ export default function SettingsPage() {
 
       <Panel title="Flag policy">
       <p className="lede">
-        Firm thresholds persist on <code>org_settings.flag_policy</code>. The Flags job reads these, not only catalog
-        defaults. Missing keys keep the catalog default — missing is not zero. Org Admin can edit. Bounds are
-        validated; out-of-range values are refused. Recompute Flags after a save.
+        Firm thresholds persist for this organisation. Flags reads these values, not only catalog defaults. Missing
+        keys keep the catalog default — missing is not zero. Org Admin can edit. Out-of-range values are refused.
+        Recompute Flags after a save.
       </p>
       <form
         onSubmit={async (e) => {

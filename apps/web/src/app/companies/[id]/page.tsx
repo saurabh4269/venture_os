@@ -8,6 +8,7 @@ import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Data = {
   company: {
@@ -139,7 +140,9 @@ export default function CompanyPage() {
           setPeriodEnd((p) => p || today);
         }
       })
-      .catch((e: Error) => setErr(e.message.includes("company_not_found") ? "Company not found." : e.message));
+      .catch((e: Error) =>
+        setErr(e.message.includes("company_not_found") ? "Company not found." : bookErrorMessage(e.message)),
+      );
   }
   useEffect(() => {
     load();

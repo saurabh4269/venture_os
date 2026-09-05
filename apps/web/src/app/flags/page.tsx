@@ -6,6 +6,7 @@ import { FLAG_CATALOG } from "@venture-os/core";
 import { PageHead, Panel } from "@/components/BookUI";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
@@ -87,7 +88,7 @@ export default function FlagsPage() {
           return nextData.flags[0]?.id ?? null;
         });
       })
-      .catch((e: Error) => setErr(e.message));
+      .catch((e: Error) => setErr(bookErrorMessage(e.message)));
   }
   useEffect(() => {
     load();

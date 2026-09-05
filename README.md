@@ -34,7 +34,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000). API is [http://localhost:4000/health](http://localhost:4000/health).
+Open [http://localhost:3000](http://localhost:3000) — anonymous visitors see the marketing landing (no API wait). Sign in at `/login`. API is [http://localhost:4000/health](http://localhost:4000/health).
 
 Compose starts Postgres, Redis, MinIO, `apps/api`, `apps/web`, `apps/worker`.
 
@@ -159,6 +159,6 @@ Also set `NODE_ENV=production` on live processes. Cookies stay `HttpOnly` + `Sam
 
 **Shape:** web on Vercel (filter `@venture-os/web`); api HTTP on Fly/Render; worker as a **second** process (`fly.toml` `[processes] worker`, or a second Render service). Do not run parse/flags/report jobs on Vercel. Fly release migrates via `MIGRATE_DATABASE_URL` (owner). Render migrates once on the api `buildCommand`. Allow preview hosts with `WEB_ORIGIN_PATTERNS`. `/health` reports `postgres`, `redis`, `gitSha`; `ok` is Postgres liveness, `ready` is Postgres+Redis.
 
-**Hobby sleeps:** first request after a cold API may 502 — wait and retry. Turn on Vercel Deployment Protection on public Hobby previews. Rollback: Vercel previous deployment; `fly releases rollback`. Pin Fly `primary_region` near Neon.
+**Hobby sleeps:** first request after a cold API may 502 — wait and retry. The marketing `/` does not wait on the API. Keep-alive: `GET /health` or Vercel `/api/health` every 10 minutes (see [`docs/cost-hosting.md`](docs/cost-hosting.md)). Turn on Vercel Deployment Protection on public Hobby previews. Rollback: Vercel previous deployment; `fly releases rollback`. Pin Fly `primary_region` near Neon.
 
 15-minute upload path: [`docs/improvements/onboarding-15min.md`](docs/improvements/onboarding-15min.md).

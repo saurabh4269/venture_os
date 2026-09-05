@@ -17,6 +17,8 @@ Type: **Source Serif 4** headlines + KPI figures; **IBM Plex Sans** UI. Tabular 
 
 **PWA:** `app/manifest.ts` (paper `#f3efe6` / forest `#244c3c`), 192+512 icons, Apple touch icon. Production-only `/sw.js` is network-first for documents and **never intercepts `/api/*`** (so `/api/me` cannot be cached). Install from the browser “Add to Home Screen” / app menu after a production build.
 
+**Public landing:** `/` is the long-scroll Stitch marketing homepage. Desktop keeps the two-column hero and five-up pipeline. Below 960px the page matches the mobile mock: logo + Get started, stacked full-width hero CTAs, trust kicker, Uncompromising Clarity cards (honest `—`, no invented 142 / $4.12B), vertical STAGE 1–5 timeline, stacked Cite / Verify / Report, forest CTA panel, centered footer. CTAs are **Get started** → `/signup` and **Log in** → `/login` — no waitlist, no Request access, no fake customer logos. Footer is in-page Methodology / Support plus Log in; there are no fake Terms or Privacy routes. Anonymous visitors see it immediately. Signed-in users soft-redirect after paint. `/security` is optional methodology (no invented certifications or contracts).
+
 ## Command mapping (mock → book)
 
 | Mock | Source | Honesty |

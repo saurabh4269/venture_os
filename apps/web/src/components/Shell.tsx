@@ -8,6 +8,9 @@ import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
 import { Pipeline } from "@/components/BookUI";
 import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
+import { WakingBook } from "@/components/WakingBook";
+import { UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
+import { isWakeError, WAKING_COPY } from "@/lib/wake";
 import {
   IconAsk,
   IconCommand,
@@ -123,9 +126,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [orgLive, setOrgLive] = useState("");
+  const [wake, setWake] = useState<"loading" | "slow" | "error">("loading");
+  const [wakeErr, setWakeErr] = useState("");
+  const [retrying, setRetrying] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const alive = useRef(true);
+
+  function loadSession() {
+    setWakeErr("");
+    setRetrying(true);
     Promise.all([
       api<Me>("/api/me"),
       api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
@@ -133,7 +142,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       })),
     ])
       .then(([m, o]) => {
-        if (cancelled) return;
+        if (!alive.current) return;
         setMe(m);
         setOrgs(o.orgs);
         if (!m.user) {
@@ -146,12 +155,33 @@ export function Shell({ children }: { children: React.ReactNode }) {
         }
         setReady(true);
       })
-      .catch(() => {
-        if (!cancelled) router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
+      .catch((e: unknown) => {
+        if (!alive.current) return;
+        const msg = e instanceof Error ? e.message : UPSTREAM_UNAVAILABLE_MESSAGE;
+        if (isWakeError(msg)) {
+          setWake("error");
+          setWakeErr(msg);
+          return;
+        }
+        router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
+      })
+      .finally(() => {
+        if (alive.current) setRetrying(false);
       });
+  }
+
+  useEffect(() => {
+    alive.current = true;
+    const slow = window.setTimeout(() => {
+      setWake((w) => (w === "loading" ? "slow" : w));
+    }, 2500);
+    loadSession();
     return () => {
-      cancelled = true;
+      alive.current = false;
+      window.clearTimeout(slow);
     };
+    // First mount only — loadSession reads pathRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   async function switchOrg(id: string) {
@@ -184,18 +214,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
-  const fixture = me?.org?.metadata?.includes("fixtureOnly") || Boolean(me?.org?.name.includes("FIXTURE"));
+  const fixture =
+    Boolean(me?.org?.metadata?.includes("fixtureOnly")) || /FIXTURE_ONLY/i.test(me?.org?.name ?? "");
   const canWrite = isWriteRole(me?.role);
   const orgName = me?.org?.name ?? "the book";
 
   if (!ready) {
+    const message =
+      wake === "error" ? WAKING_COPY.unreachable : wake === "slow" ? WAKING_COPY.slow : WAKING_COPY.checking;
     return (
-      <div className="auth-shell">
-        <div className="auth" role="status" aria-busy="true" data-testid="shell-busy">
-          <div className="auth-mark">Venture OS · the book</div>
-          <p className="lede">Checking your organisation…</p>
-        </div>
-      </div>
+      <WakingBook
+        message={message}
+        detail={wake === "error" && wakeErr && wakeErr !== WAKING_COPY.unreachable ? wakeErr : undefined}
+        onRetry={wake === "error" ? loadSession : undefined}
+        busy={wake !== "error" || retrying}
+      />
     );
   }
 

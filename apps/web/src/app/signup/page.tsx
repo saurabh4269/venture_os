@@ -184,7 +184,7 @@ function SignupForm() {
           </div>
         )}
         <button className="btn" type="submit" disabled={busy} data-testid="signup-submit">
-          {busy ? "Working…" : inviteId ? "Create user" : "Create account"}
+          {busy ? "Creating account…" : inviteId ? "Create user" : "Create account"}
         </button>
       </form>
     </AuthFrame>

@@ -5,6 +5,7 @@ import { PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Res = {
   answer: string;
@@ -53,7 +54,7 @@ export default function AskPage() {
         .then((r) => setHistory(r.queries ?? []))
         .catch(() => undefined);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Ask failed");
+      setErr(e instanceof Error ? bookErrorMessage(e.message) : "Ask failed");
     } finally {
       setBusy(false);
     }
