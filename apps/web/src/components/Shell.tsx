@@ -210,7 +210,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <a href="#main" className="skip-link">
         Skip to book
       </a>
-      <aside className="rail">
+      <aside className={navOpen ? "rail is-open" : "rail"}>
         <Link href="/command" className="brand">
           Venture OS
           <span>{orgName}</span>

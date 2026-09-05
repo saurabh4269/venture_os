@@ -228,7 +228,7 @@ export default function ComparePage() {
           </label>
         ))}
       </div>
-      {loading && <p className="lede">Loading compare…</p>}
+      {loading && <p className="lede">Loading the book…</p>}
       {!loading && !err && visible.length === 0 ? (
         <div className="empty">
           <strong>Nothing to compare</strong>

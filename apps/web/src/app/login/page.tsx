@@ -68,7 +68,7 @@ function LoginForm() {
 
   return (
     <AuthFrame tab="signin">
-      <form onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }} noValidate>
+      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }} noValidate>
         <label className="field" htmlFor="email">
           Email address
           <input

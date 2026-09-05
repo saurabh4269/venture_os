@@ -93,7 +93,7 @@ function SignupForm() {
 
   return (
     <AuthFrame tab="signup">
-      <form onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }}>
+      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }}>
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
         ) : (

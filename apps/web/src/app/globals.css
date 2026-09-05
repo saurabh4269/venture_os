@@ -23,7 +23,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); overflow-x: hidden; }
 body {
   font-family: var(--font-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   font-size: 14px;
@@ -714,8 +714,12 @@ input[type="date"], input[type="file"], select, textarea {
     background: var(--chip);
     border-radius: var(--radius-sm);
   }
-  .rail .nav { display: none; }
-  .rail .nav.is-open { display: flex; }
+  .rail .nav,
+  .rail .rail-cta,
+  .rail .account { display: none; }
+  .rail.is-open .nav,
+  .rail.is-open .rail-cta,
+  .rail.is-open .account { display: flex; }
   .nav a, .btn, .btn.sm, .filter-pill { min-height: 44px; }
   .main { padding: 22px 20px 48px; }
 }

@@ -289,7 +289,7 @@ export default function NavPage() {
           {err}
         </p>
       )}
-      {!data && !err && <p className="lede">Loading marks…</p>}
+      {!data && !err && <p className="lede">Loading the book…</p>}
       {data && data.positions.length === 0 && (
         <div className="empty">
           No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.

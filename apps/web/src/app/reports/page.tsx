@@ -90,7 +90,7 @@ export default function ReportsPage() {
         </button>
       </div>
       )}
-      {loading && !err && <p className="lede">Loading drafts…</p>}
+      {loading && !err && <p className="lede">Loading the book…</p>}
       {!loading && rows.length === 0 ? (
         <div className="empty">
           <strong>No drafts yet</strong>
