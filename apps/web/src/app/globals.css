@@ -1131,6 +1131,8 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .settings-audit-title { margin: 14px 0 8px; font-size: 15px; }
 .settings-form-row { align-items: flex-end; }
 .table-scroll--compact table { min-width: 560px; }
+.companies-table table { min-width: 420px; }
+.companies-toolbar .look-search { flex: 1; }
 .connectors-intro { margin: -6px 0 16px; }
 .connectors-foot { margin-top: 16px; }
 .connector-card { padding: 16px; }
@@ -1182,6 +1184,9 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .nav-mark-form input { min-height: 40px; }
 .vault-empty-actions { flex-wrap: wrap; }
 .company-upload-form { flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.company-upload-btn { min-height: 40px; }
+.company-upload-form .lede { flex: 1 1 100%; }
+.company-connector-form.grid-2 { max-width: 100%; }
 .company-note-dates { flex-wrap: wrap; gap: 8px; }
 .company-connector-actions { flex-wrap: wrap; gap: 8px; }
 .reports-draft-row { flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
@@ -2639,7 +2644,22 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .company-upload-form { flex-direction: column; align-items: stretch; }
   .company-upload-form select,
   .company-upload-form input[type="file"],
-  .company-upload-form .btn { width: 100%; }
+  .company-upload-form .btn,
+  .company-upload-btn { width: 100%; min-height: 44px; }
+  .company-connector-form.grid-2 { grid-template-columns: 1fr; gap: 12px; }
+  .companies-toolbar.page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .companies-toolbar .toolbar-actions {
+    position: static;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .companies-toolbar .look-search { width: 100%; min-height: 44px; }
+  .filter-bar select { flex: 1 1 45%; min-width: 0; min-height: 44px; }
   .company-note-dates { flex-direction: column; align-items: stretch; width: 100%; }
   .company-note-dates .field { width: 100%; }
   .company-note-dates input { width: 100%; min-height: 40px; }
@@ -2718,7 +2738,6 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   }
   .page-actions-row { width: 100%; }
   .command-card-head { flex-direction: column; align-items: flex-start !important; }
-  .filter-bar select { flex: 1 1 45%; min-width: 0; }
   .mkt-notes,
   .mkt-steps-plain { grid-template-columns: 1fr; }
   .mkt-header-actions .mkt-login-btn,

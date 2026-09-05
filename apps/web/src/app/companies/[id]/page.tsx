@@ -406,7 +406,7 @@ export default function CompanyPage() {
 
       {canWrite && (
         <form
-          className="grid-2"
+          className="grid-2 company-connector-form"
           style={{ maxWidth: 720, marginBottom: 16 }}
           onSubmit={async (e) => {
             e.preventDefault();
@@ -864,7 +864,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
         <option value="other">Other</option>
       </select>
       <input type="file" name="file" required accept=".xlsx,.xls,.csv,.pdf" aria-label="File" />
-      <button className="btn sm" type="submit" disabled={busy}>
+      <button className="btn company-upload-btn" type="submit" disabled={busy} data-testid="company-upload-submit">
         {busy ? "Uploading…" : "Upload to vault"}
       </button>
       {msg && (

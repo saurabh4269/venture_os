@@ -83,7 +83,7 @@ export default function CompaniesPage() {
 
   return (
     <Shell>
-      <div className="page-toolbar">
+      <div className="page-toolbar companies-toolbar">
         <label className="sr-only" htmlFor="co-search">
           Search companies
         </label>
@@ -197,15 +197,15 @@ export default function CompaniesPage() {
         <div className="empty">Try different filters or add a company.</div>
       ) : (
         <Panel flush>
-          <div className="table-scroll">
+          <div className="table-scroll table-scroll--compact companies-table">
             <table>
               <thead>
                 <tr>
                   <th>Company</th>
                   <th>Stage</th>
                   <th>Ownership</th>
-                  <th>Last MIS</th>
-                  <th>Flags</th>
+                  <th className="hide-sm">Last MIS</th>
+                  <th className="hide-sm">Flags</th>
                   <th>Coverage</th>
                 </tr>
               </thead>
@@ -225,8 +225,8 @@ export default function CompaniesPage() {
                       </td>
                       <td>{c.stage ?? EM}</td>
                       <td className="num">{formatOwnership(cov?.ownershipPct)}</td>
-                      <td className="lede">{cov?.lastMis ?? EM}</td>
-                      <td>
+                      <td className="lede hide-sm">{cov?.lastMis ?? EM}</td>
+                      <td className="hide-sm">
                         {cov?.openFlags ? (
                           <span className={`flag-n${cov.openFlags >= 2 ? " high" : ""}`}>{cov.openFlags}</span>
                         ) : (
