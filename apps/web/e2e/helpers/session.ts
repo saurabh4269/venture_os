@@ -15,7 +15,13 @@ export async function signupAdmin(page: Page, stamp = Date.now().toString(36)) {
   await page.getByTestId("signup-confirm").fill(password);
   await page.getByTestId("signup-org").fill(org);
   await page.getByTestId("signup-submit").click();
-  await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 90_000 });
+  const rateLimited = page.getByRole("alert", { name: /too many requests/i });
+  if (await rateLimited.isVisible({ timeout: 5000 }).catch(() => false)) {
+    throw new Error("signup_rate_limited");
+  }
+  await expect(page.getByTestId("command-ready").or(page.getByTestId("shell-ready"))).toBeVisible({
+    timeout: 90_000,
+  });
   return { email, password, org, stamp };
 }
 
