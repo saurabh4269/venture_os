@@ -133,23 +133,12 @@ export const DEFAULT_FY_START_MONTH = 4; // April
 export const BASE_CURRENCY = "INR";
 export const DISPLAY_CURRENCY = "EUR";
 
-/** Shared Better Auth + signup/login UI floor. Do not let one path be looser. */
-export const MIN_PASSWORD_LENGTH = 8;
-export const MAX_PASSWORD_LENGTH = 128;
-
-export function passwordLengthError(password: string): string | null {
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
-  }
-  if (password.length > MAX_PASSWORD_LENGTH) {
-    return `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`;
-  }
-  return null;
-}
-
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
+export {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  normalizeEmail,
+  passwordLengthError,
+} from "./password.js";
 
 export const WRITE_ROLES: Role[] = ["org_admin", "partner", "analyst"];
 export const ADMIN_ROLES: Role[] = ["org_admin"];

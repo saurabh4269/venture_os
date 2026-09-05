@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MIN_PASSWORD_LENGTH } from "@venture-os/config";
+import { MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
 import { destinationAfterAuth, normalizeEmail, passwordLengthError, readAuthForm } from "./auth-form";
 import type { Me } from "./auth-client";
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { MIN_PASSWORD_LENGTH } from "@venture-os/config";
+import { MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
 import { api } from "@/lib/api";
 import { type Me } from "@/lib/auth-client";
 import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm } from "@/lib/auth-form";

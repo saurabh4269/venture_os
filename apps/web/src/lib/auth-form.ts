@@ -1,4 +1,4 @@
-import { normalizeEmail, passwordLengthError } from "@venture-os/config";
+import { normalizeEmail, passwordLengthError } from "@venture-os/config/password";
 import { apiUrl } from "./api";
 import type { Me } from "./auth-client";
 

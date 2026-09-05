@@ -1,18 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_PASSWORD_LENGTH,
-  MIN_PASSWORD_LENGTH,
   PUBLIC_DEV_AUTH_SECRET,
   assertProductionAuthSecret,
   cookieSecure,
   isTrustedOrigin,
   loadEnv,
   maskEmail,
-  normalizeEmail,
   originMatches,
-  passwordLengthError,
   safeNextPath,
 } from "./index.js";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  normalizeEmail,
+  passwordLengthError,
+} from "./password.js";
 
 describe("safeNextPath", () => {
   it("keeps a single-slash app path", () => {
