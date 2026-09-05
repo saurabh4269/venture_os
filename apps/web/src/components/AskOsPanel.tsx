@@ -77,7 +77,7 @@ export function AskOsPanel() {
             <div className="ask-os-messages space-y-3">
               {!res && !err && (
                 <p className="text-muted-foreground text-sm">
-                  Ask from the book. Insufficient evidence returns a refusal — no invented answers.
+                  Ask from your confirmed book. Answers include citations when evidence is available.
                 </p>
               )}
               {q && res ? (
@@ -119,7 +119,7 @@ export function AskOsPanel() {
       ) : (
         <CardContent className="pt-0">
           <p className="text-muted-foreground text-sm">
-            Cite-or-refuse answers from your book.{" "}
+            Answers from your book, with citations.{" "}
             <button
               type="button"
               className="text-foreground underline"

@@ -16,7 +16,7 @@ const serif = Newsreader({
 
 export const metadata: Metadata = {
   title: "Venture OS",
-  description: "The book for VC investment teams. Cite or refuse — with the file behind every number.",
+  description: "The book for VC investment teams — with the file behind every number.",
   applicationName: "Venture OS",
   appleWebApp: {
     capable: true,

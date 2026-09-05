@@ -146,7 +146,7 @@ export default function SettingsPage() {
       <PageHead
         kicker="Organisation"
         title="Settings"
-        lede="FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Paste connector keys on Settings → Connectors; vault upload remains the fallback until a health check succeeds."
+        lede="Firm defaults, members, connectors, and flag policy. FY starts April–March unless you change it here."
       />
       <SettingsSubnav current="firm" />
       <div className="settings-stack">
@@ -393,7 +393,7 @@ export default function SettingsPage() {
       <Panel title="Flag policy">
       <p className="lede">
         Firm thresholds persist for this organisation. Flags reads these values, not only catalog defaults. Missing
-        keys keep the catalog default — missing is not zero. Org Admin can edit. Out-of-range values are refused.
+        keys keep the catalog default. Org Admin can edit thresholds for your firm.
         Recompute Flags after a save.
       </p>
       <form

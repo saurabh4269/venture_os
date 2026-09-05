@@ -219,7 +219,7 @@ function ConnectorCards() {
       onedrive:
         "Azure app: Files.Read.All + offline_access (delegated) or Files.Read.All (app-only). Redirect URI must be this site’s /api/connectors/onedrive/callback.",
       affinity:
-        "Paste an Affinity v2 API key (Settings → Manage Apps). Ownership is only written when you set a verified field id — we will not invent CRM fields.",
+        "Paste an Affinity v2 API key (Settings → Manage Apps). Map ownership only when you set a verified field id.",
       granola:
         "Granola Business/Enterprise key (grn_…). Transcripts become subjective commentary sources only — never objective metric cells.",
     }),
@@ -240,7 +240,7 @@ function ConnectorCards() {
             <span className="badge">Read only</span>
           )
         }
-        lede="Keys are AES-encrypted at rest. Plaintext never shown after save. Status stays not connected until a health check succeeds — we never invent a last-sync time."
+        lede="Connector keys are encrypted at rest. Status shows connected after a successful health check."
       />
       <SettingsSubnav current="connectors" />
       <p className="lede" style={{ margin: "-4px 0 16px" }}>

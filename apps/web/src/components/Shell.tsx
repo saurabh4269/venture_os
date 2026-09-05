@@ -18,6 +18,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Menu,
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -150,6 +151,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { expanded: railExpanded, toggle: toggleRail, ready: railReady } = useRailExpanded();
 
   const alive = useRef(true);
@@ -249,6 +251,22 @@ export function Shell({ children }: { children: React.ReactNode }) {
         onRetry={wake === "error" ? loadSession : undefined}
         busy={wake !== "error" || retrying}
       />
+    );
+  }
+
+  function mobileNavLink(n: NavItem, secondary = false) {
+    const active = path.startsWith(n.href);
+    return (
+      <Link
+        key={n.href}
+        href={n.href}
+        onClick={() => setMobileNavOpen(false)}
+        className={`mobile-nav-link${secondary ? " mobile-nav-secondary" : ""}${active ? " active" : ""}`}
+        aria-current={active ? "page" : undefined}
+      >
+        <n.Icon className="size-4 shrink-0" aria-hidden />
+        {n.label}
+      </Link>
     );
   }
 
@@ -374,33 +392,50 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="app-body">
         <header className="topbar">
-          <Sheet>
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon-sm" className="md:hidden" aria-label="Open navigation">
-                <LayoutDashboard className="size-4" />
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="md:hidden"
+                aria-label="Open menu"
+                data-testid="mobile-nav-open"
+              >
+                <Menu className="size-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64">
-              <SheetHeader><SheetTitle>Venture OS</SheetTitle></SheetHeader>
-              <nav className="flex flex-col gap-1 mt-4">
-                {NAV_PRIMARY.map((n) => (
-                  <Link key={n.href} href={n.href} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-                    <n.Icon className="size-4" /> {n.label}
-                  </Link>
-                ))}
+            <SheetContent side="left" className="mobile-sheet p-0" data-testid="mobile-nav">
+              <SheetHeader className="mobile-sheet-head">
+                <SheetTitle>Venture OS</SheetTitle>
+                {me?.org?.name ? <p className="mobile-sheet-org">{me.org.name}</p> : null}
+              </SheetHeader>
+              <nav className="mobile-nav" aria-label="Mobile navigation">
+                {NAV_PRIMARY.map((n) => mobileNavLink(n))}
                 <Separator className="my-2" />
-                <p className="px-2 text-xs text-muted-foreground uppercase tracking-wide">More</p>
-                {NAV_SECONDARY.map((n) => (
-                  <Link key={n.href} href={n.href} className="flex items-center gap-2 rounded-md px-2 py-2 text-muted-foreground hover:bg-muted">
-                    <n.Icon className="size-4" /> {n.label}
-                  </Link>
-                ))}
-                <Separator className="my-2" />
-                <Link href="/settings" className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-                  <Settings className="size-4" /> Settings
-                </Link>
-                <Button variant="ghost" className="justify-start" onClick={signOut}>Sign out</Button>
+                <p className="mobile-nav-label">More</p>
+                {NAV_SECONDARY.map((n) => mobileNavLink(n, true))}
               </nav>
+              <div className="mobile-sheet-foot">
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileNavOpen(false)}
+                  className={`mobile-nav-link${path.startsWith("/settings") ? " active" : ""}`}
+                >
+                  <Settings className="size-4 shrink-0" aria-hidden />
+                  Settings
+                </Link>
+                <button
+                  type="button"
+                  className="mobile-nav-link mobile-nav-signout"
+                  onClick={() => {
+                    setMobileNavOpen(false);
+                    void signOut();
+                  }}
+                  data-testid="mobile-sign-out"
+                >
+                  Sign out
+                </button>
+              </div>
             </SheetContent>
           </Sheet>
           <span className="topbar-title hidden sm:inline">Venture OS</span>
@@ -423,8 +458,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </header>
         <main className="main" id="main">
           {fixture && (
-            <div className="banner" role="alert">
-              FIXTURE_ONLY — illustrative rows for testing. Not production data. Do not report these figures.
+            <div className="banner" role="status">
+              Demo data for testing. Figures here are illustrative only.
             </div>
           )}
           <div className="sr-only" aria-live="polite">{orgLive}</div>

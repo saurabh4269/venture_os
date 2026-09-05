@@ -96,7 +96,7 @@ function SignupForm() {
     <AuthFrame
       tab="signup"
       title="Create your account."
-      lede="You will be Org Admin. The book starts empty — we will not seed illustrative NAV."
+      lede="You will be Org Admin. Your book starts empty and ready for your first upload."
       footer={
         <p className="auth-signup-link">
           Already have an account? <Link href="/login">Sign in</Link>
@@ -107,7 +107,7 @@ function SignupForm() {
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
         ) : (
-          <p className="lede">You will be Org Admin. The book starts empty — we will not seed illustrative NAV.</p>
+          <p className="lede">You will be Org Admin. Your book starts empty and ready for your first upload.</p>
         )}
         <label className="field" htmlFor="name">
           Full name

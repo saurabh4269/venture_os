@@ -57,7 +57,7 @@ export function LandingFooter() {
       <div className="mkt-footer-inner">
         <Link href="/" className="mkt-logo">Venture OS</Link>
         <nav className="mkt-foot-links" aria-label="Footer">
-          <Link href="/security">Methodology</Link>
+          <Link href="/security">How we work</Link>
           <Link href="/blog">Notes</Link>
           <a href="/api/health">Status</a>
         </nav>

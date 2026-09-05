@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Venture OS",
     short_name: "Venture OS",
-    description: "The book for VC investment teams. Cite or refuse.",
+    description: "The book for VC investment teams — with sources behind every number.",
     start_url: "/",
     scope: "/",
     display: "standalone",

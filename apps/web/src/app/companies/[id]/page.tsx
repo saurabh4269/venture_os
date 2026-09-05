@@ -431,7 +431,7 @@ export default function CompanyPage() {
         >
           <h2 style={{ gridColumn: "1 / -1" }}>Connector mapping</h2>
           <p className="lede" style={{ gridColumn: "1 / -1" }}>
-            Optional. Paste vendor ids only — we will not invent folder or CRM fields. Pull from OneDrive uses the
+            Optional. Paste vendor ids from your connector setup. Pull from OneDrive uses the
             same parse pipeline as upload.
           </p>
           <label className="field">
@@ -835,7 +835,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
       setMsg(
         res.duplicateOf
           ? "Same SHA as a vault file already stored. Extract queued — confirm Inbox; do not treat as a new source."
-          : "Queued. Confirm extracts in Inbox — nothing auto-posts.",
+          : "Queued. Confirm extracts in Inbox when ready.",
       );
       if (res.document?.id) await pollParse(res.document.id);
       onDone();

@@ -25,6 +25,28 @@ test.describe("@smoke mobile chrome", () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
+  test("logged-in mobile nav opens and lists primary links", async ({ page }) => {
+    const stamp = Date.now().toString(36);
+    await page.goto("/signup");
+    await page.getByTestId("signup-name").fill("Mobile Nav");
+    await page.getByTestId("signup-email").fill(`mobile-${stamp}@example.test`);
+    await page.getByTestId("signup-password").fill("password123");
+    await page.getByTestId("signup-confirm").fill("password123");
+    await page.getByTestId("signup-org").fill(`Mobile ${stamp}`);
+    await page.getByTestId("signup-submit").click();
+    await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId("mobile-nav-open").click();
+    const nav = page.getByTestId("mobile-nav");
+    await expect(nav).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Command" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Inbox" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Settings" })).toBeVisible();
+    await nav.getByRole("link", { name: "Flags" }).click();
+    await expect(page).toHaveURL(/\/flags/);
+    await expect(nav).toBeHidden();
+  });
+
   test("auth card fits a phone viewport", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: /sign in to your book/i })).toBeVisible();

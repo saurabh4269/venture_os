@@ -134,7 +134,7 @@ export default function NewCompanyPage() {
     <Shell>
       <PageHead
         title="Onboard a company"
-        lede="Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Upload an XLSX or CSV MIS pack — we will not invent a company from an empty vault."
+        lede="Fifteen-minute path: company profile, first file, then Inbox confirm. Upload an XLSX or CSV MIS pack to get started."
       />
       {err && (
         <p className="sev-high" role="alert">
@@ -267,7 +267,7 @@ export default function NewCompanyPage() {
           data-parse-status={parseStatus || "queued"}
         >
           Extract {parseStatus || "queued"}. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue,
-          GM). Nothing auto-posts. Then this name appears on Command with provenance.
+          GM). Then this company appears on Command with full provenance.
         </div>
       )}
     </Shell>

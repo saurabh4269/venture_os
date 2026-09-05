@@ -158,7 +158,7 @@ export default function NavPage() {
   async function addMark(e: React.FormEvent) {
     e.preventDefault();
     if (form.value === "" && !clearMark) {
-      setErr("Enter a mark value, or confirm clear to store a null mark. We will not silently wipe NAV.");
+      setErr("Enter a mark value, or confirm clear to store a blank mark.");
       return;
     }
     const triple = form.fxRate && form.fxDate && form.fxSource;
@@ -196,9 +196,8 @@ export default function NavPage() {
         }
         lede={
           <>
-            Quarterly marks · {quarterLabel(asOf)} · as of {asOf}. Deterministic from positions and marks. Missing is —.
-            MOIC is blank unless the rollup is complete. IRR appears only when every sourced mark has an{" "}
-            <code>investedAt</code>. Dual EUR only with a complete FX triple.
+            Quarterly marks · {quarterLabel(asOf)} · as of {asOf}. Rolled up from positions and marks in your book.
+            MOIC and IRR appear when the underlying data is complete. EUR columns include rate, date, and source.
           </>
         }
         actions={
@@ -336,7 +335,7 @@ export default function NavPage() {
               <p className="lede">
                 {unmarked.length === 0
                   ? "Every position on this as-of has a mark — or there are no positions yet."
-                  : "Needs a booked mark. We will not invent a figure."}{" "}
+                  : "Add a booked mark for this company first."}{" "}
                 {unmarked.map((u) => (
                   <button
                     key={`${u.companyName}-${u.positionId ?? ""}`}
@@ -575,7 +574,7 @@ export default function NavPage() {
             </form>
           )}
           {canWrite && (
-            <p className="lede">EUR conversion is stored only when rate, date, and source are all set. Incomplete triples are refused, not invented.</p>
+            <p className="lede">EUR conversion needs rate, date, and source together. Add all three when you enter a mark.</p>
           )}
         </>
       )}

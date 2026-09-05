@@ -40,7 +40,7 @@ export default function ReportsPage() {
   async function draft(kind: "one_pager" | "portfolio" | "monthly_pack") {
     setErr("");
     if (kind === "one_pager" && !companyId) {
-      setErr("Pick a company for a one-pager. We will not invent a name.");
+      setErr("Pick a company for a one-pager.");
       return;
     }
     setBusy(kind);
@@ -62,7 +62,7 @@ export default function ReportsPage() {
       <PageHead
         title="Reports"
         testId="reports-ready"
-        lede="Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). The monthly pack keeps objective and subjective in separate columns. Exports are real files. Narrative cannot invent numbers. EUR columns refuse without a complete FX triple."
+        lede="Drafted from your confirmed book. One-pagers follow a fixed field order; monthly packs keep objective and subjective columns separate."
       />
       {err && (
         <p className="sev-high" role="alert">

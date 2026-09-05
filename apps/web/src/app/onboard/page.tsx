@@ -104,7 +104,7 @@ export default function OnboardPage() {
         </button>
       </form>
       <p className="lede" style={{ marginTop: 16 }}>
-        Have an invite? Open the link you were sent. Domain auto-join is not connected.
+        Have an invite? Open the link from your colleague.
       </p>
       <p style={{ marginTop: 8 }}>
         <Link href="/login">Use a different account</Link>

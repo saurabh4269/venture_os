@@ -180,7 +180,7 @@ export default function FlagsPage() {
       <PageHead
         title="Flags"
         testId="flags-ready"
-        lede="Evidence queue · open items require a cite. Catalog detectors only — missing inputs do not fire a flag."
+        lede="Evidence queue for your portfolio. Each flag links to the source that triggered it."
       />
       {err && (
         <p className="sev-high" role="alert">
@@ -367,7 +367,7 @@ export default function FlagsPage() {
                     {take ? (
                       <p>{take.body}</p>
                     ) : (
-                      <p className="lede">No partner take on the book. We will not invent analysis from a detector.</p>
+                      <p className="lede">No partner commentary on the book yet for this flag.</p>
                     )}
                   </div>
                   {selected.note ? (

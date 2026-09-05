@@ -29,7 +29,7 @@ export default function VaultPage() {
     <Shell>
       <PageHead
         title="Vault"
-        lede="Company vault — MIS, board packs, and transcripts. Upload here, confirm in Inbox. A firm library and LP room are not in this release."
+        lede="Company vault for MIS, board packs, and transcripts. Upload here, then confirm in Inbox."
       />
       {err && (
         <p className="sev-high" role="alert">

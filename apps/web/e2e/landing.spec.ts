@@ -19,8 +19,8 @@ test.describe("@smoke marketing landing", () => {
       "/signup",
     );
     await expect(page.getByTestId("mkt-notes")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /cite or refuse/i })).toBeVisible();
-    await expect(page.getByText(/missing is —/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /sources attached/i })).toBeVisible();
+    await expect(page.getByText(/blanks stay blank/i).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: /three steps/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /uncompromising clarity/i })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: /precision architecture/i })).toHaveCount(0);
@@ -31,7 +31,7 @@ test.describe("@smoke marketing landing", () => {
     await expect(page.getByRole("link", { name: "Platform" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Pricing" })).toHaveCount(0);
     await expect(page.getByText(/sequoia|a16z|index ventures/i)).toHaveCount(0);
-    await expect(page.getByRole("contentinfo").getByRole("link", { name: "Methodology" })).toHaveAttribute(
+    await expect(page.getByRole("contentinfo").getByRole("link", { name: "How we work" })).toHaveAttribute(
       "href",
       "/security",
     );
@@ -44,9 +44,9 @@ test.describe("@smoke marketing landing", () => {
     await expect(page.getByTestId("signup-submit")).toBeVisible();
   });
 
-  test("security page is honest and does not invent certifications", async ({ page }) => {
+  test("security page describes standards positively", async ({ page }) => {
     await page.goto("/security");
-    await expect(page.getByRole("heading", { name: /methodology, not a badge wall/i })).toBeVisible();
-    await expect(page.getByText(/we do not claim soc 2/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /how we work/i })).toBeVisible();
+    await expect(page.getByText(/sources attached/i).first()).toBeVisible();
   });
 });

@@ -17,9 +17,9 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 
 function loginLede(next: string) {
-  if (next === "/command") return "Sign in to open Command and see what needs a look today.";
-  if (next.startsWith("/inbox")) return "Sign in to review Inbox rows before they post to the book.";
-  return "Use your firm credentials. Password reset is through your fund admin.";
+  if (next === "/command") return "Sign in to open Command and see what needs attention today.";
+  if (next.startsWith("/inbox")) return "Sign in to review Inbox rows before they join the book.";
+  return "Use your firm email and password. Your fund admin can help with access.";
 }
 
 function LoginForm() {

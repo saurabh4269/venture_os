@@ -89,7 +89,7 @@ export default function InboxPage() {
   async function confirm(item: Item) {
     const unit = unitEdits[item.id] || item.proposed.unit;
     if ((item.kind === "unit_ambiguity" || unit === "unknown") && !unitEdits[item.id]) {
-      setErr("Set the unit before confirming — we will not guess lakh vs crore.");
+      setErr("Set the unit before confirming.");
       return;
     }
     const raw = valueEdits[item.id];
@@ -153,7 +153,7 @@ export default function InboxPage() {
     <Shell>
       <PageHead
         title="Inbox"
-        lede="Proposed extracts — confirm to write the book. Sorted by severity. Nothing here is a fact until you say so."
+        lede="Proposed extracts ready for your review. Confirm a row to add it to the book."
       />
       <div className="tabs filter-pills" aria-label="Status">
         {STATUSES.map((s) => (

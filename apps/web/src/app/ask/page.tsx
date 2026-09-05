@@ -69,7 +69,7 @@ export default function AskPage() {
           title="Ask"
           testId="ask-ready"
           kicker="Institutional research"
-          lede="From the book only. If it is not in the corpus, the system refuses. Open a cite to verify file and excerpt — we will not invent a locator."
+          lede="Answers from your confirmed book, with citations you can open. Ask works best when your vault has recent files."
         />
         <form onSubmit={send}>
           <label className="field" style={{ textAlign: "left" }}>
@@ -113,7 +113,7 @@ export default function AskPage() {
           <p className="page-kicker">Insufficient evidence</p>
           <p className="body">{res.answer}</p>
           <p className="lede" style={{ marginTop: 10 }}>
-            Related figures stay —. We will not guess.
+            Upload more files or confirm Inbox rows to give Ask more to work with.
           </p>
         </div>
       )}
@@ -127,7 +127,7 @@ export default function AskPage() {
             Provenance
           </p>
           {res.citations.length === 0 ? (
-            <p className="lede">None — refusal or empty evidence.</p>
+            <p className="lede">No citations for this answer yet.</p>
           ) : (
             <div className="ask-prov">
               {res.citations.map((c, i) => {
@@ -179,7 +179,7 @@ export default function AskPage() {
               }}
             >
               {h.question}
-              {h.refused ? " · refused" : ""}
+              {h.refused ? " · needs more evidence" : ""}
             </button>
           ))}
         </div>

@@ -1,36 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { FileCheck, ShieldCheck, LineChart } from "lucide-react";
 import { LandingShell } from "./LandingChrome";
 
 const KPI_LABELS = ["Companies", "Open flags", "Needs look", "Last sync"] as const;
 
 const NOTES = [
   {
-    title: "Cite or refuse",
-    body: "Every figure needs a source. Ask says no when the book has no evidence.",
+    title: "Sources attached",
+    body: "Every figure links to the file and cell it came from.",
     href: "/security",
-    label: "Read methodology",
+    label: "How we work",
   },
   {
-    title: "Missing is —",
-    body: "Null stays null. We never turn a blank cell into zero or a health score.",
+    title: "Blanks stay blank",
+    body: "Empty cells show —. Your book only shows numbers you have confirmed.",
     href: "/security",
-    label: "How we handle gaps",
+    label: "Data standards",
   },
   {
-    title: "Human confirms",
-    body: "Inbox rows post only after a partner confirms. Nothing auto-posts.",
+    title: "You confirm",
+    body: "New rows land in Inbox. A partner accepts before they join the book.",
     href: "/blog",
     label: "Notes from the build",
   },
 ] as const;
 
 const STEPS = [
-  { title: "Upload", body: "Drop MIS or board packs. Parser proposes — nothing posts yet." },
-  { title: "Confirm", body: "Review Inbox. Fix units. Accept or reject each row." },
-  { title: "Command", body: "See what needs a look. Every number links to the file." },
+  { title: "Upload", body: "Add MIS or board packs. We propose rows for your review." },
+  { title: "Confirm", body: "Check Inbox. Fix units. Accept what belongs in the book." },
+  { title: "Command", body: "See what needs attention. Open any number to its source file." },
 ] as const;
 
 function CommandFrame() {
@@ -76,7 +75,7 @@ export function MarketingLanding() {
           </div>
           <div className="mkt-hero-visual">
             <CommandFrame />
-            <p className="mkt-schematic">Schematic — not live data. Empty book shows —.</p>
+            <p className="mkt-schematic">Example layout — your book starts empty.</p>
           </div>
         </section>
 
@@ -95,7 +94,7 @@ export function MarketingLanding() {
 
         <section className="mkt-section" id="how" aria-label="How it works">
           <p className="mkt-kicker">How it works</p>
-          <h2>Three steps. Plain English.</h2>
+          <h2>Three steps</h2>
           <ol className="mkt-steps mkt-steps-plain">
             {STEPS.map((step, i) => (
               <li key={step.title}>
@@ -108,9 +107,9 @@ export function MarketingLanding() {
 
         <section className="mkt-section mkt-soft-close" id="pricing" aria-label="Pricing">
           <p className="mkt-kicker">Pricing</p>
-          <h2>Talk to us. No public price list.</h2>
+          <h2>Talk to us about seats for your team.</h2>
           <p className="lede mkt-lede">
-            The organisation starts empty. We will not invent a seat price here.
+            Every firm starts with an empty book. We tailor pricing to your team size and workflow.
           </p>
           <p className="mkt-soft-login">
             Already on the book?{" "}
@@ -119,7 +118,7 @@ export function MarketingLanding() {
         </section>
 
         <p className="mkt-partner-line">
-          Built with a design partner. We don&apos;t publish client logos or fake NAV.
+          Built alongside investment teams who run real portfolio books.
         </p>
       </main>
     </LandingShell>
