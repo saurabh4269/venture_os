@@ -983,6 +983,10 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .main { padding: 20px 16px 40px; }
 }
 @media (max-width: 767px) {
+  .mkt-hero { padding: 32px 20px 36px; }
+  .mkt-section, .mkt-trust, .mkt-final { padding-left: 20px; padding-right: 20px; }
+  .mkt-header-inner { padding-left: 20px; padding-right: 20px; }
+  .mkt-pipeline span { font-size: 14px; }
   .cards, .cards-3, .cards-4 { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; }
   .page-toolbar { justify-content: flex-start; flex-wrap: wrap; }

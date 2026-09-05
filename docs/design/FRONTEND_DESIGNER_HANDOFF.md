@@ -170,8 +170,9 @@ A flag **does not fire** without evidence. Missing inputs ≠ flag.
 
 ```
 Unauthenticated
-  /                 Marketing landing (Stitch). Soft-redirect if session cookie.
-  /security         Trust & methodology (no invented prices or certifications)
+  /                 Long-scroll marketing landing (Stitch). Soft-redirect if session cookie.
+                    CTAs: Get started → /signup, Log in → /login. No waitlist.
+  /security         Optional methodology (no Terms/Privacy contract, no invented certifications)
   /login
   /signup
   /invite?id=

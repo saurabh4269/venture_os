@@ -17,7 +17,7 @@ Type: **Source Serif 4** headlines + KPI figures; **IBM Plex Sans** UI. Tabular 
 
 **PWA:** `app/manifest.ts` (paper `#f3efe6` / forest `#244c3c`), 192+512 icons, Apple touch icon. Production-only `/sw.js` is network-first for documents and **never intercepts `/api/*`** (so `/api/me` cannot be cached). Install from the browser “Add to Home Screen” / app menu after a production build.
 
-**Public landing:** `/` is the Stitch marketing homepage (sticky nav, Command schematic, trust strip, pipeline). Anonymous visitors see it immediately. Signed-in users soft-redirect to `/command` or `/onboard` after paint. `/security` is the honest Trust page (no invented certifications or prices).
+**Public landing:** `/` is the long-scroll Stitch marketing homepage (sticky nav, Command schematic, trust strip, feature cards, SOURCE→…→ANALYSIS, three steps, V3, final CTA). CTAs are **Get started** → `/signup` and **Log in** → `/login` — no waitlist. Footer is in-page Methodology / Support plus Log in; there are no fake Terms or Privacy routes. Anonymous visitors see it immediately. Signed-in users soft-redirect after paint. `/security` is optional methodology (no invented certifications or contracts).
 
 ## Command mapping (mock → book)
 

@@ -40,29 +40,12 @@ export default function SecurityPage() {
           </ul>
         </section>
 
-        <section id="privacy">
-          <h2>Privacy</h2>
-          <p>
-            Sessions are HttpOnly cookies, SameSite=Lax, seven days. Connector secrets are AES-encrypted at rest
-            with a key that lives in the operator environment — not in the organisation settings row. We do not
-            sell book data. Email delivery and SSO are not connected; invites are copy-link.
-          </p>
-        </section>
-
-        <section id="terms">
-          <h2>Terms</h2>
-          <p>
-            Design-partner terms are provided in writing when access is granted. This page is not a contract and
-            does not invent a public licence.
-          </p>
-        </section>
-
         <section id="support">
           <h2>Support</h2>
           <p>
-            Signed-in teammates use the book. New firms{" "}
-            <Link href="/signup">request access</Link>. Existing users{" "}
-            <Link href="/login">log in</Link>.
+            There is no public Terms or Privacy route yet — those are sent in writing with design-partner access.
+            Sessions are HttpOnly, SameSite=Lax, seven days. Connector keys are AES-encrypted at rest. New firms{" "}
+            <Link href="/signup">get started</Link>. Existing users <Link href="/login">log in</Link>.
           </p>
         </section>
       </main>

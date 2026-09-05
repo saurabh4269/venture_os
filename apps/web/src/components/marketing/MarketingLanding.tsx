@@ -164,16 +164,16 @@ export function MarketingLanding() {
           <p className="mkt-kicker">Pricing</p>
           <h2>Talk to us. No public price list.</h2>
           <p className="lede mkt-lede">
-            Venture OS is with design partners first. We will not invent a seat price here. Request access and we
+            Venture OS is with design partners first. We will not invent a seat price here. Get started and we
             will discuss whether the book fits your firm.
           </p>
           <div className="mkt-hero-ctas">
             <Link href="/signup" className="btn">
-              Request access
+              Get started
             </Link>
-            <a href="/security" className="btn ghost">
-              Trust &amp; methodology
-            </a>
+            <Link href="/login" className="btn ghost">
+              Log in
+            </Link>
           </div>
         </section>
 

@@ -30,7 +30,7 @@ export function LandingHeader() {
             Log in
           </Link>
           <Link href="/signup" className="btn mkt-cta">
-            Request access
+            Get started
           </Link>
           <button
             type="button"
@@ -54,7 +54,7 @@ export function LandingHeader() {
             Log in
           </Link>
           <Link href="/signup" className="btn" onClick={() => setOpen(false)}>
-            Request access
+            Get started
           </Link>
         </nav>
       ) : null}
@@ -70,11 +70,10 @@ export function LandingFooter() {
           Venture OS
         </Link>
         <p className="mkt-copy">© 2026 Venture OS. Institutional portfolio management.</p>
-        <nav className="mkt-foot-links" aria-label="Legal">
-          <a href="/security#terms">Terms</a>
-          <a href="/security#privacy">Privacy</a>
-          <a href="/security#methodology">Methodology</a>
-          <a href="/security#support">Support</a>
+        <nav className="mkt-foot-links" aria-label="On this page">
+          <a href="/#trust">Methodology</a>
+          <a href="/#pricing">Support</a>
+          <Link href="/login">Log in</Link>
         </nav>
       </div>
     </footer>
