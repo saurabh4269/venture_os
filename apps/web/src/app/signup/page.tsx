@@ -103,7 +103,7 @@ function SignupForm() {
         </p>
       }
     >
-      <form method="post" onSubmit={onSubmit} className="field auth-form" style={{ gap: 14, paddingTop: 4 }}>
+      <form method="post" onSubmit={onSubmit} className="auth-form" noValidate>
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
         ) : null}
@@ -116,6 +116,7 @@ function SignupForm() {
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
             data-testid="signup-name"
+            className="auth-field-lg"
             required
           />
         </label>
@@ -129,6 +130,7 @@ function SignupForm() {
             type="email"
             autoComplete="username"
             data-testid="signup-email"
+            className="auth-field-lg"
             required
           />
         </label>
@@ -149,6 +151,7 @@ function SignupForm() {
             minLength={MIN_PASSWORD_LENGTH}
             maxLength={MAX_PASSWORD_LENGTH}
             data-testid="signup-password"
+            className="auth-field-lg"
             required
           />
         </label>
@@ -164,6 +167,7 @@ function SignupForm() {
             minLength={MIN_PASSWORD_LENGTH}
             maxLength={MAX_PASSWORD_LENGTH}
             data-testid="signup-confirm"
+            className="auth-field-lg"
             required
           />
         </label>
@@ -178,6 +182,7 @@ function SignupForm() {
               placeholder="e.g. Your Fund GP"
               autoComplete="organization"
               data-testid="signup-org"
+              className="auth-field-lg"
               required
             />
             {org && <span className="lede">Slug: {slugifyOrg(org) || "(we will assign one)"}</span>}

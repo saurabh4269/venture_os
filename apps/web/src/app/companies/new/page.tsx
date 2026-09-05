@@ -134,6 +134,7 @@ export default function NewCompanyPage() {
     <Shell>
       <PageHead
         title="Onboard a company"
+        testId="companies-new-ready"
         lede="Fifteen-minute path: company profile, first file, then Inbox confirm. Upload an XLSX or CSV MIS pack to get started."
       />
       {err && (
@@ -205,7 +206,7 @@ export default function NewCompanyPage() {
             <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
           </label>
           <div className="onboard-form-actions">
-            <button className="btn" type="submit" disabled={busy} data-testid="create-company">
+            <button className="btn sm" type="submit" disabled={busy} data-testid="create-company">
               {busy ? "Creating…" : "Create company"}
             </button>
           </div>
@@ -224,11 +225,11 @@ export default function NewCompanyPage() {
             <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" data-testid="mis-file" />
           </label>
           <div className="upload-actions">
-            <button className="btn" type="submit" disabled={busy} data-testid="mis-upload">
+            <button className="btn sm" type="submit" disabled={busy} data-testid="mis-upload">
               {busy ? "Uploading…" : "Upload and extract"}
             </button>
             <button
-              className="btn ghost"
+              className="btn ghost sm"
               type="button"
               disabled={!onedriveReady || busy}
               data-testid="onedrive-pull"
@@ -251,7 +252,7 @@ export default function NewCompanyPage() {
             >
               Pull from OneDrive
             </button>
-            <button className="btn ghost" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
+            <button className="btn ghost sm" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
               Skip for now
             </button>
           </div>

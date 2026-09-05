@@ -12,7 +12,7 @@ async function signupFresh(page: import("@playwright/test").Page, stamp: string,
   await page.getByTestId("signup-confirm").fill(PASSWORD);
   await page.getByTestId("signup-org").fill(`Co Walk ${stamp}`);
   await page.getByTestId("signup-submit").click();
-  const rateLimited = page.getByRole("alert", { name: /too many requests/i });
+  const rateLimited = page.getByRole("alert", { name: /too many (requests|sign-in attempts)/i });
   if (await rateLimited.isVisible({ timeout: 5000 }).catch(() => false)) {
     throw new Error("signup_rate_limited");
   }
