@@ -124,7 +124,7 @@ export default function NewCompanyPage() {
       <Shell>
         <PageHead title="Onboard a company" />
         <p className="lede" data-testid="viewer-read-only">
-          Viewers cannot add companies. Ask an Org Admin to onboard a name. The book stays read-only for your role.
+          Your role is read-only. Ask an Org Admin to add companies to the book.
         </p>
       </Shell>
     );
@@ -217,7 +217,7 @@ export default function NewCompanyPage() {
           <p className="lede">
             {onedriveReady
               ? "OneDrive is connected. Upload a file or pull from the mapped folder."
-              : "OneDrive is not connected. Upload the first MIS / board pack, or paste keys in Settings → Connectors."}
+              : "Upload your first MIS or board pack. Connect OneDrive anytime in Settings → Connectors."}
           </p>
           <label className="field">
             First file (MIS / board pack)

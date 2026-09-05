@@ -310,7 +310,7 @@ export default function CompanyPage() {
             {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
             {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
             {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
-            {data.company.affinityCompanyId ? " · Affinity id on file — vendor deep link is not connected" : ""}
+            {data.company.affinityCompanyId ? " · Affinity id on file" : ""}
           </>
         }
         actions={
@@ -537,7 +537,7 @@ export default function CompanyPage() {
             </div>
           ) : (
             <p className="lede" style={{ margin: 0 }}>
-              No partner commentary on this company. MIS packs never fill this lane.
+              No partner commentary yet. Add notes in the subjective lane below.
             </p>
           )}
         </Panel>
@@ -738,8 +738,8 @@ export default function CompanyPage() {
       {canWrite && (
       <form id="add-note" onSubmit={addNote} style={{ marginTop: 16 }} className="field">
         <label className="field">
-          Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
-          cannot be confirmed as subjective. Period defaults to the latest booked period, not a hardcoded month.
+          Add commentary in the lane you choose. Subjective notes are partner judgement; objective notes stay tied to
+          booked facts. Period defaults to the latest booked period.
           <select value={lane} onChange={(e) => setLane(e.target.value as "objective" | "subjective")}>
             <option value="objective">Objective</option>
             <option value="subjective">Subjective</option>
@@ -775,7 +775,7 @@ export default function CompanyPage() {
       </Panel>
 
       <Panel title="Vault">
-      <p className="lede">DOCX is not supported yet — upload XLSX, XLS, CSV, or PDF.</p>
+      <p className="lede">Upload XLSX, XLS, CSV, or PDF for now.</p>
       <label className="field" style={{ maxWidth: 220 }}>
         Kind
         <select value={vaultKind} onChange={(e) => setVaultKind(e.target.value)} aria-label="Vault kind">

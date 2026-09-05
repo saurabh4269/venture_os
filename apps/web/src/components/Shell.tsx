@@ -438,7 +438,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="topbar-title hidden sm:inline">Venture OS</span>
+          <span className="topbar-title md:hidden">Venture OS</span>
           <form className="topbar-search" onSubmit={onSearch} role="search">
             <Search className="size-4" aria-hidden />
             <Input
@@ -452,14 +452,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </form>
           <div className="topbar-actions">
             {canWrite ? (
-              <Button size="sm" asChild><Link href="/companies/new">Add company</Link></Button>
+              <Link href="/companies/new" className="btn sm">Add company</Link>
             ) : null}
           </div>
         </header>
         <main className="main" id="main">
           {fixture && (
             <div className="banner" role="status">
-              Demo data for testing. Figures here are illustrative only.
+              Demo data for testing. Upload your own files for real portfolio work.
             </div>
           )}
           <div className="sr-only" aria-live="polite">{orgLive}</div>

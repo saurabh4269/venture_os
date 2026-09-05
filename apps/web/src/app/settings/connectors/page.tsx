@@ -221,7 +221,7 @@ function ConnectorCards() {
       affinity:
         "Paste an Affinity v2 API key (Settings → Manage Apps). Map ownership only when you set a verified field id.",
       granola:
-        "Granola Business/Enterprise key (grn_…). Transcripts become subjective commentary sources only — never objective metric cells.",
+        "Granola Business/Enterprise key (grn_…). Transcripts feed the subjective commentary lane.",
     }),
     [],
   );

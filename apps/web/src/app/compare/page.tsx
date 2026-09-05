@@ -165,6 +165,7 @@ export default function ComparePage() {
     <Shell>
       <PageHead
         title="Compare"
+        testId="compare-ready"
         lede="Compare confirmed metrics across companies. Empty cells show —. Filters help you focus on peers in the same stage or sector."
       />
       {err && (

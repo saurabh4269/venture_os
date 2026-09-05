@@ -86,7 +86,7 @@ function LoginForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="password">Password</Label>
-              <span className="text-muted-foreground text-xs" title="Password reset is not connected">
+              <span className="text-muted-foreground text-xs" title="Contact your fund admin for a password reset">
                 Ask your fund admin
               </span>
             </div>

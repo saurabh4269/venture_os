@@ -29,6 +29,7 @@ export default function VaultPage() {
     <Shell>
       <PageHead
         title="Vault"
+        testId="vault-ready"
         lede="Company vault for MIS, board packs, and transcripts. Upload here, then confirm in Inbox."
       />
       {err && (

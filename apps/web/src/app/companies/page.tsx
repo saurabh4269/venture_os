@@ -244,8 +244,7 @@ export default function CompaniesPage() {
           </div>
           <p className="table-foot">
             Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
-            {filtered ? " matching current filters" : ""}. Last MIS and coverage are booked evidence — never a note or a
-            score.
+            {filtered ? " matching current filters" : ""}. Last MIS and coverage come from confirmed book rows.
           </p>
         </Panel>
       )}
