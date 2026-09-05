@@ -501,7 +501,7 @@ export default function ConnectorsPage() {
     <Suspense
       fallback={
         <Shell>
-          <p className="lede">Loading connectors…</p>
+          <p className="lede">Loading the book…</p>
         </Shell>
       }
     >

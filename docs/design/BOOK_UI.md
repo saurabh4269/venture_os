@@ -13,7 +13,9 @@
 | Subjective / soft | `#3d3a5c` / `#e8e6f0` | Subjective lane only |
 | Danger / Warn | `#8b2e2e` / `#8a6a1a` | Errors, coverage gaps, medium flags |
 
-Type: **Source Serif 4** headlines + KPI figures; **IBM Plex Sans** UI. Tabular nums on money. Radius 4–8px. Whisper shadow. Left rail **220px**.
+Type: **Source Serif 4** headlines + KPI figures; **IBM Plex Sans** UI. Tabular nums on money. Radius 4–8px. Whisper shadow. Left rail **220px** at ≥1280px. Tablet (≤1279) collapses the rail behind **Menu**. Mobile (<768) stacks cards; touch targets 44px.
+
+**PWA:** `app/manifest.ts` (paper `#f3efe6` / forest `#244c3c`), 192+512 icons, Apple touch icon. Production-only `/sw.js` is network-first for documents and **never intercepts `/api/*`** (so `/api/me` cannot be cached). Install from the browser “Add to Home Screen” / app menu after a production build.
 
 ## Command mapping (mock → book)
 

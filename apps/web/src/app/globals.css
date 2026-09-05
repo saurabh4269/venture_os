@@ -654,14 +654,6 @@ input[type="date"], input[type="file"], select, textarea {
 
 @media (max-width: 1279px) {
   .cards-4 { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 1100px) {
-  .cards { grid-template-columns: 1fr 1fr; }
-  .command-split { grid-template-columns: 1fr; }
-  .triage-row { grid-template-columns: 88px 1fr auto; }
-  .triage-row .hide-sm { display: none; }
-}
-@media (max-width: 960px) {
   .app { grid-template-columns: 1fr; }
   .rail {
     width: auto;
@@ -683,6 +675,15 @@ input[type="date"], input[type="file"], select, textarea {
   .rail .nav { display: none; }
   .rail .nav.is-open { display: flex; }
   .nav a, .btn, .btn.sm, .filter-pill { min-height: 44px; }
+  .main { padding: 22px 20px 48px; }
+}
+@media (max-width: 1100px) {
+  .cards { grid-template-columns: 1fr 1fr; }
+  .command-split { grid-template-columns: 1fr; }
+  .triage-row { grid-template-columns: 88px 1fr auto; }
+  .triage-row .hide-sm { display: none; }
+}
+@media (max-width: 960px) {
   .cards, .cards-3, .cards-4 { grid-template-columns: 1fr 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
   .main { padding: 20px 16px 40px; }
