@@ -1,7 +1,7 @@
 # Book UI — institutional paper system
 
-**Status:** Implemented in `apps/web` (2026-09-05). Visual north star: Stitch Command mock.  
-**Not a product SoT.** Invariants stay in `01_PRODUCT_SPEC.md` / Gargi brief / `AGENTS.md`.
+**Status:** **Superseded** by [V3 Scratch](stitch-v3/V3_SCRATCH.md) (2026-09-05). Do not extend paper/forest tokens.  
+**Historical:** Implemented in `apps/web` before V3 Scratch redesign.
 
 ## Tokens
 

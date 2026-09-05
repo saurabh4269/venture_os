@@ -2,7 +2,35 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Inbox,
+  Flag,
+  Building2,
+  MessageCircleQuestion,
+  TrendingUp,
+  BarChart3,
+  FileText,
+  Vault,
+  Settings,
+  HelpCircle,
+  Search,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
@@ -11,20 +39,6 @@ import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
 import { WakingBook } from "@/components/WakingBook";
 import { UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { isWakeError, WAKING_COPY } from "@/lib/wake";
-import {
-  IconAsk,
-  IconCommand,
-  IconCompanies,
-  IconCompare,
-  IconFlags,
-  IconInbox,
-  IconNav,
-  IconOrg,
-  IconReports,
-  IconSettings,
-  IconUser,
-  IconVault,
-} from "@/components/Icons";
 
 type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean; ready: boolean };
 const BookSessionContext = createContext<BookSession>({
@@ -35,7 +49,6 @@ const BookSessionContext = createContext<BookSession>({
   ready: false,
 });
 
-/** Safe above or below <Shell>: pages mount as the parent, so we also read /api/me once. */
 export function useBookSession(): BookSession {
   const ctx = useContext(BookSessionContext);
   const [me, setMe] = useState<Me | null>(ctx.me);
@@ -75,46 +88,16 @@ export function useBookSession(): BookSession {
 }
 
 const NAV = [
-  { href: "/command", label: "Command", hint: "Fund pulse", Icon: IconCommand },
-  { href: "/companies", label: "Companies", hint: "Names on the book", Icon: IconCompanies },
-  { href: "/inbox", label: "Inbox", hint: "Confirm before it posts", Icon: IconInbox },
-  { href: "/flags", label: "Flags", hint: "Catalog risks", Icon: IconFlags },
-  { href: "/nav", label: "NAV", hint: "Marks and lock", Icon: IconNav },
-  { href: "/compare", label: "Compare", hint: "Peer metrics", Icon: IconCompare },
-  { href: "/ask", label: "Ask", hint: "Cite or refuse", Icon: IconAsk },
-  { href: "/reports", label: "Reports", hint: "Packs from the book", Icon: IconReports },
-  { href: "/vault", label: "Vault", hint: "Source files", Icon: IconVault },
-  { href: "/settings", label: "Settings", hint: "Firm, people, policy", Icon: IconSettings },
+  { href: "/command", label: "Command", Icon: LayoutDashboard },
+  { href: "/inbox", label: "Inbox", Icon: Inbox },
+  { href: "/flags", label: "Flags", Icon: Flag },
+  { href: "/companies", label: "Companies", Icon: Building2 },
+  { href: "/ask", label: "Ask", Icon: MessageCircleQuestion },
+  { href: "/nav", label: "NAV", Icon: TrendingUp },
+  { href: "/compare", label: "Compare", Icon: BarChart3 },
+  { href: "/reports", label: "Reports", Icon: FileText },
+  { href: "/vault", label: "Vault", Icon: Vault },
 ] as const;
-
-function NavLink({
-  href,
-  label,
-  hint,
-  Icon,
-  active,
-  onClick,
-}: {
-  href: string;
-  label: string;
-  hint: string;
-  Icon: ComponentType<{ className?: string }>;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      title={hint}
-      className={active ? "active" : ""}
-      aria-current={active ? "page" : undefined}
-      onClick={onClick}
-    >
-      <Icon className="nav-ico" />
-      {label}
-    </Link>
-  );
-}
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -124,11 +107,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [orgs, setOrgs] = useState<{ id: string; name: string; fixtureOnly?: boolean }[]>([]);
   const [ready, setReady] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
   const [orgLive, setOrgLive] = useState("");
   const [wake, setWake] = useState<"loading" | "slow" | "error">("loading");
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
 
   const alive = useRef(true);
 
@@ -137,9 +120,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     setRetrying(true);
     Promise.all([
       api<Me>("/api/me"),
-      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
-        orgs: [],
-      })),
+      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
     ])
       .then(([m, o]) => {
         if (!alive.current) return;
@@ -172,15 +153,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     alive.current = true;
-    const slow = window.setTimeout(() => {
-      setWake((w) => (w === "loading" ? "slow" : w));
-    }, 2500);
+    const slow = window.setTimeout(() => setWake((w) => (w === "loading" ? "slow" : w)), 2500);
     loadSession();
     return () => {
       alive.current = false;
       window.clearTimeout(slow);
     };
-    // First mount only — loadSession reads pathRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -190,9 +168,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       await api("/api/orgs/select", { method: "POST", body: JSON.stringify({ organizationId: id }) });
       const [m, o] = await Promise.all([
         api<Me>("/api/me"),
-        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
-          orgs: [],
-        })),
+        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
       ]);
       setMe(m);
       setOrgs(o.orgs);
@@ -214,10 +190,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
+  function onSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQ.trim();
+    if (q) router.push(`/companies?q=${encodeURIComponent(q)}`);
+  }
+
   const fixture =
     Boolean(me?.org?.metadata?.includes("fixtureOnly")) || /FIXTURE_ONLY/i.test(me?.org?.name ?? "");
   const canWrite = isWriteRole(me?.role);
-  const orgName = me?.org?.name ?? "the book";
+  const initial = (me?.user?.name?.trim()[0] || "?").toUpperCase();
 
   if (!ready) {
     const message =
@@ -232,120 +214,154 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const groups: { title: string; items: typeof NAV }[] = [
-    { title: "Morning", items: NAV.slice(0, 3) as unknown as typeof NAV },
-    { title: "Rituals", items: NAV.slice(3, 8) as unknown as typeof NAV },
-    { title: "Firm", items: NAV.slice(8) as unknown as typeof NAV },
-  ];
+  const railLink = (n: (typeof NAV)[number]) => {
+    const active = path.startsWith(n.href);
+    return (
+      <Tooltip key={n.href}>
+        <TooltipTrigger asChild>
+          <Link
+            href={n.href}
+            className={`grid size-10 place-items-center rounded-md transition-colors ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            aria-current={active ? "page" : undefined}
+          >
+            <n.Icon className="size-[18px]" />
+            <span className="sr-only">{n.label}</span>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right">{n.label}</TooltipContent>
+      </Tooltip>
+    );
+  };
 
   return (
     <div className="app" data-testid="shell-ready">
-      <a href="#main" className="skip-link">
-        Skip to book
-      </a>
-      <aside className={navOpen ? "rail is-open" : "rail"}>
-        <Link href="/command" className="brand">
-          Venture OS
-          <span>{orgName}</span>
-        </Link>
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={navOpen}
-          aria-controls="primary-nav"
-          onClick={() => setNavOpen((v) => !v)}
-        >
-          Menu
-        </button>
-        <nav id="primary-nav" className={navOpen ? "nav is-open" : "nav"} aria-label="Primary">
-          {groups.map((g) => (
-            <div key={g.title}>
-              <h2 className="sec">{g.title}</h2>
-              {g.items.map((n) => (
-                <NavLink
-                  key={n.href}
-                  href={n.href}
-                  label={n.label}
-                  hint={n.hint}
-                  Icon={n.Icon}
-                  active={path.startsWith(n.href)}
-                  onClick={() => setNavOpen(false)}
-                />
-              ))}
-            </div>
-          ))}
-        </nav>
-        {canWrite && (
-          <Link href="/companies/new" className="btn rail-cta">
-            + New investment
-          </Link>
-        )}
-        <div className="account" aria-label="Account">
-          {orgs.length === 0 ? (
-            <Link href="/onboard">Create organisation</Link>
-          ) : (
-            <label className="account-row">
-              <IconOrg />
-              <span className="sr-only">Organisation</span>
-              <select
-                value={me?.org?.id ?? ""}
-                onChange={(e) => switchOrg(e.target.value)}
-                aria-label="Organisation"
-              >
-                {orgs.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          <div className="account-row">
-            <IconUser />
-            <div>
-              <div className="who">{me?.user?.name}</div>
-              <div className="who-meta">{roleLabel(me?.role)}</div>
-            </div>
-          </div>
-          <button className="btn ghost sm" type="button" onClick={signOut}>
-            Sign out
-          </button>
+      <a href="#main" className="skip-link">Skip to book</a>
+      <aside className="rail hidden md:flex" aria-label="Primary navigation">
+        <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
+        <nav className="nav flex flex-col items-center gap-1">{NAV.map(railLink)}</nav>
+        <div className="rail-spacer" />
+        <div className="rail-foot">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link href="/settings" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted">
+                <Settings className="size-[18px]" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Settings</TooltipContent>
+          </Tooltip>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" title="Account" aria-label="Account" className="grid size-10 place-items-center rounded-md">
+                <span className="rail-avatar">{initial}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="who">{me?.user?.name}</div>
+                <div className="who-meta text-xs text-muted-foreground">{roleLabel(me?.role)}</div>
+              </DropdownMenuLabel>
+              {orgs.length > 1 && (
+                <>
+                  <DropdownMenuSeparator />
+                  {orgs.map((o) => (
+                    <DropdownMenuItem key={o.id} onClick={() => switchOrg(o.id)}>
+                      {o.name}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
-      <main className="main" id="main">
-        {fixture && (
-          <div className="banner" role="alert">
-            FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
+
+      <div className="app-body">
+        <header className="topbar">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon-sm" className="md:hidden" aria-label="Open navigation">
+                <LayoutDashboard className="size-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64">
+              <SheetHeader><SheetTitle>Venture OS</SheetTitle></SheetHeader>
+              <nav className="flex flex-col gap-1 mt-4">
+                {NAV.map((n) => (
+                  <Link key={n.href} href={n.href} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
+                    <n.Icon className="size-4" /> {n.label}
+                  </Link>
+                ))}
+                <Separator className="my-2" />
+                <Link href="/settings" className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
+                  <Settings className="size-4" /> Settings
+                </Link>
+                <Button variant="ghost" className="justify-start" onClick={signOut}>Sign out</Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
+          <span className="topbar-title hidden sm:inline">Venture OS</span>
+          <form className="topbar-search" onSubmit={onSearch} role="search">
+            <Search className="size-4" aria-hidden />
+            <Input
+              type="search"
+              placeholder="Search companies, flags, or reports…"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              className="rounded-full bg-muted/50 pl-9"
+              aria-label="Search"
+            />
+          </form>
+          <div className="topbar-actions">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon-sm" asChild>
+                  <Link href="/security"><HelpCircle className="size-4" /></Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Methodology</TooltipContent>
+            </Tooltip>
+            {canWrite ? (
+              <Button size="sm" asChild><Link href="/companies/new">Create</Link></Button>
+            ) : null}
           </div>
-        )}
-        <Pipeline
-          current={
-            path.startsWith("/inbox")
-              ? "proposed"
-              : path.startsWith("/vault") || path.startsWith("/companies/new")
-                ? "source"
-                : path.startsWith("/flags")
-                  ? "reviewed"
-                  : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
-                    ? "analysis"
-                    : "book"
-          }
-        />
-        <div className="sr-only" aria-live="polite">
-          {orgLive}
-        </div>
-        <BookSessionContext.Provider
-          value={{
-            me,
-            canWrite,
-            isAdmin: isAdminRole(me?.role),
-            canLock: isLockRole(me?.role),
-            ready: true,
-          }}
-        >
-          <CiteProvider>{children}</CiteProvider>
-        </BookSessionContext.Provider>
-      </main>
+        </header>
+        <main className="main" id="main">
+          {fixture && (
+            <div className="banner" role="alert">
+              FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
+            </div>
+          )}
+          <Pipeline
+            current={
+              path.startsWith("/inbox") ? "proposed"
+                : path.startsWith("/vault") || path.startsWith("/companies/new") ? "source"
+                : path.startsWith("/flags") ? "reviewed"
+                : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare") ? "analysis"
+                : "book"
+            }
+          />
+          <div className="sr-only" aria-live="polite">{orgLive}</div>
+          <BookSessionContext.Provider
+            value={{ me, canWrite, isAdmin: isAdminRole(me?.role), canLock: isLockRole(me?.role), ready: true }}
+          >
+            <CiteProvider>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={path}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
+            </CiteProvider>
+          </BookSessionContext.Provider>
+        </main>
+      </div>
     </div>
   );
 }
@@ -380,14 +396,10 @@ export function Fact({
     <span className="fact">
       {value}
       {isFact && open ? (
-        <button type="button" className="cite" onClick={open} aria-label="Open citation">
-          Cite
-        </button>
+        <button type="button" className="cite" onClick={open} aria-label="Open citation">Cite</button>
       ) : null}
       {note ? (
-        <span className="lede" style={{ display: "block", width: "100%", marginTop: 2 }}>
-          {note}
-        </span>
+        <span className="lede block w-full mt-0.5">{note}</span>
       ) : null}
     </span>
   );
