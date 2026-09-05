@@ -115,7 +115,7 @@ export default function ReportsPage() {
                 <td>{r.title}</td>
                 <td>{KIND_LABEL[r.kind] ?? r.kind}</td>
                 <td className="lede">{new Date(r.createdAt).toLocaleString()}</td>
-                <td className="row">
+                <td className="reports-export-row">
                   {(["pdf", "pptx", "xlsx"] as const).map((fmt) => (
                     <button
                       key={fmt}

@@ -187,7 +187,7 @@ export default function FlagsPage() {
           ) : null}
         </div>
       </div>
-      <div className="filter-bar">
+      <div className="filter-bar flags-filter-bar">
         <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
           <option value="">Severity</option>
           <option value="high">high</option>
@@ -313,8 +313,8 @@ export default function FlagsPage() {
                 <p className="lede">Pick a row to see the source and evidence behind the flag.</p>
               ) : (
                 <>
-                  <p className="look-title">{flagLabel(selected.flagKey)}</p>
-                  <p className="lede" style={{ marginTop: 6 }}>
+                  <p className="look-title flag-detail-title">{flagLabel(selected.flagKey)}</p>
+                  <p className="lede flag-detail-meta">
                     {selected.detectedAt
                       ? `Detected ${new Date(selected.detectedAt).toLocaleString()}`
                       : "Detected time —"}
@@ -355,14 +355,14 @@ export default function FlagsPage() {
                       ))
                     )}
                     {(selected.sourceRefIds ?? []).length > 0 && (
-                      <div className="row" style={{ marginTop: 10 }}>
+                      <div className="row flag-detail-cites">
                         {(selected.sourceRefIds ?? []).map((id) => (
                           <Fact key={id} display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, id)} />
                         ))}
                       </div>
                     )}
                   </div>
-                  <div className="lane-sub" style={{ marginTop: 10 }}>
+                  <div className="lane-sub flag-detail-sub">
                     <div className="page-kicker">Subjective take</div>
                     {take ? (
                       <p>{take.body}</p>
@@ -371,7 +371,7 @@ export default function FlagsPage() {
                     )}
                   </div>
                   {selected.note ? (
-                    <p className="lede" style={{ marginTop: 12 }}>
+                    <p className="lede flag-detail-note">
                       Note: {selected.note}
                     </p>
                   ) : null}
@@ -379,7 +379,7 @@ export default function FlagsPage() {
                     <p className="lede">Until {new Date(selected.snoozedUntil).toLocaleDateString()}</p>
                   ) : null}
                   {selected.companyId && (
-                    <p style={{ marginTop: 12 }}>
+                    <p className="flag-detail-link">
                       <Link className="lede" href={`/compare?companyIds=${selected.companyId}`}>
                         Compare
                       </Link>

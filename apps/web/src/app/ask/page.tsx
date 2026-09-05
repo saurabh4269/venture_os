@@ -72,7 +72,7 @@ export default function AskPage() {
           lede="Answers from your confirmed book, with citations you can open. Ask works best when your vault has recent files."
         />
         <form onSubmit={send}>
-          <label className="field" style={{ textAlign: "left" }}>
+          <label className="field ask-company-field">
             Company (optional)
             <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
               <option value="">All companies</option>

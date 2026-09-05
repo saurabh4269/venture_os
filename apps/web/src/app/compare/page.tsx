@@ -173,6 +173,7 @@ export default function ComparePage() {
           {err}
         </p>
       )}
+      <div className="compare-toolbar">
       <div className="row compare-filters compare-pickers">
         <label className="field">
           Period
@@ -215,6 +216,7 @@ export default function ComparePage() {
           Export CSV
         </button>
       </div>
+      <p className="page-kicker compare-section-label">Companies</p>
       <div className="row compare-companies">
         {(data?.companies ?? []).map((c) => (
           <label key={c.id} className="lede">
@@ -222,6 +224,7 @@ export default function ComparePage() {
           </label>
         ))}
       </div>
+      <p className="page-kicker compare-section-label">Metrics</p>
       <div className="row compare-metrics">
         {ALL_METRICS.map((m) => (
           <label key={m} className="lede">
@@ -229,6 +232,7 @@ export default function ComparePage() {
             {METRIC_CATALOG.find((x) => x.key === m)?.label ?? m.replaceAll("_", " ")}
           </label>
         ))}
+      </div>
       </div>
       {loading && <p className="lede">Loading the book…</p>}
       {!loading && !err && visible.length === 0 ? (

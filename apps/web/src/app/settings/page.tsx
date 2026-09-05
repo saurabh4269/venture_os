@@ -161,7 +161,7 @@ export default function SettingsPage() {
       )}
       {data?.settings && isAdmin && (
         <form
-          className="row settings-form-row"
+          className="row settings-form-row settings-firm-row"
           onSubmit={async (e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
@@ -431,7 +431,7 @@ export default function SettingsPage() {
           }
         }}
       >
-        <div className="table-scroll">
+        <div className="table-scroll table-scroll--wide">
         <table>
           <thead>
             <tr>

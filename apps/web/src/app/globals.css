@@ -610,8 +610,13 @@ button { cursor: pointer; }
 .cite:hover { color: var(--cite); border-color: var(--cite); background: #bbf7d0; }
 
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.table-scroll { overflow-x: auto; max-width: 100%; }
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
 .table-scroll table { min-width: 720px; }
+.table-scroll--wide table { min-width: 640px; }
 .table-scroll th:first-child,
 .table-scroll td:first-child {
   position: sticky;
@@ -1113,8 +1118,21 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .connector-card { padding: 16px; }
 .connector-actions { gap: 8px; }
 .compare-pickers { margin: 12px 0; flex-wrap: wrap; }
+.compare-toolbar { margin-bottom: 14px; }
+.compare-section-label { margin: 12px 0 6px; }
 .compare-companies { gap: 10px 16px; margin-bottom: 4px; }
-.compare-metrics { gap: 8px 14px; margin-top: 8px; }
+.compare-metrics { gap: 8px 14px; margin-top: 0; }
+.flags-filter-bar .queue-count { align-self: center; }
+.flag-detail-title { margin: 0; }
+.flag-detail-meta { margin-top: 6px; }
+.flag-detail-cites { margin-top: 10px; }
+.flag-detail-sub { margin-top: 10px; }
+.flag-detail-note { margin-top: 12px; }
+.flag-detail-link { margin-top: 12px; }
+.ask-company-field { text-align: left; max-width: 420px; margin: 0 auto 12px; width: 100%; }
+.ask-company-field select { width: 100%; min-height: 44px; }
+.reports-export-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.settings-firm-row { align-items: flex-end; }
 .reports-draft-row { flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .badge {
   display: inline-block;
@@ -2409,9 +2427,82 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .compare-metrics {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px 12px;
+    gap: 10px 12px;
+    padding: 10px 12px;
+    background: var(--chip);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
   }
-  .compare-companies { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .compare-companies {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--chip);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+  }
+  .compare-companies label {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+  }
+  .compare-metrics label {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+  }
+  .compare-pickers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0;
+  }
+  .compare-pickers .field { min-width: 0; width: 100%; }
+  .compare-pickers .field select,
+  .compare-pickers .field input { width: 100%; min-height: 40px; }
+  .compare-pickers > .lede { grid-column: 1 / -1; }
+  .compare-pickers > .btn { grid-column: 1 / -1; width: 100%; justify-content: center; }
+  .compare-section-label { margin: 10px 0 6px; }
+  .flags-filter-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .flags-filter-bar select {
+    width: 100%;
+    min-height: 40px;
+  }
+  .flags-filter-bar .queue-count {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
+  .settings-stack .table-scroll {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    max-width: calc(100% + 28px);
+  }
+  .table-scroll--compact table { min-width: 480px; }
+  .table-scroll--wide table { min-width: 520px; }
+  .settings-firm-row { flex-direction: column; align-items: stretch; }
+  .settings-firm-row .field input { width: 100%; min-height: 40px; }
+  .settings-form-row input,
+  .settings-form-row select { min-height: 44px; }
+  .ask-related button {
+    min-height: 40px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 0;
+  }
+  .reports-export-row { gap: 8px; }
+  .reports-export-row .chip { min-height: 32px; padding: 4px 10px; }
+  .flag-detail .panel-body { padding-top: 12px; }
   .reports-draft-row { flex-direction: column; align-items: stretch; }
   .reports-draft-row input,
   .reports-draft-row select,
