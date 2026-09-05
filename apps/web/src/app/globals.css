@@ -1183,7 +1183,10 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   align-items: flex-end;
 }
 .nav-mark-form select,
-.nav-mark-form input { min-height: 40px; }
+.nav-mark-form input { min-height: 44px; }
+.reports-draft-row input,
+.reports-draft-row select { min-height: 44px; }
+.reports-export-row .chip { min-height: 36px; padding: 6px 12px; }
 .vault-empty-actions { flex-wrap: wrap; }
 .company-upload-form { flex-wrap: wrap; gap: 8px; align-items: flex-end; }
 .company-upload-btn { min-height: 40px; }
@@ -2550,14 +2553,14 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
     border-radius: var(--radius);
   }
   .compare-companies label {
-    min-height: 36px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 2px 0;
   }
   .compare-metrics label {
-    min-height: 36px;
+    min-height: 44px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -2571,9 +2574,21 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   }
   .compare-pickers .field { min-width: 0; width: 100%; }
   .compare-pickers .field select,
-  .compare-pickers .field input { width: 100%; min-height: 40px; }
-  .compare-pickers > .lede { grid-column: 1 / -1; }
-  .compare-pickers > .btn { grid-column: 1 / -1; width: 100%; justify-content: center; }
+  .compare-pickers .field input { width: 100%; min-height: 44px; }
+  .compare-pickers > .lede {
+    grid-column: 1 / -1;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .compare-pickers > .btn {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .compare-table-sub { display: none; }
   .compare-section-label { margin: 10px 0 6px; }
   .flags-filter-bar {
     display: grid;
@@ -2616,29 +2631,29 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
     text-align: left;
     padding: 8px 0;
   }
-  .reports-export-row { gap: 8px; }
-  .reports-export-row .chip { min-height: 32px; padding: 4px 10px; }
+  .reports-export-row { gap: 8px; flex-wrap: wrap; }
+  .reports-export-row .chip { min-height: 44px; padding: 8px 14px; flex: 1 1 calc(33% - 8px); justify-content: center; }
   .flag-detail .panel-body { padding-top: 12px; }
   .nav-filters {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  .nav-filters .field { max-width: none; width: 100%; }
+  .nav-filters .field:last-child { grid-column: 1 / -1; }
   .nav-filters .field input,
-  .nav-filters .field select { width: 100%; min-height: 40px; }
+  .nav-filters .field select { width: 100%; min-height: 44px; }
   .nav-unlock-row { flex-direction: column; align-items: stretch; }
   .nav-unlock-row .field { max-width: none; width: 100%; }
   .nav-unlock-row .btn { width: 100%; justify-content: center; }
   .nav-mark-form { flex-direction: column; align-items: stretch; }
   .nav-mark-form select,
   .nav-mark-form input,
-  .nav-mark-form .btn { width: 100%; }
+  .nav-mark-form .btn { width: 100%; min-height: 44px; }
   .nav-mark-form label.lede {
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 40px;
+    min-height: 44px;
     width: 100%;
   }
   .vault-empty-actions { flex-direction: column; align-items: stretch; }
@@ -2705,7 +2720,8 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .reports-draft-row { flex-direction: column; align-items: stretch; }
   .reports-draft-row input,
   .reports-draft-row select,
-  .reports-draft-row .btn { width: 100%; justify-content: center; }
+  .reports-draft-row .btn { width: 100%; justify-content: center; min-height: 44px; }
+  .notice-split .chip { min-height: 44px; padding: 8px 12px; }
   .panel-head { padding: 12px 14px 10px; }
   .panel-body { padding: 10px 14px 14px; }
   .empty { padding: 28px 20px; }

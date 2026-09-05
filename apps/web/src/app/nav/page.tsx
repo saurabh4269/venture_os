@@ -358,7 +358,7 @@ export default function NavPage() {
               </p>
             </div>
           </div>
-          <div className="cards cards-4">
+          <div className="cards cards-4" data-testid="nav-kpis">
             <div className="kpi">
               <div className="k">Cost</div>
               <div className="v">{inr(data.rollup.cost.total)}</div>

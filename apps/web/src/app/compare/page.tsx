@@ -255,7 +255,7 @@ export default function ComparePage() {
                     {metricLabel(m, data.labels)}
                     {sortKey === m ? " ↓" : ""}
                   </button>
-                  <div className="lede">native · INR Cr · EUR</div>
+                  <div className="lede compare-table-sub">native · INR Cr · EUR</div>
                 </th>
               ))}
             </tr>

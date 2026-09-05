@@ -24,14 +24,18 @@ export default function ReportsPage() {
   const [periodEnd, setPeriodEnd] = useState("");
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   function load() {
-    setLoading(true);
+    setRefreshing(true);
     Promise.all([
       api<{ reports: Report[] }>("/api/reports").then((r) => setRows(r.reports)),
       api<{ companies: { id: string; name: string }[] }>("/api/companies").then((r) => setCos(r.companies)),
     ])
       .catch((e: Error) => setErr(bookErrorMessage(e.message)))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   }
   useEffect(() => {
     load();
@@ -71,8 +75,19 @@ export default function ReportsPage() {
       )}
       {canWrite && (
       <div className="row reports-draft-row">
-        <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period end" />
-        <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
+        <input
+          type="date"
+          value={periodEnd}
+          onChange={(e) => setPeriodEnd(e.target.value)}
+          aria-label="Period end"
+          data-testid="reports-period"
+        />
+        <select
+          value={companyId}
+          onChange={(e) => setCompanyId(e.target.value)}
+          aria-label="Company"
+          data-testid="reports-company"
+        >
           <option value="">Select company (required for one-pager)</option>
           {cos.map((c) => (
             <option key={c.id} value={c.id}>
@@ -80,7 +95,12 @@ export default function ReportsPage() {
             </option>
           ))}
         </select>
-        <button className="btn" onClick={() => draft("one_pager")} disabled={Boolean(busy)}>
+        <button
+          className="btn"
+          data-testid="reports-draft-one-pager"
+          onClick={() => draft("one_pager")}
+          disabled={Boolean(busy)}
+        >
           {busy === "one_pager" ? "Drafting…" : "Draft one-pager"}
         </button>
         <button className="btn ghost" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
@@ -91,7 +111,10 @@ export default function ReportsPage() {
         </button>
       </div>
       )}
-      {loading && !err && <p className="lede">Loading the book…</p>}
+      {loading && !err && rows.length === 0 && <p className="lede">Loading the book…</p>}
+      {refreshing && rows.length > 0 && (
+        <p className="lede" role="status" aria-live="polite">Refreshing…</p>
+      )}
       {!loading && rows.length === 0 ? (
         <div className="empty">
           <strong>Ready to draft</strong>
