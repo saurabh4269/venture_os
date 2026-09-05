@@ -53,7 +53,13 @@ export function friendlyAuthError(raw: string): string {
   if (t.includes("invalid email or password")) {
     return "Email or password is wrong. Check the firm address — we will not say which.";
   }
-  if (t.includes("password too short") || t.includes("min")) {
+  if (
+    t.includes("password too short") ||
+    t.includes("password too small") ||
+    t.includes("minpassword") ||
+    t.includes("minimal length") ||
+    t.includes("too small: expected string")
+  ) {
     return "Password must be at least 8 characters.";
   }
   if (t.includes("slug") && (t.includes("taken") || t.includes("exists") || t.includes("unique"))) {

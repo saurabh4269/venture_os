@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
   PUBLIC_DEV_AUTH_SECRET,
   assertProductionAuthSecret,
   cookieSecure,
   isTrustedOrigin,
   loadEnv,
   maskEmail,
+  normalizeEmail,
   originMatches,
+  passwordLengthError,
   safeNextPath,
 } from "./index.js";
 
@@ -83,5 +87,15 @@ describe("cookieSecure + maskEmail", () => {
 
   it("masks the local part", () => {
     expect(maskEmail("analyst@firm.test")).toBe("a***@firm.test");
+  });
+});
+
+describe("shared password + email policy", () => {
+  it("accepts an 8-character password on the same floor as Better Auth", () => {
+    expect(MIN_PASSWORD_LENGTH).toBe(8);
+    expect(MAX_PASSWORD_LENGTH).toBe(128);
+    expect(passwordLengthError("12345678")).toBeNull();
+    expect(passwordLengthError("1234567")).toMatch(/at least 8/);
+    expect(normalizeEmail("  VC@Firm.TEST ")).toBe("vc@firm.test");
   });
 });

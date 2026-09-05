@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { MIN_PASSWORD_LENGTH } from "@venture-os/config";
 import { api } from "@/lib/api";
-import { authClient, type Me } from "@/lib/auth-client";
+import { type Me } from "@/lib/auth-client";
+import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm } from "@/lib/auth-form";
 import { friendlyAuthError, slugifyOrg } from "@/lib/roles";
 
 function SignupForm() {
@@ -30,31 +32,47 @@ function SignupForm() {
       .catch(() => undefined);
   }, [router, inviteId]);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr("");
-    if (password.length < 8) {
-      setErr("Password must be at least 8 characters.");
+    const fields = readAuthForm(e.currentTarget);
+    const policy = passwordLengthError(fields.password);
+    if (policy) {
+      setErr(policy);
       return;
     }
-    if (password !== confirm) {
+    if (fields.password !== fields.confirm) {
       setErr("Passwords do not match.");
+      return;
+    }
+    if (!fields.email || !fields.name) {
+      setErr("Name and work email are required.");
       return;
     }
     setBusy(true);
     try {
-      const res = await authClient.signUp.email({ email, password, name });
-      if (res.error) {
-        setErr(friendlyAuthError(res.error.message ?? "Could not sign up"));
+      const res = await postAuthEmail("/api/auth/sign-up/email", {
+        email: fields.email,
+        password: fields.password,
+        name: fields.name,
+      });
+      if (!res.ok) {
+        setErr(friendlyAuthError(res.message));
+        return;
+      }
+      const me = await api<Me>("/api/me");
+      if (!me.user) {
+        const dest = destinationAfterAuth(me, "/command");
+        setErr(dest.ok ? "Could not sign up" : dest.message);
         return;
       }
       if (inviteId) {
         router.push(`/invite?id=${inviteId}`);
         return;
       }
-      const slug = slugifyOrg(org) || `org-${Date.now().toString(36)}`;
+      const slug = slugifyOrg(fields.org || org) || `org-${Date.now().toString(36)}`;
       try {
-        await api("/api/orgs", { method: "POST", body: JSON.stringify({ name: org, slug }) });
+        await api("/api/orgs", { method: "POST", body: JSON.stringify({ name: fields.org || org, slug }) });
         router.push("/command");
       } catch (ex) {
         setErr(
@@ -106,7 +124,7 @@ function SignupForm() {
           />
         </label>
         <label className="field" htmlFor="password">
-          Password (8+ characters)
+          Password ({MIN_PASSWORD_LENGTH}+ characters)
           <input
             id="password"
             name="password"
@@ -114,7 +132,7 @@ function SignupForm() {
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             autoComplete="new-password"
-            minLength={8}
+            minLength={MIN_PASSWORD_LENGTH}
             data-testid="signup-password"
             required
           />
@@ -128,7 +146,7 @@ function SignupForm() {
             onChange={(e) => setConfirm(e.target.value)}
             type="password"
             autoComplete="new-password"
-            minLength={8}
+            minLength={MIN_PASSWORD_LENGTH}
             data-testid="signup-confirm"
             required
           />

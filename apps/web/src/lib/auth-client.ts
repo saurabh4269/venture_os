@@ -1,9 +1,21 @@
 import { createAuthClient } from "better-auth/react";
 import { organizationClient } from "better-auth/client/plugins";
 
-/** Undefined baseURL → current origin (same-origin BFF). */
+/**
+ * Same-origin BFF unless NEXT_PUBLIC_API_URL is set for a split host.
+ * Prefer `window.location.origin` over Better Auth's env/VERCEL_URL fallback so
+ * www.ventureos.xyz never posts cookies to a different host.
+ */
+function authBaseURL(): string | undefined {
+  const explicit = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+  if (explicit) return explicit;
+  if (typeof window !== "undefined") return window.location.origin;
+  return undefined;
+}
+
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || undefined,
+  baseURL: authBaseURL(),
+  fetchOptions: { credentials: "include" },
   plugins: [organizationClient()],
 });
 

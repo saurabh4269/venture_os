@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { MIN_PASSWORD_LENGTH } from "@venture-os/config";
 import { safeNextPath } from "@venture-os/config/paths";
 import { api } from "@/lib/api";
-import { authClient, type Me } from "@/lib/auth-client";
+import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm } from "@/lib/auth-form";
+import { type Me } from "@/lib/auth-client";
 import { friendlyAuthError } from "@/lib/roles";
 
 function LoginForm() {
@@ -26,19 +28,36 @@ function LoginForm() {
       .catch(() => undefined);
   }, [router, next]);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr("");
+    const fields = readAuthForm(e.currentTarget);
+    const policy = passwordLengthError(fields.password);
+    if (policy) {
+      setErr(policy);
+      return;
+    }
+    if (!fields.email) {
+      setErr("Enter your work email.");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await authClient.signIn.email({ email, password });
-      if (res.error) {
-        setErr(friendlyAuthError(res.error.message ?? "Could not sign in"));
+      const res = await postAuthEmail("/api/auth/sign-in/email", {
+        email: fields.email,
+        password: fields.password,
+      });
+      if (!res.ok) {
+        setErr(friendlyAuthError(res.message));
         return;
       }
       const me = await api<Me>("/api/me");
-      if (me.needsOrg || !me.orgId) router.push("/onboard");
-      else router.push(next);
+      const dest = destinationAfterAuth(me, next);
+      if (!dest.ok) {
+        setErr(dest.message);
+        return;
+      }
+      router.push(dest.to);
     } catch (ex) {
       setErr(friendlyAuthError(ex instanceof Error ? ex.message : "Could not sign in"));
     } finally {
@@ -68,7 +87,7 @@ function LoginForm() {
           />
         </label>
         <label className="field" htmlFor="password">
-          Password
+          Password ({MIN_PASSWORD_LENGTH}+ characters)
           <input
             id="password"
             name="password"
@@ -76,6 +95,7 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             autoComplete="current-password"
+            minLength={MIN_PASSWORD_LENGTH}
             data-testid="login-password"
             required
           />

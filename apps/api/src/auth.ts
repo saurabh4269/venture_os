@@ -1,4 +1,11 @@
-import { collectTrustedOrigins, cookieSecure, loadEnv, maskEmail } from "@venture-os/config";
+import {
+  collectTrustedOrigins,
+  cookieSecure,
+  loadEnv,
+  maskEmail,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+} from "@venture-os/config";
 import { getDb } from "@venture-os/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -19,8 +26,8 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 8,
-    maxPasswordLength: 128,
+    minPasswordLength: MIN_PASSWORD_LENGTH,
+    maxPasswordLength: MAX_PASSWORD_LENGTH,
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7,

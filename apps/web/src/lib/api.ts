@@ -13,6 +13,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     ...init,
     credentials: "include",
+    cache: init?.cache ?? "no-store",
     headers,
   });
   if (!res.ok) {
@@ -40,7 +41,7 @@ export function sourcePathFor(
 
 /** Cookie-auth download. Bare <a href> to the API drops the session. */
 export async function downloadAuthed(path: string, filename?: string) {
-  const res = await fetch(`${API}${path}`, { credentials: "include" });
+  const res = await fetch(`${API}${path}`, { credentials: "include", cache: "no-store" });
   if (!res.ok) {
     let msg = res.statusText;
     try {

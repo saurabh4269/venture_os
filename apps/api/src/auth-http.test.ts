@@ -350,4 +350,33 @@ describe.skipIf(!url)("auth & org HTTP", () => {
     );
     expect(me.user).toBeNull();
   });
+
+  it("signs in with the same 8-character password accepted at signup", async () => {
+    const email = `digits-${stamp}@alpha.test`;
+    const password = "12345678";
+    const signup = await app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: origin,
+      body: JSON.stringify({ email, password, name: "Digits" }),
+    });
+    expect(signup.status).toBe(200);
+    const denied = await app.request("/api/auth/sign-up/email", {
+      method: "POST",
+      headers: origin,
+      body: JSON.stringify({ email: `short-${stamp}@alpha.test`, password: "1234567", name: "Short" }),
+    });
+    expect(denied.status).toBeGreaterThanOrEqual(400);
+    const signIn = await app.request("/api/auth/sign-in/email", {
+      method: "POST",
+      headers: origin,
+      body: JSON.stringify({ email, password }),
+    });
+    expect(signIn.status).toBe(200);
+    const cookie = cookieFrom(signIn);
+    expect(cookie).toMatch(/better-auth\.session_token/);
+    const me = await json<{ user: { email: string } | null }>(
+      await app.request("/api/me", { headers: { cookie } }),
+    );
+    expect(me.user?.email).toBe(email);
+  });
 });
