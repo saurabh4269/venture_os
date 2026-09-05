@@ -103,7 +103,7 @@ function SignupForm() {
         </p>
       }
     >
-      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }}>
+      <form method="post" onSubmit={onSubmit} className="field auth-form" style={{ gap: 14, paddingTop: 4 }}>
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
         ) : null}
@@ -191,7 +191,7 @@ function SignupForm() {
             {err}
           </div>
         )}
-        <button className="btn" type="submit" disabled={busy} data-testid="signup-submit">
+        <button className="btn auth-submit" type="submit" disabled={busy} data-testid="signup-submit">
           {busy ? "Creating account…" : inviteId ? "Create user" : "Create account"}
         </button>
       </form>

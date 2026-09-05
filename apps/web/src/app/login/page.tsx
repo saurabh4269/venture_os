@@ -11,7 +11,6 @@ import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm 
 import { type Me } from "@/lib/auth-client";
 import { AuthFrame } from "@/components/BookUI";
 import { friendlyAuthError } from "@/lib/roles";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -67,7 +66,7 @@ function LoginForm() {
   return (
     <AuthFrame tab="signin" title="Sign in to your book." lede={loginLede(next)}>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+        <form method="post" onSubmit={onSubmit} className="auth-form flex flex-col gap-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
             <Input
@@ -86,7 +85,7 @@ function LoginForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="password">Password</Label>
-              <span className="text-muted-foreground text-xs" title="Contact your fund admin for a password reset">
+              <span className="auth-forgot" title="Contact your fund admin for a password reset">
                 Ask your fund admin
               </span>
             </div>
@@ -104,15 +103,15 @@ function LoginForm() {
             />
           </div>
           {err && <div className="sev-high text-sm" role="alert">{err}</div>}
-          <Button type="submit" disabled={busy || done} className="auth-submit w-full" data-testid="login-submit">
+          <button type="submit" disabled={busy || done} className="btn auth-submit" data-testid="login-submit">
             {done ? "Signed in" : busy ? "Signing in…" : "Sign in"}
-          </Button>
+          </button>
           {params.get("id") ? (
             <p className="lede text-sm"><Link href={`/invite?id=${params.get("id")}`}>Return to invite</Link></p>
           ) : null}
         </form>
-        <p className="text-muted-foreground mt-6 text-center text-sm">
-          Don&apos;t have an account? <Link href="/signup" className="font-medium text-foreground">Sign up</Link>
+        <p className="auth-login-link">
+          Don&apos;t have an account? <Link href="/signup">Sign up</Link>
         </p>
       </motion.div>
     </AuthFrame>
