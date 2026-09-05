@@ -226,6 +226,9 @@ button { cursor: pointer; }
   color: var(--ink);
   font-weight: 600;
 }
+.rail-expanded .rail-item.active {
+  box-shadow: inset 3px 0 0 var(--ink);
+}
 .rail-label {
   white-space: nowrap;
   overflow: hidden;
@@ -336,13 +339,21 @@ button { cursor: pointer; }
   margin: 0 auto;
   position: relative;
 }
-.topbar-search input {
+.topbar-search input,
+.topbar-search-input {
   width: 100%;
   border: 1px solid var(--rule);
   background: var(--bg);
   border-radius: 999px;
   padding: 8px 14px 8px 36px;
   font-size: 13px;
+  min-height: 36px;
+  outline: none;
+}
+.topbar-search input:focus,
+.topbar-search-input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.06);
 }
 .topbar-search svg {
   position: absolute;

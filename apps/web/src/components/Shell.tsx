@@ -22,7 +22,6 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -441,12 +440,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span className="topbar-title md:hidden">Venture OS</span>
           <form className="topbar-search" onSubmit={onSearch} role="search">
             <Search className="size-4" aria-hidden />
-            <Input
+            <input
               type="search"
               placeholder="Search companies, flags, or reports…"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              className="rounded-full bg-muted/50 pl-9"
+              className="topbar-search-input"
               aria-label="Search"
             />
           </form>
