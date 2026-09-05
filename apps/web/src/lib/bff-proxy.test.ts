@@ -76,12 +76,30 @@ describe("BFF proxy", () => {
     });
     const out = await bffFromUpstream(upstream);
     expect(out.headers.get("content-encoding")).toBeNull();
-    expect(out.headers.get("content-length")).not.toBe("137");
+    expect(out.headers.get("content-length")).toBe(String(Buffer.byteLength(full)));
     const text = await out.text();
     expect(text).toBe(full);
     expect(text).not.toMatch(/,"org"$/);
     expect(() => JSON.parse(text)).not.toThrow();
     expect(JSON.parse(text).user.email).toBe("ada@firm.test");
+  });
+
+  it("does not forward a stream that closed mid-JSON (Render back-to-back /api/me)", async () => {
+    const truncated = '{"user":{"id":"u1","name":"Ada"},"org":null,"role":null,"org';
+    expect(() => JSON.parse(truncated)).toThrow(/Unterminated string/i);
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(truncated));
+        controller.close();
+      },
+    });
+    const out = await bffFromUpstream(
+      new Response(stream, { status: 200, headers: { "content-type": "application/json" } }),
+    );
+    expect(out.status).toBe(502);
+    expect(out.headers.get("content-type")).toContain("application/json");
+    const body = await out.json();
+    expect(body).toEqual({ error: BFF_UPSTREAM_UNAVAILABLE });
   });
 
   it("rewrites multipart sign-up to JSON so Better Auth does not 415", async () => {

@@ -73,14 +73,31 @@ export function classifyUpstreamFailure(err: unknown): 502 | 503 {
   return 502;
 }
 
+/** True when bytes are complete JSON. A stream that closed mid-key fails this. */
+export function jsonBodyComplete(buf: Buffer): boolean {
+  if (!buf.length) return true;
+  try {
+    JSON.parse(buf.toString("utf8"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Copy a decompressed upstream response. Buffer the body so a stale
- * compressed Content-Length cannot truncate the stream.
+ * Fully buffer the decompressed upstream body before handing it to Next.
+ * Streaming `res.body` can close early on Render free-tier back-to-back
+ * signup→/api/me; a stale content-length then cuts the browser parse.
  */
 export async function bffFromUpstream(res: Response): Promise<Response> {
-  const buf = await res.arrayBuffer();
+  const buf = Buffer.from(await res.arrayBuffer());
   const out = new Headers();
   applyUpstreamHeaders(res.headers, out);
+  const ct = (out.get("content-type") ?? res.headers.get("content-type") ?? "").toLowerCase();
+  if (ct.includes("application/json") && !jsonBodyComplete(buf)) {
+    return bffUpstreamError(502);
+  }
+  out.set("content-length", String(buf.length));
   return new Response(buf, { status: res.status, headers: out });
 }
 
