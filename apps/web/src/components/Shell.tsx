@@ -284,7 +284,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </Link>
     );
 
-    if (railExpanded) return <div key={n.href}>{link}</div>;
+    if (railExpanded) return <div key={n.href} className="rail-item-wrap">{link}</div>;
 
     return (
       <Tooltip key={n.href}>

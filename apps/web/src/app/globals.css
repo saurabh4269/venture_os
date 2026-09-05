@@ -255,6 +255,10 @@ button { cursor: pointer; }
   min-height: 0;
   padding: 0;
 }
+.rail-expanded .nav > .rail-item-wrap,
+.rail-expanded .rail-foot > * {
+  width: 100%;
+}
 .rail-spacer { flex: 1; min-height: 8px; }
 .rail-divider {
   height: 1px;
