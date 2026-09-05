@@ -13,4 +13,9 @@ describe("friendlyAuthError", () => {
   it("keeps invalid-credential copy distinct from length", () => {
     expect(friendlyAuthError("Invalid email or password")).toMatch(/wrong/i);
   });
+
+  it("maps truncated JSON and upstream 502 to a refreshable message", () => {
+    expect(friendlyAuthError("Unterminated string in JSON at position 137")).toMatch(/truncated/i);
+    expect(friendlyAuthError("upstream_unavailable")).toMatch(/unreachable/i);
+  });
 });

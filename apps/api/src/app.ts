@@ -66,6 +66,8 @@ export function createApp() {
   app.use("*", sessionMiddleware);
   app.route("/", routes);
 
+  app.notFound((c) => c.json({ error: "not_found" }, 404));
+
   app.onError((err, c) => {
     if (err instanceof HttpError) return c.json({ error: err.message }, err.status as never);
     log("error", "unhandled", { err: err.message, stack: err.stack });

@@ -1,5 +1,5 @@
 import { normalizeEmail, passwordLengthError } from "@venture-os/config/password";
-import { apiUrl } from "./api";
+import { apiUrl, parseJsonSafe } from "./api";
 import type { Me } from "./auth-client";
 
 export { normalizeEmail, passwordLengthError };
@@ -39,9 +39,16 @@ export async function postAuthEmail(
   });
   let data: { error?: string; message?: string; status?: string } | null = null;
   try {
-    data = (await res.json()) as { error?: string; message?: string; status?: string };
-  } catch {
-    /* ignore */
+    const text = await res.text();
+    if (text) data = parseJsonSafe(text) as { error?: string; message?: string; status?: string };
+  } catch (err) {
+    if (!res.ok) {
+      return { ok: false, message: err instanceof Error ? err.message : "Request failed" };
+    }
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "Signed in but the session response was unreadable.",
+    };
   }
   const message = data?.message ?? data?.error ?? data?.status ?? res.statusText ?? "Request failed";
   if (!res.ok) return { ok: false, message };

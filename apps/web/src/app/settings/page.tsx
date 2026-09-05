@@ -76,10 +76,14 @@ export default function SettingsPage() {
       .catch((e: Error) => setLoadErr(e.message));
     api<{
       funds: { id: string; name: string; vintage?: number | null; currency?: string; committedCapital?: number | null }[];
-    }>("/api/funds").then((r) => setFunds(r.funds));
-    api<{ members: Member[] }>("/api/members").then((r) => setMembers(r.members));
+    }>("/api/funds")
+      .then((r) => setFunds(r.funds ?? []))
+      .catch(() => setFunds([]));
+    api<{ members: Member[] }>("/api/members")
+      .then((r) => setMembers(r.members ?? []))
+      .catch(() => setMembers([]));
     api<{ invitations: Invite[] }>("/api/invitations")
-      .then((r) => setInvites(r.invitations))
+      .then((r) => setInvites(r.invitations ?? []))
       .catch(() => setInvites([]));
   }
   useEffect(() => {
@@ -400,22 +404,15 @@ export default function SettingsPage() {
             return;
           }
           try {
-            const res = await fetch("/api/settings/flag-policy", {
+            await api("/api/settings/flag-policy", {
               method: "POST",
-              headers: { "content-type": "application/json" },
-              credentials: "include",
               body: JSON.stringify({ thresholds }),
             });
-            const body = (await res.json()) as { error?: string; fields?: Record<string, string> };
-            if (!res.ok) {
-              setPolicyFields(body.fields ?? {});
-              setPolicyMsg(friendlyAuthError(body.error ?? "Could not save policy"));
-              return;
-            }
             setPolicyMsg("Thresholds saved. Recompute Flags to apply.");
             load();
           } catch (ex) {
-            setPolicyMsg(ex instanceof Error ? ex.message : "Could not save policy");
+            const raw = ex instanceof Error ? ex.message : "Could not save policy";
+            setPolicyMsg(friendlyAuthError(raw));
           }
         }}
       >

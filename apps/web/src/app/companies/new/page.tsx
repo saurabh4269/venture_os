@@ -30,7 +30,7 @@ export default function NewCompanyPage() {
 
   useEffect(() => {
     api<{ funds: { id: string; name: string }[] }>("/api/funds")
-      .then((r) => setFunds(r.funds))
+      .then((r) => setFunds(r.funds ?? []))
       .catch(() => setFunds([]));
     api<{ connectors: { kind: string; status: string }[] }>("/api/connectors")
       .then((r) => setOnedriveReady(r.connectors.some((c) => c.kind === "onedrive" && c.status === "connected")))

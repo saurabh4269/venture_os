@@ -84,6 +84,8 @@ function SignupForm() {
         );
         router.push("/onboard");
       }
+    } catch (ex) {
+      setErr(friendlyAuthError(ex instanceof Error ? ex.message : "Could not sign up"));
     } finally {
       setBusy(false);
     }

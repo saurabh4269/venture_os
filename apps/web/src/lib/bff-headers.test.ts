@@ -35,4 +35,19 @@ describe("BFF session headers", () => {
     expect(cookies[0]).not.toMatch(/domain=/i);
     expect(cookies[0]).toContain("__Secure-better-auth.session_token=tok");
   });
+
+  it("never forwards upstream content-length or content-encoding after decompress", () => {
+    const src = new Headers({
+      "content-type": "application/json",
+      "content-length": "137",
+      "content-encoding": "gzip",
+      "transfer-encoding": "chunked",
+    });
+    const out = new Headers();
+    applyUpstreamHeaders(src, out);
+    expect(out.get("content-length")).toBeNull();
+    expect(out.get("content-encoding")).toBeNull();
+    expect(out.get("transfer-encoding")).toBeNull();
+    expect(out.get("content-type")).toBe("application/json");
+  });
 });
