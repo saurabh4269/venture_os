@@ -7,6 +7,7 @@ import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/
 import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Pulse = {
   pulse: {
@@ -95,7 +96,7 @@ export default function CommandPage() {
         setErr("");
         setRefreshedAt(new Date());
       })
-      .catch((e: Error) => setErr(e.message))
+      .catch((e: Error) => setErr(bookErrorMessage(e.message)))
       .finally(() => setBusy(false));
   }
   useEffect(() => {

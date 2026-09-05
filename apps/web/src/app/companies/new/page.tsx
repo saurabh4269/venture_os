@@ -116,7 +116,7 @@ export default function NewCompanyPage() {
       if (st === "done" || st === "error") return;
       await new Promise((ok) => setTimeout(ok, 1000));
     }
-    setParseStatus("timed out — start the worker or retry extract from the company page");
+    setParseStatus("still running — open the company page to retry extract if this stays queued");
   }
 
   if (!canWrite) {
@@ -134,13 +134,7 @@ export default function NewCompanyPage() {
     <Shell>
       <PageHead
         title="Onboard a company"
-        lede={
-          <>
-            Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Happy-path script:{" "}
-            <code>docs/improvements/onboarding-15min.md</code>. Sample MIS:{" "}
-            <code>fixtures/FIXTURE_ONLY-sample-mis.csv</code>.
-          </>
-        }
+        lede="Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Upload an XLSX or CSV MIS pack — we will not invent a company from an empty vault."
       />
       {err && (
         <p className="sev-high" role="alert">

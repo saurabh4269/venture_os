@@ -170,6 +170,8 @@ A flag **does not fire** without evidence. Missing inputs ≠ flag.
 
 ```
 Unauthenticated
+  /                 Marketing landing (Stitch). Soft-redirect if session cookie.
+  /security         Trust & methodology (no invented prices or certifications)
   /login
   /signup
   /invite?id=
@@ -196,7 +198,7 @@ Signed in, in org  (left rail)
     /settings/connectors
 ```
 
-`/` redirects to `/command` when the session has an org.
+`/` is the public marketing landing. A signed-in visitor is soft-redirected to `/command` (or `/onboard`) after first paint — the landing HTML does not wait on `/api/me`.
 
 ### 4.2 Shell (global chrome)
 

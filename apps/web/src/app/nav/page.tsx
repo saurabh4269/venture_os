@@ -7,6 +7,7 @@ import { CompanyMark, formatOwnership, PageHead, Panel } from "@/components/Book
 import { IconLock, IconWarn } from "@/components/Icons";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Nav = {
   asOf: string;
@@ -138,7 +139,7 @@ export default function NavPage() {
     setErr("");
     api<Nav>(`/api/nav?${qs}`)
       .then(setData)
-      .catch((e: Error) => setErr(e.message));
+      .catch((e: Error) => setErr(bookErrorMessage(e.message)));
   }
   useEffect(() => {
     load();

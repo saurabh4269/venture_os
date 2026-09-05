@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageHead, Panel } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Report = { id: string; title: string; kind: string; createdAt: string };
 
@@ -29,7 +30,7 @@ export default function ReportsPage() {
       api<{ reports: Report[] }>("/api/reports").then((r) => setRows(r.reports)),
       api<{ companies: { id: string; name: string }[] }>("/api/companies").then((r) => setCos(r.companies)),
     ])
-      .catch((e: Error) => setErr(e.message))
+      .catch((e: Error) => setErr(bookErrorMessage(e.message)))
       .finally(() => setLoading(false));
   }
   useEffect(() => {

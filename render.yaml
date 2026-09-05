@@ -1,5 +1,10 @@
 # Render — alternative to Fly for api + worker. Free/hobby friendly.
 # Secrets are set in the dashboard — never committed. sync: false = operator fills in.
+#
+# Free web services sleep after 15 minutes idle. Keep-alive (portable, $0):
+# GET /health every 10 minutes from UptimeRobot / cron-job.org, or GET the
+# Vercel origin /api/health (same-origin BFF → this API). A Render cron that
+# curls /health is $1/month — optional; see docs/cost-hosting.md.
 
 services:
   - type: web

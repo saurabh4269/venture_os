@@ -55,6 +55,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Direct SQL as role without `org_id` session cannot read another org rows (RLS proof test).
 - [x] No corpus-JSON loaded as production path.
 - [x] Empty shell renders; every number surface shows empty / “—” not illustrative demo NAV.
+- [x] Public `/` is the Stitch marketing landing; anonymous first paint does not wait on `/api/me` (2026-09-05).
 - [x] Heavy parse/flag jobs run in `worker` (inline fallback only if Redis is down).
 - [x] CI builds web and runs a Playwright signup→confirm smoke (Pass 33) plus viewer storageState / rituals / optional axe (Pass 35). Same-origin BFF (Pass 31).
 

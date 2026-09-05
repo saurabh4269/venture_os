@@ -129,7 +129,15 @@ export function AuthFrame({
   return (
     <div className="auth-shell">
       <div className="auth-brand">
-        {mode === "other" ? <p className="wordmark">Venture OS</p> : <h1>Venture OS</h1>}
+        {mode === "other" ? (
+          <p className="wordmark">
+            <Link href="/">Venture OS</Link>
+          </p>
+        ) : (
+          <h1>
+            <Link href="/">Venture OS</Link>
+          </h1>
+        )}
         <p>Portfolio operating system</p>
       </div>
       <div className="auth">

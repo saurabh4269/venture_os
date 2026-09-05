@@ -5,6 +5,7 @@ import { PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Item = {
   id: string;
@@ -67,7 +68,7 @@ export default function InboxPage() {
         setListReady(true);
       })
       .catch((e: Error) => {
-        setErr(e.message);
+        setErr(bookErrorMessage(e.message));
         setListReady(true);
       });
   }

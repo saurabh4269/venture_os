@@ -6,6 +6,7 @@ import { METRIC_CATALOG, metricByKey } from "@venture-os/core";
 import { PageHead, Panel } from "@/components/BookUI";
 import { Fact, Shell } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Cell = {
   display: string;
@@ -89,7 +90,7 @@ export default function ComparePage() {
     setErr("");
     api<Data>(`/api/compare?${qs}`)
       .then(setData)
-      .catch((e: Error) => setErr(e.message))
+      .catch((e: Error) => setErr(bookErrorMessage(e.message)))
       .finally(() => setLoading(false));
     const next = `${window.location.pathname}?${qs}`;
     window.history.replaceState(null, "", next);

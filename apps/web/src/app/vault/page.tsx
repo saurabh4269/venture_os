@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageHead, Panel } from "@/components/BookUI";
 import { Shell } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Doc = {
   id: string;
@@ -21,14 +22,14 @@ export default function VaultPage() {
   useEffect(() => {
     api<{ documents: Doc[] }>("/api/documents")
       .then((r) => setDocs(r.documents ?? []))
-      .catch((e: Error) => setErr(e.message));
+      .catch((e: Error) => setErr(bookErrorMessage(e.message)));
   }, []);
 
   return (
     <Shell>
       <PageHead
         title="Vault"
-        lede="Source files. Upload here, confirm in Inbox, then they become book facts. Firm library is thin. LP room is Phase 2."
+        lede="Company vault — MIS, board packs, and transcripts. Upload here, confirm in Inbox. A firm library and LP room are not in this release."
       />
       {err && (
         <p className="sev-high" role="alert">

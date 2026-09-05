@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { bookErrorMessage } from "@/lib/wake";
 
 type Company = { id: string; name: string; stage: string | null; sector: string | null; country: string | null };
 type Coverage = {
@@ -56,7 +57,7 @@ export default function CompaniesPage() {
   useEffect(() => {
     api<{ companies: Company[] }>("/api/companies")
       .then((r) => setRows(r.companies ?? []))
-      .catch((e: Error) => setErr(e.message));
+      .catch((e: Error) => setErr(bookErrorMessage(e.message)));
     api<{ coverage: Coverage[] }>("/api/command")
       .then((r) => setCoverage(r.coverage ?? []))
       .catch(() => setCoverage([]));
