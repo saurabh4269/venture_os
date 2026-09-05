@@ -1,26 +1,34 @@
 import { describe, expect, it } from "vitest";
 import {
+  BFF_UPSTREAM_TIMEOUT_MS,
   BFF_UPSTREAM_UNAVAILABLE,
+  BFF_VERCEL_TIMEOUT_MS,
   bffFromUpstream,
   bffUpstreamError,
   classifyUpstreamFailure,
   fetchUpstream,
   resolveBffUpstream,
   rewriteAuthEmailBody,
+  upstreamTimeoutMs,
 } from "./bff-proxy";
 
 describe("BFF proxy", () => {
-  it("does not fall back to localhost in production or on Vercel", () => {
+  it("does not silently fall back to localhost when API_URL is unset in prod/Vercel", () => {
     expect(resolveBffUpstream({ NODE_ENV: "production" })).toBeNull();
     expect(resolveBffUpstream({ VERCEL: "1" })).toBeNull();
+    expect(resolveBffUpstream({ NODE_ENV: "development" })).toBe("http://localhost:4000");
+  });
+
+  it("honors explicit localhost API_URL on next start (CI) but refuses it on Vercel", () => {
     expect(
       resolveBffUpstream({ NODE_ENV: "production", API_URL: "http://localhost:4000" }),
-    ).toBeNull();
+    ).toBe("http://localhost:4000");
     expect(resolveBffUpstream({ VERCEL: "1", API_URL: "http://127.0.0.1:4000" })).toBeNull();
     expect(resolveBffUpstream({ NODE_ENV: "production", API_URL: "https://api.example" })).toBe(
       "https://api.example",
     );
-    expect(resolveBffUpstream({ NODE_ENV: "development" })).toBe("http://localhost:4000");
+    expect(upstreamTimeoutMs({ VERCEL: "1" })).toBe(BFF_VERCEL_TIMEOUT_MS);
+    expect(upstreamTimeoutMs({})).toBe(BFF_UPSTREAM_TIMEOUT_MS);
   });
 
   it("returns JSON 502/503 when upstream is missing or refused", async () => {
@@ -100,6 +108,31 @@ describe("BFF proxy", () => {
     expect(out.headers.get("content-type")).toContain("application/json");
     const body = await out.json();
     expect(body).toEqual({ error: BFF_UPSTREAM_UNAVAILABLE });
+  });
+
+  it("forwards a complete Better Auth signup JSON (does not 502)", async () => {
+    const signup = JSON.stringify({
+      token: "sess_1",
+      user: {
+        id: "u1",
+        email: "e2e@example.test",
+        name: "E2E",
+        emailVerified: false,
+        createdAt: "2026-09-05T10:00:00.000Z",
+        updatedAt: "2026-09-05T10:00:00.000Z",
+      },
+    });
+    const out = await bffFromUpstream(
+      new Response(signup, {
+        status: 200,
+        headers: { "content-type": "application/json; charset=utf-8", "content-length": String(signup.length) },
+      }),
+    );
+    expect(out.status).toBe(200);
+    const text = await out.text();
+    expect(text.length, `head=${text.slice(0, 80)} tail=${text.slice(-80)}`).toBeGreaterThan(80);
+    expect(() => JSON.parse(text)).not.toThrow();
+    expect(JSON.parse(text).user.email).toBe("e2e@example.test");
   });
 
   it("rewrites multipart sign-up to JSON so Better Auth does not 415", async () => {

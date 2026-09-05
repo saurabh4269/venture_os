@@ -27,7 +27,10 @@ test.describe("@smoke signup then /api/me", () => {
     );
     await page.getByTestId("signup-submit").click();
     const signup = await signupWait;
-    expect(signup.ok(), `signup status ${signup.status()}`).toBeTruthy();
+    const signupText = await signup.text();
+    const signupDiag = `signup status=${signup.status()} bytes=${signupText.length} head=${signupText.slice(0, 80)} tail=${signupText.slice(-80)}`;
+    expect(signup.ok(), signupDiag).toBeTruthy();
+    expect(() => JSON.parse(signupText), signupDiag).not.toThrow();
 
     const me = await page.context().request.get("/api/me");
     const hdrs = me.headers();

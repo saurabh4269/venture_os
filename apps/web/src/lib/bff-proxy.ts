@@ -1,8 +1,9 @@
 import { applyUpstreamHeaders, BFF_CACHE_CONTROL } from "./bff-headers";
 
 export const BFF_UPSTREAM_UNAVAILABLE = "upstream_unavailable";
-/** Stay under Vercel Hobby's 10s cap so we return JSON 503 instead of a killed function. */
-export const BFF_UPSTREAM_TIMEOUT_MS = 8_000;
+/** CI / local bcrypt signup can exceed 8s. Vercel Hobby dies at 10s. */
+export const BFF_UPSTREAM_TIMEOUT_MS = 30_000;
+export const BFF_VERCEL_TIMEOUT_MS = 8_000;
 
 type EnvLike = {
   API_URL?: string;
@@ -11,8 +12,12 @@ type EnvLike = {
   VERCEL?: string;
 };
 
-function hostedRuntime(env: EnvLike): boolean {
-  return env.NODE_ENV === "production" || env.VERCEL === "1" || env.VERCEL === "true";
+function onVercel(env: EnvLike): boolean {
+  return env.VERCEL === "1" || env.VERCEL === "true";
+}
+
+export function upstreamTimeoutMs(env: EnvLike = process.env): number {
+  return onVercel(env) ? BFF_VERCEL_TIMEOUT_MS : BFF_UPSTREAM_TIMEOUT_MS;
 }
 
 function loopbackUrl(url: string): boolean {
@@ -25,16 +30,19 @@ function loopbackUrl(url: string): boolean {
 }
 
 /**
- * Production / Vercel must set a public API_URL. Never silently proxy to
- * localhost:4000 there — that is the ECONNREFUSED path in Vercel logs.
+ * Never silently default to localhost on Vercel or `next start` when API_URL
+ * is unset (that is ECONNREFUSED 127.0.0.1:4000). An **explicit**
+ * API_URL=http://localhost:4000 is valid for CI (`next start` + local API).
+ * Loopback is only refused on Vercel, where it cannot work.
  */
 export function resolveBffUpstream(env: EnvLike = process.env): string | null {
   const url = (env.API_URL || env.BETTER_AUTH_URL || "").replace(/\/$/, "");
-  if (hostedRuntime(env)) {
-    if (!url || loopbackUrl(url)) return null;
-    return url;
+  if (!url) {
+    if (onVercel(env) || env.NODE_ENV === "production") return null;
+    return "http://localhost:4000";
   }
-  return url || "http://localhost:4000";
+  if (onVercel(env) && loopbackUrl(url)) return null;
+  return url;
 }
 
 export function bffUpstreamError(status: 502 | 503 = 502): Response {
@@ -94,7 +102,7 @@ export async function bffFromUpstream(res: Response): Promise<Response> {
   const out = new Headers();
   applyUpstreamHeaders(res.headers, out);
   const ct = (out.get("content-type") ?? res.headers.get("content-type") ?? "").toLowerCase();
-  if (ct.includes("application/json") && !jsonBodyComplete(buf)) {
+  if (ct.includes("application/json") && buf.length > 0 && !jsonBodyComplete(buf)) {
     return bffUpstreamError(502);
   }
   out.set("content-length", String(buf.length));
@@ -109,7 +117,7 @@ export async function fetchUpstream(
   try {
     const res = await fetchImpl(target, {
       ...init,
-      signal: init.signal ?? AbortSignal.timeout(BFF_UPSTREAM_TIMEOUT_MS),
+      signal: init.signal ?? AbortSignal.timeout(upstreamTimeoutMs()),
     });
     return await bffFromUpstream(res);
   } catch (err) {
