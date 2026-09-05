@@ -165,7 +165,7 @@ export default function CommandPage() {
         <div className="command-home-grid">
           <Card>
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-2">
+              <div className="command-card-head flex items-center justify-between gap-2">
                 <CardTitle className="font-serif text-lg">
                   Needs a look{needsLook > 0 ? ` · ${needsLook}` : ""}
                 </CardTitle>
@@ -226,12 +226,13 @@ export default function CommandPage() {
                   <p>Ready to add your first company.</p>
                 </div>
               ) : (
+                <div className="table-scroll command-pipeline-scroll">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Company</TableHead>
                       <TableHead>Stage</TableHead>
-                      <TableHead>Source</TableHead>
+                      <TableHead className="hide-sm">Source</TableHead>
                       <TableHead className="text-right">Updated</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -247,12 +248,13 @@ export default function CommandPage() {
                         <TableCell>
                           <Badge variant="secondary">{r.pipelineStage}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">Book</TableCell>
+                        <TableCell className="text-muted-foreground hide-sm">Book</TableCell>
                         <TableCell className="text-right tabular-nums">{r.updated}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

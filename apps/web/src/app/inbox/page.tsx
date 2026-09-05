@@ -155,6 +155,7 @@ export default function InboxPage() {
         title="Inbox"
         lede="Proposed extracts ready for your review. Confirm a row to add it to the book."
       />
+      <div className="inbox-filters">
       <div className="tabs filter-pills" aria-label="Status">
         {STATUSES.map((s) => (
           <button
@@ -187,6 +188,7 @@ export default function InboxPage() {
             <span className="filter-count">{count}</span>
           </button>
         ))}
+      </div>
       </div>
       {err && (
         <p className="sev-high" role="alert">

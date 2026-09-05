@@ -141,14 +141,14 @@ export default function NewCompanyPage() {
           {err}
         </p>
       )}
-      <ol className="steps">
-        <li className={step === 1 ? "on" : undefined}>1 · Profile</li>
-        <li className={step === 2 ? "on" : undefined}>2 · Vault</li>
-        <li className={step === 3 ? "on" : undefined}>3 · Confirm inbox</li>
+      <ol className="steps onboard-steps">
+        <li className={step === 1 ? "on" : undefined}>Profile</li>
+        <li className={step === 2 ? "on" : undefined}>Vault</li>
+        <li className={step === 3 ? "on" : undefined}>Confirm inbox</li>
       </ol>
 
       {step === 1 && (
-        <form onSubmit={create} className="grid-2" style={{ maxWidth: 640, marginTop: 16 }}>
+        <form onSubmit={create} className="grid-2 onboard-form">
           <label className="field">
             Name
             <input data-testid="company-name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -204,7 +204,7 @@ export default function NewCompanyPage() {
             Granola note id (optional)
             <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
           </label>
-          <div>
+          <div className="onboard-form-actions">
             <button className="btn" type="submit" disabled={busy} data-testid="create-company">
               {busy ? "Creating…" : "Create company"}
             </button>
@@ -213,7 +213,7 @@ export default function NewCompanyPage() {
       )}
 
       {step === 2 && (
-        <form onSubmit={upload} style={{ marginTop: 16 }}>
+        <form onSubmit={upload} className="onboard-upload">
           <p className="lede">
             {onedriveReady
               ? "OneDrive is connected. Upload a file or pull from the mapped folder."
@@ -261,8 +261,7 @@ export default function NewCompanyPage() {
 
       {step === 3 && (
         <div
-          className="empty"
-          style={{ marginTop: 16 }}
+          className="empty onboard-extract"
           data-testid="extract-status"
           data-parse-status={parseStatus || "queued"}
         >

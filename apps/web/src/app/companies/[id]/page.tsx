@@ -314,7 +314,7 @@ export default function CompanyPage() {
           </>
         }
         actions={
-          <div className="row">
+          <div className="row page-actions-row">
             <Link className="btn ghost sm" href="/compare">
               Compare
             </Link>

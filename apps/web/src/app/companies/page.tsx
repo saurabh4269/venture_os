@@ -128,7 +128,7 @@ export default function CompaniesPage() {
         lede={bookCloseLine()}
         actions={
           canWrite ? (
-            <Link className="btn" href="/companies/new">
+            <Link className="btn companies-add-inline" href="/companies/new">
               Add company
             </Link>
           ) : undefined

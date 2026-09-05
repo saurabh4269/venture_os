@@ -1163,6 +1163,44 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .steps { display: flex; gap: 18px; list-style: none; padding: 0; margin: 0 0 18px; color: var(--muted-foreground); font-size: 13px; }
 .steps li { position: relative; }
 .steps li.on { color: var(--ink); font-weight: 500; }
+.onboard-steps {
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--chip);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-whisper);
+}
+.onboard-steps li {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.onboard-steps li.on {
+  background: var(--paper-2);
+  font-weight: 600;
+}
+.onboard-form {
+  max-width: 640px;
+  margin-top: 16px;
+}
+.onboard-form-actions { margin-top: 4px; grid-column: 1 / -1; }
+.onboard-upload { margin-top: 16px; max-width: 520px; }
+.onboard-extract { margin-top: 16px; }
+.inbox-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.inbox-filters .filter-pills { margin-bottom: 0; }
+.command-pipeline-scroll { margin: 0; }
+.command-pipeline-scroll table { min-width: 420px; }
+.command-card-head { flex-wrap: wrap; }
+.page-actions-row { flex-wrap: wrap; gap: 8px; }
 
 .notice-split {
   display: grid;
@@ -2389,6 +2427,45 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .mobile-nav-link { min-height: 44px; }
   .upload-actions { flex-direction: column; align-items: stretch; }
   .upload-actions .btn { width: 100%; justify-content: center; }
+  .grid-2.onboard-form,
+  .onboard-form.grid-2 { grid-template-columns: 1fr; gap: 12px; }
+  .onboard-form .field input,
+  .onboard-form .field select {
+    min-height: 44px;
+    width: 100%;
+  }
+  .onboard-form-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+  .inbox-filters .tabs.filter-pills {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .inbox-filters .filter-pill { width: 100%; }
+  .triage-row > .row {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .triage-row > .row .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+  }
+  .companies-add-inline { display: none; }
+  .page-actions-row .btn,
+  .page-actions-row .chip {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+    min-height: 40px;
+    text-align: center;
+  }
+  .page-actions-row { width: 100%; }
+  .command-card-head { flex-direction: column; align-items: flex-start !important; }
+  .filter-bar select { flex: 1 1 45%; min-width: 0; }
   .mkt-notes,
   .mkt-steps-plain { grid-template-columns: 1fr; }
   .mkt-header-actions .mkt-login-btn,
