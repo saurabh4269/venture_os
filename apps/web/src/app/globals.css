@@ -708,6 +708,8 @@ button.chip { font: inherit; color: inherit; }
   justify-content: center;
 }
 a.btn, a.btn:hover { color: var(--primary-ink); }
+.topbar-actions a.btn.topbar-add-btn,
+.topbar-actions a.btn.topbar-add-btn:hover { color: var(--primary-ink); }
 a.btn.ghost, a.btn.ghost:hover { color: var(--ink); }
 [data-slot="button"].bg-primary,
 [data-slot="button"].bg-primary:hover {

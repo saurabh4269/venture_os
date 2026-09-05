@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { signupAdmin, waitForInboxActions } from "./helpers/session";
 
@@ -23,16 +23,29 @@ test.describe.configure({ mode: "serial" });
 test.describe("workflow polish", () => {
   async function ensureAuth(browser: Browser): Promise<string> {
     mkdirSync(AUTH_DIR, { recursive: true });
-    if (existsSync(AUTH) && existsSync(STAMP_FILE)) {
-      return readFileSync(STAMP_FILE, "utf8").trim();
+
+    async function createFresh(): Promise<string> {
+      if (existsSync(AUTH)) unlinkSync(AUTH);
+      if (existsSync(STAMP_FILE)) unlinkSync(STAMP_FILE);
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      const page = await ctx.newPage();
+      const creds = await signupAdmin(page);
+      await ctx.storageState({ path: AUTH });
+      writeFileSync(STAMP_FILE, creds.stamp, "utf8");
+      await ctx.close();
+      return creds.stamp;
     }
-    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    const page = await ctx.newPage();
-    const creds = await signupAdmin(page);
-    await ctx.storageState({ path: AUTH });
-    writeFileSync(STAMP_FILE, creds.stamp, "utf8");
-    await ctx.close();
-    return creds.stamp;
+
+    if (existsSync(AUTH) && existsSync(STAMP_FILE)) {
+      const ctx = await browser.newContext({ storageState: AUTH, viewport: { width: 1280, height: 800 } });
+      const page = await ctx.newPage();
+      await page.goto("/command");
+      const ok = await page.getByTestId("command-ready").isVisible({ timeout: 20_000 }).catch(() => false);
+      await ctx.close();
+      if (ok) return readFileSync(STAMP_FILE, "utf8").trim();
+    }
+
+    return createFresh();
   }
 
   async function authedPage(browser: Browser, viewport: { width: number; height: number }): Promise<Page> {

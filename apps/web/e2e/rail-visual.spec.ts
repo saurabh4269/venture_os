@@ -13,14 +13,10 @@ test("rail collapsed/expanded and topbar CTA", async ({ page }) => {
   await page.getByTestId("signup-submit").click();
   await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 90_000 });
 
-  const addCompany = page.locator(".topbar-actions a.btn");
+  const addCompany = page.locator(".topbar-actions a.topbar-add-btn");
   await expect(addCompany).toBeVisible();
-  await expect(addCompany).toHaveClass(/btn/);
-  const color = await addCompany.evaluate((el) => {
-    const s = getComputedStyle(el);
-    return { color: s.color, bg: s.backgroundColor };
-  });
-  expect(color.color).toMatch(/250|251|252|255/);
+  await expect(addCompany).toHaveAttribute("aria-label", "Add company");
+  await expect(addCompany).toHaveCSS("background-color", /9,\s*9,\s*11|rgb\(9,\s*9,\s*11\)/);
   await page.screenshot({ path: "test-results/rail-collapsed.png" });
 
   await page.locator(".rail-toggle").click();
