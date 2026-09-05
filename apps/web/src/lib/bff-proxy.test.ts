@@ -25,11 +25,18 @@ describe("BFF proxy", () => {
 
   it("buffers a decompressed body and drops the compressed content-length", async () => {
     const full = JSON.stringify({
-      user: { id: "u1", name: "Ada", email: "ada@firm.test" },
-      org: null,
-      role: null,
-      orgId: null,
-      needsOrg: true,
+      user: {
+        id: "u1",
+        name: "Ada Lovelace",
+        email: "ada@firm.test",
+        emailVerified: false,
+        createdAt: "2026-09-05T10:00:00.000Z",
+        updatedAt: "2026-09-05T10:00:00.000Z",
+      },
+      org: { id: "org_1", name: "V3 Ventures", slug: "v3-ventures", metadata: null },
+      role: "org_admin",
+      orgId: "org_1",
+      needsOrg: false,
     });
     expect(full.length).toBeGreaterThan(137);
     const upstream = new Response(full, {
