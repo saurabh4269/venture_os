@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FLAG_CATALOG } from "@venture-os/core";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
@@ -78,27 +79,24 @@ export default function FlagsPage() {
 
   return (
     <Shell>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <div>
-          <h1 data-testid="flags-ready">Flags</h1>
-          <p className="lede">
-            Catalog detectors only. Each row carries evidence. Missing inputs do not fire a flag. Mute and snooze
-            survive recompute. Unmute returns a row to open. Thresholds come from Settings → Flag policy (firm).
-            Recompute after a save — we do not invent a silent rerun.
-          </p>
-        </div>
-        {canWrite && (
-          <button className="btn ghost" onClick={recompute} disabled={busy}>
-            {busy ? "Recomputing…" : "Recompute"}
-          </button>
-        )}
-      </div>
+      <PageHead
+        title="Flags"
+        testId="flags-ready"
+        lede="Catalog detectors only. Each row carries evidence. Missing inputs do not fire a flag. Mute and snooze survive recompute. Unmute returns a row to open. Thresholds come from Settings → Flag policy (firm). Recompute after a save — we do not invent a silent rerun."
+        actions={
+          canWrite ? (
+            <button className="btn ghost" onClick={recompute} disabled={busy}>
+              {busy ? "Recomputing…" : "Recompute"}
+            </button>
+          ) : undefined
+        }
+      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      <div className="row" style={{ margin: "12px 0" }}>
+      <div className="tabs">
         {TABS.map((s) => (
           <button
             key={s}
@@ -136,11 +134,13 @@ export default function FlagsPage() {
       </div>
       {data.flags.length === 0 ? (
         <div className="empty">
+          <strong>{status === "open" ? "No open flags" : `No ${status} flags`}</strong>
           {status === "open"
-            ? "No open flags for this filter — either the book is quiet, or headlines are still unconfirmed."
-            : `No ${status} flags.`}
+            ? "Either the book is quiet, or headlines are still unconfirmed."
+            : `Nothing in ${status}.`}
         </div>
       ) : (
+        <Panel flush>
         <table>
           <thead>
             <tr>
@@ -225,6 +225,7 @@ export default function FlagsPage() {
             ))}
           </tbody>
         </table>
+        </Panel>
       )}
     </Shell>
   );

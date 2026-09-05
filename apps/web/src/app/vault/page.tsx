@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Shell } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
 
@@ -25,16 +26,22 @@ export default function VaultPage() {
 
   return (
     <Shell>
-      <h1>Vault</h1>
-      <p className="lede">Company vault — MIS, board packs, transcripts. Firm library is thin. LP room is Phase 2.</p>
+      <PageHead
+        title="Vault"
+        lede="Company vault — MIS, board packs, transcripts. Firm library is thin. LP room is Phase 2."
+      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
       {docs.length === 0 ? (
-        <div className="empty">No documents. Open a company and upload.</div>
+        <div className="empty">
+          <strong>No documents</strong>
+          Open a company and upload.
+        </div>
       ) : (
+        <Panel flush>
         <table>
           <thead>
             <tr>
@@ -62,6 +69,7 @@ export default function VaultPage() {
             ))}
           </tbody>
         </table>
+        </Panel>
       )}
     </Shell>
   );

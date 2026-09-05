@@ -12,6 +12,7 @@ import {
   type ConnectorKind,
   type ConnectorStatus,
 } from "@venture-os/core";
+import { PageHead } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -219,12 +220,16 @@ function ConnectorCards() {
 
   return (
     <Shell>
-      <h1>Connectors</h1>
-      <p className="lede">
-        Paste keys here — sync starts automatically after a successful test. Status stays{" "}
-        <strong>not connected</strong> until a health check succeeds. We never invent a last-sync time. Paste
-        steps: <code>docs/connectors/ADDING_KEYS.md</code>.
-      </p>
+      <PageHead
+        title="Connectors"
+        lede={
+          <>
+            Paste keys here — sync starts automatically after a successful test. Status stays{" "}
+            <strong>not connected</strong> until a health check succeeds. We never invent a last-sync time. Paste
+            steps: <code>docs/connectors/ADDING_KEYS.md</code>.
+          </>
+        }
+      />
       {oauthNote && (
         <p className={search.get("error") ? "sev-high" : "lede"} role="status">
           {search.get("error") ? `OAuth error: ${search.get("error")}` : `OneDrive ${search.get("onedrive")}.`}

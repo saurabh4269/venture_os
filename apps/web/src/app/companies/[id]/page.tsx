@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
 
@@ -211,31 +212,45 @@ export default function CompanyPage() {
 
   return (
     <Shell>
-      <h1>{data.company.name}</h1>
-      <p className="lede">
-        {data.company.legalName ? `${data.company.legalName} · ` : ""}
-        {data.company.sector ?? "—"} · {data.company.stage ?? "—"} · {data.company.country ?? "—"} · FY start month{" "}
-        {data.company.fyStartMonth ?? 4} ({data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
-        {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
-        {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
-      </p>
-      <p className="lede">
-        <Link href="/compare">Compare</Link> · <Link href={`/ask?companyId=${id}`}>Ask</Link> ·{" "}
-        <Link href="/inbox">Inbox</Link> · <Link href="/flags">Flags</Link>
-        {canWrite && (
+      <PageHead
+        title={data.company.name}
+        kicker={[data.company.sector, data.company.stage, data.company.country].filter(Boolean).join(" · ") || "Company"}
+        lede={
           <>
-            {" "}
-            ·{" "}
-            <button type="button" className="chip" onClick={() => setEditing((v) => !v)}>
-              {editing ? "Close editor" : "Edit profile"}
-            </button>
-            {" · "}
-            <button type="button" className="chip" onClick={draftOnePager}>
-              Draft one-pager
-            </button>
+            {data.company.legalName ? `${data.company.legalName} · ` : ""}
+            FY start month {data.company.fyStartMonth ?? 4} (
+            {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
+            {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
+            {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
           </>
-        )}
-      </p>
+        }
+        actions={
+          <div className="row">
+            <Link className="btn ghost sm" href="/compare">
+              Compare
+            </Link>
+            <Link className="btn ghost sm" href={`/ask?companyId=${id}`}>
+              Ask
+            </Link>
+            <Link className="btn ghost sm" href="/inbox">
+              Inbox
+            </Link>
+            <Link className="btn ghost sm" href="/flags">
+              Flags
+            </Link>
+            {canWrite && (
+              <>
+                <button type="button" className="chip" onClick={() => setEditing((v) => !v)}>
+                  {editing ? "Close editor" : "Edit profile"}
+                </button>
+                <button type="button" className="chip" onClick={draftOnePager}>
+                  Draft one-pager
+                </button>
+              </>
+            )}
+          </div>
+        }
+      />
       {draftMsg && (
         <p className="sev-high" role="alert">
           {draftMsg}
@@ -370,20 +385,20 @@ export default function CompanyPage() {
       )}
 
       {data.kpi && (
-        <div className="cards">
-          <div className="card">
+        <div className="cards cards-3">
+          <div className="kpi accent-forest">
             <div className="k">Cash</div>
             <div className="v">
               <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
             </div>
           </div>
-          <div className="card">
+          <div className="kpi">
             <div className="k">Burn</div>
             <div className="v">
               <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
             </div>
           </div>
-          <div className="card">
+          <div className="kpi">
             <div className="k">Runway (3-mo burn)</div>
             <div className="v">
               <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} />
@@ -392,7 +407,7 @@ export default function CompanyPage() {
         </div>
       )}
 
-      <h2>Positions</h2>
+      <Panel title="Positions">
       <p className="lede">
         Booked positions only. Affinity writes ownership only after a mapped numeric field id and a successful sync.
       </p>
@@ -426,8 +441,9 @@ export default function CompanyPage() {
           </tbody>
         </table>
       )}
+      </Panel>
 
-      <h2>Book</h2>
+      <Panel title="Book">
       <label className="lede">
         <input type="checkbox" checked={currentOnly} onChange={(e) => setCurrentOnly(e.target.checked)} /> Current
         version only (highest version per metric+period)
@@ -491,10 +507,11 @@ export default function CompanyPage() {
           </tbody>
         </table>
       )}
+      </Panel>
 
-      <div className="grid-2" style={{ marginTop: 24 }}>
+      <div className="grid-2" style={{ marginTop: 16 }}>
         <div className="lane-obj">
-          <h3>Objective (MIS)</h3>
+          <h3>Objective <span className="lane-chip obj">MIS</span></h3>
           {data.commentary.filter((n) => n.lane === "objective").map((n) => (
             <p key={n.id}>
               <span className="lede">{n.periodEnd} · objective</span>
@@ -505,7 +522,7 @@ export default function CompanyPage() {
           {data.commentary.filter((n) => n.lane === "objective").length === 0 && <p className="lede">—</p>}
         </div>
         <div className="lane-sub">
-          <h3>Subjective (calls / judgement)</h3>
+          <h3>Subjective <span className="lane-chip sub">calls / judgement</span></h3>
           {data.commentary.filter((n) => n.lane === "subjective").map((n) => (
             <p key={n.id}>
               <span className="lede">{n.periodEnd} · subjective</span>
@@ -544,7 +561,7 @@ export default function CompanyPage() {
       </form>
       )}
 
-      <h2>Flags</h2>
+      <Panel title="Flags">
       <ul>
         {data.flags.map((f) => (
           <li key={f.id} className={`sev-${f.severity}`}>
@@ -554,8 +571,9 @@ export default function CompanyPage() {
         ))}
         {data.flags.length === 0 && <li className="lede">No open flags.</li>}
       </ul>
+      </Panel>
 
-      <h2>Vault</h2>
+      <Panel title="Vault">
       <p className="lede">DOCX is not supported yet — upload XLSX, XLS, CSV, or PDF.</p>
       <label className="field" style={{ maxWidth: 220 }}>
         Kind
@@ -584,6 +602,7 @@ export default function CompanyPage() {
         ))}
       </ul>
       {canWrite && <Upload companyId={id} onDone={load} />}
+      </Panel>
     </Shell>
   );
 }

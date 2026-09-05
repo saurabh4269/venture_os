@@ -7,6 +7,7 @@ import { MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
 import { api } from "@/lib/api";
 import { type Me } from "@/lib/auth-client";
 import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm } from "@/lib/auth-form";
+import { AuthFrame } from "@/components/BookUI";
 import { friendlyAuthError, slugifyOrg } from "@/lib/roles";
 
 function SignupForm() {
@@ -92,7 +93,7 @@ function SignupForm() {
   }
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <h1>Open the book</h1>
       <p className="lede">
         {inviteId
@@ -189,7 +190,7 @@ function SignupForm() {
           Sign in
         </Link>
       </p>
-    </div>
+    </AuthFrame>
   );
 }
 
@@ -197,9 +198,9 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="auth">
+        <AuthFrame>
           <p className="lede">Loading…</p>
-        </div>
+        </AuthFrame>
       }
     >
       <SignupForm />

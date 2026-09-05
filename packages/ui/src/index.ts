@@ -1,6 +1,8 @@
 /** Shared tokens. Web app owns the actual React chrome so Next can tree-shake. */
 export const tokens = {
   paper: "#f3efe6",
+  paper2: "#ebe6da",
+  chip: "#fffdf8",
   ink: "#1c1915",
   muted: "#5c574e",
   rule: "#d4cfc3",
@@ -9,5 +11,6 @@ export const tokens = {
   danger: "#8b2e2e",
   warn: "#8a6a1a",
   subjective: "#3d3a5c",
+  subjectiveSoft: "#e8e6f0",
   objective: "#244c3c",
 };

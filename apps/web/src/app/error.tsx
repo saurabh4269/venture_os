@@ -14,7 +14,9 @@ export default function AppError({
     : "Something went wrong opening this page. Refresh, or sign in again.";
 
   return (
+    <div className="auth-shell">
     <div className="auth">
+      <div className="auth-mark">Venture OS · the book</div>
       <h1>Could not open this page</h1>
       <p className="lede" role="alert">
         {message}
@@ -22,6 +24,7 @@ export default function AppError({
       <button className="btn" type="button" onClick={() => reset()}>
         Try again
       </button>
+    </div>
     </div>
   );
 }

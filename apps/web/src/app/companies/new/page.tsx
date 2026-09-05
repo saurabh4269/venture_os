@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PageHead } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -121,7 +122,7 @@ export default function NewCompanyPage() {
   if (!canWrite) {
     return (
       <Shell>
-        <h1>Onboard a company</h1>
+        <PageHead title="Onboard a company" />
         <p className="lede" data-testid="viewer-read-only">
           Viewers cannot add companies. Ask an Org Admin to onboard a name. The book stays read-only for your role.
         </p>
@@ -131,21 +132,25 @@ export default function NewCompanyPage() {
 
   return (
     <Shell>
-      <h1>Onboard a company</h1>
-      <p className="lede">
-        Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Happy-path script:{" "}
-        <code>docs/improvements/onboarding-15min.md</code>. Sample MIS:{" "}
-        <code>fixtures/FIXTURE_ONLY-sample-mis.csv</code>.
-      </p>
+      <PageHead
+        title="Onboard a company"
+        lede={
+          <>
+            Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Happy-path script:{" "}
+            <code>docs/improvements/onboarding-15min.md</code>. Sample MIS:{" "}
+            <code>fixtures/FIXTURE_ONLY-sample-mis.csv</code>.
+          </>
+        }
+      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      <ol style={{ color: "var(--muted)" }}>
-        <li style={{ fontWeight: step === 1 ? 600 : 400 }}>Profile</li>
-        <li style={{ fontWeight: step === 2 ? 600 : 400 }}>Vault (upload or OneDrive pull)</li>
-        <li style={{ fontWeight: step === 3 ? 600 : 400 }}>Confirm inbox</li>
+      <ol className="steps">
+        <li className={step === 1 ? "on" : undefined}>1 · Profile</li>
+        <li className={step === 2 ? "on" : undefined}>2 · Vault</li>
+        <li className={step === 3 ? "on" : undefined}>3 · Confirm inbox</li>
       </ol>
 
       {step === 1 && (

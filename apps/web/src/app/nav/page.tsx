@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { defaultPriorAsOf, lastCalendarQuarterEnd } from "@venture-os/core";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
@@ -158,14 +159,17 @@ export default function NavPage() {
 
   return (
     <Shell>
-      <h1 data-testid="nav-ready">NAV</h1>
-      <p className="lede">
-        Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
-        rollup is complete. IRR appears only when every sourced mark has an <code>investedAt</code> — we never invent
-        an investment date. The bridge is period-over-period from booked marks. Dual EUR only with a complete FX
-        triple on every sourced mark — otherwise the headline refuses. Locking freezes an official JSON pack. A locked
-        as-of cannot be rewritten until Partner or Org Admin unlocks it with a reason.
-      </p>
+      <PageHead
+        title="NAV"
+        testId="nav-ready"
+        lede={
+          <>
+            Deterministic from positions and marks. A total that skips unmarked names says so. MOIC is blank unless the
+            rollup is complete. IRR appears only when every sourced mark has an <code>investedAt</code> — we never
+            invent an investment date. Dual EUR only with a complete FX triple. Locking freezes an official JSON pack.
+          </>
+        }
+      />
       <div className="row" style={{ flexWrap: "wrap" }}>
         <label className="field" style={{ maxWidth: 200 }}>
           As-of
@@ -294,38 +298,36 @@ export default function NavPage() {
       {data && data.positions.length > 0 && (
         <>
           <div className="cards">
-            <div className="card">
+            <div className="kpi">
               <div className="k">Cost</div>
               <div className="v">{inr(data.rollup.cost.total)}</div>
-              {!data.rollup.cost.complete && <div className="lede">Incomplete</div>}
+              {!data.rollup.cost.complete && <div className="meta">Incomplete</div>}
             </div>
-            <div className="card">
+            <div className={`kpi${!data.rollup.nav.complete ? " accent-warn" : " accent-forest"}`}>
               <div className="k">NAV</div>
               <div className="v">{inr(data.rollup.nav.total)}</div>
-              <div className="lede">
+              <div className="meta">
                 {data.eur?.conversionRefused
                   ? "EUR — (no FX triple)"
                   : data.eur?.total != null
                     ? `EUR ${data.eur.total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
                     : "EUR —"}
+                {!data.rollup.nav.complete ? ` · incomplete · ${data.rollup.nav.missing} missing` : ""}
               </div>
-              {!data.rollup.nav.complete && (
-                <div className="lede">Incomplete · {data.rollup.nav.missing} missing</div>
-              )}
             </div>
-            <div className="card">
+            <div className="kpi">
               <div className="k">MOIC</div>
               <div className="v">{data.rollup.moic == null ? "—" : `${data.rollup.moic.toFixed(2)}x`}</div>
             </div>
-            <div className="card">
+            <div className="kpi">
               <div className="k">IRR</div>
               <div className="v">{pctIrr(data.irr)}</div>
-              {data.irr == null && <div className="lede">Needs investedAt on every sourced mark</div>}
+              {data.irr == null && <div className="meta">Needs investedAt on every sourced mark</div>}
             </div>
-            <div className="card">
+            <div className="kpi">
               <div className="k">Bridge Δ</div>
               <div className="v">{data.bridge.deltaNav == null ? "—" : inr(data.bridge.deltaNav)}</div>
-              <div className="lede">vs {data.priorAsOf}</div>
+              <div className="meta">vs {data.priorAsOf}</div>
             </div>
           </div>
           {data.rollup.unmarked.length > 0 && (
@@ -357,7 +359,7 @@ export default function NavPage() {
           )}
           {data.bridge.lines.length > 0 && (
             <>
-              <h2>Period bridge</h2>
+              <Panel title="Period bridge" flush>
               <table>
                 <thead>
                   <tr>
@@ -382,8 +384,10 @@ export default function NavPage() {
                   ))}
                 </tbody>
               </table>
+              </Panel>
             </>
           )}
+          <Panel title="Positions" flush>
           <table>
             <thead>
               <tr>
@@ -421,6 +425,7 @@ export default function NavPage() {
               ))}
             </tbody>
           </table>
+          </Panel>
           {canWrite && data.period?.status === "locked" && (
             <p className="lede">This as-of is locked. Unlock with a reason before changing marks.</p>
           )}

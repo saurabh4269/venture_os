@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Me } from "@/lib/auth-client";
+import { AuthFrame } from "@/components/BookUI";
 import { friendlyAuthError, slugifyOrg } from "@/lib/roles";
 
 export default function OnboardPage() {
@@ -43,7 +44,7 @@ export default function OnboardPage() {
   }
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <h1>Create the firm book</h1>
       <p className="lede">
         {userName ? `${userName}, you` : "You"} are signed in but not in an organisation yet. Create one
@@ -77,6 +78,6 @@ export default function OnboardPage() {
       <p style={{ marginTop: 8 }}>
         <Link href="/login">Use a different account</Link>
       </p>
-    </div>
+    </AuthFrame>
   );
 }

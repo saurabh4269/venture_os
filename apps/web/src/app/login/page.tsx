@@ -8,6 +8,7 @@ import { safeNextPath } from "@venture-os/config/paths";
 import { api } from "@/lib/api";
 import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm } from "@/lib/auth-form";
 import { type Me } from "@/lib/auth-client";
+import { AuthFrame } from "@/components/BookUI";
 import { friendlyAuthError } from "@/lib/roles";
 
 function LoginForm() {
@@ -66,7 +67,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="auth">
+    <AuthFrame>
       <h1>Venture OS</h1>
       <p className="lede">
         The book for the investment team. Sessions last 7 days and refresh daily. SSO and password reset by email are
@@ -118,7 +119,7 @@ function LoginForm() {
           </>
         ) : null}
       </p>
-    </div>
+    </AuthFrame>
   );
 }
 
@@ -126,9 +127,9 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="auth">
+        <AuthFrame>
           <p className="lede">Loading…</p>
-        </div>
+        </AuthFrame>
       }
     >
       <LoginForm />

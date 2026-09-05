@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { METRIC_CATALOG, metricByKey } from "@venture-os/core";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Fact, Shell } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 
@@ -161,12 +162,10 @@ export default function ComparePage() {
 
   return (
     <Shell>
-      <h1>Compare</h1>
-      <p className="lede">
-        Confirmed objective book only. No imputation, no peer-average fill. Empty cell is —. Canonical INR Cr shows
-        when the unit converts; otherwise —. EUR only with a complete FX triple. Uncheck a name to exclude it. Stage
-        and sector filter peers; they do not invent a peer set.
-      </p>
+      <PageHead
+        title="Compare"
+        lede="Confirmed objective book only. No imputation, no peer-average fill. Empty cell is —. Canonical INR Cr shows when the unit converts; otherwise —. EUR only with a complete FX triple. Stage and sector filter peers; they do not invent a peer set."
+      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
@@ -231,10 +230,14 @@ export default function ComparePage() {
       </div>
       {loading && <p className="lede">Loading compare…</p>}
       {!loading && !err && visible.length === 0 ? (
-        <div className="empty">Add companies and confirm metrics to compare, or turn off “hide empty rows.”</div>
+        <div className="empty">
+          <strong>Nothing to compare</strong>
+          Add companies and confirm metrics, or turn off “hide empty rows.”
+        </div>
       ) : (
         !loading &&
         data && (
+        <Panel flush>
         <div className="table-scroll">
         <table>
           <thead>
@@ -276,6 +279,7 @@ export default function ComparePage() {
           </tbody>
         </table>
         </div>
+        </Panel>
         )
       )}
     </Shell>

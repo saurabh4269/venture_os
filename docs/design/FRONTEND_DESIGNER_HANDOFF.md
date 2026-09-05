@@ -6,6 +6,8 @@
 **Live preview (working product, not a visual template):** https://venture-os-saurabh-gupta.vercel.app  
 **This file is not source of truth.** It cites locked product docs. If this brief and those docs disagree, **the numbered docs win**. If those docs and the Gargi brief disagree on **V3 functional behavior**, **the Gargi brief wins**.
 
+**Shipped visual system:** [`BOOK_UI.md`](BOOK_UI.md) — paper / forest / dual-lane tokens, 220px rail, Command KPI + pulse layout.
+
 ---
 
 ## 0. How to use this file

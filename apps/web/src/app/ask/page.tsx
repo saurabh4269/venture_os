@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Shell } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
 
@@ -51,11 +52,12 @@ export default function AskPage() {
 
   return (
     <Shell>
-      <h1 data-testid="ask-ready">Ask</h1>
-      <p className="lede">
-        Grounded on FTS + booked facts. If it is not in the corpus, the system refuses. Citations must resolve. Numbers
-        that are not in evidence cause a refuse.
-      </p>
+      <PageHead
+        title="Ask"
+        testId="ask-ready"
+        lede="Grounded on FTS + booked facts. If it is not in the corpus, the system refuses. Citations must resolve. Numbers that are not in evidence cause a refuse."
+      />
+      <Panel>
       <form onSubmit={send} className="field" style={{ maxWidth: 720 }}>
         <label className="field">
           Company (optional)
@@ -85,6 +87,7 @@ export default function AskPage() {
           {busy ? "Searching the book…" : "Ask"}
         </button>
       </form>
+      </Panel>
       {err && (
         <p className="sev-high" role="alert">
           {err}
@@ -106,7 +109,7 @@ export default function AskPage() {
       {res && (
         <div style={{ marginTop: 20 }}>
           {(res.refused || /will not guess/i.test(res.answer)) && (
-            <div className="banner" data-testid="ask-refused" role="status">
+            <div className="banner refuse" data-testid="ask-refused" role="status">
               {res.answer}
             </div>
           )}

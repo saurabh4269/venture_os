@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -113,12 +114,11 @@ export default function InboxPage() {
 
   return (
     <Shell>
-      <h1>Inbox</h1>
-      <p className="lede">
-        AI / parser proposes. You confirm, edit units or values, or reject. Nothing here is a fact until you say so.
-        Re-parse creates new proposals; confirmed rows stay in the book.
-      </p>
-      <div className="row" style={{ margin: "12px 0" }}>
+      <PageHead
+        title="Inbox"
+        lede="AI / parser proposes. You confirm, edit units or values, or reject. Nothing here is a fact until you say so. Re-parse creates new proposals; confirmed rows stay in the book."
+      />
+      <div className="tabs">
         {STATUSES.map((s) => (
           <button
             key={s}
@@ -143,11 +143,13 @@ export default function InboxPage() {
       )}
       {items.length === 0 ? (
         <div className="empty" data-testid="inbox-empty">
+          <strong>{status === "pending" ? "Queue is clear" : `No ${status} rows`}</strong>
           {status === "pending"
-            ? "Queue is clear. Upload a pack from Companies if you expect extracts."
-            : `No ${status} rows.`}
+            ? "Upload a pack from Companies if you expect extracts."
+            : `Nothing in ${status}.`}
         </div>
       ) : (
+        <Panel flush>
         <table>
           <thead>
             <tr>
@@ -273,6 +275,7 @@ export default function InboxPage() {
             ))}
           </tbody>
         </table>
+        </Panel>
       )}
     </Shell>
   );

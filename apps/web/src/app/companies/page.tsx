@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -18,28 +19,31 @@ export default function CompaniesPage() {
 
   return (
     <Shell>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <div>
-          <h1>Companies</h1>
-          <p className="lede">Coverage. Add a name, upload MIS, confirm inbox — then it appears on Command.</p>
-        </div>
-        {canWrite && (
-          <Link className="btn" href="/companies/new">
-            Add company
-          </Link>
-        )}
-      </div>
+      <PageHead
+        title="Companies"
+        lede="Coverage. Add a name, upload MIS, confirm inbox — then it appears on Command."
+        actions={
+          canWrite ? (
+            <Link className="btn" href="/companies/new">
+              Add company
+            </Link>
+          ) : undefined
+        }
+      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
       {rows.length === 0 ? (
-        <div className="empty" style={{ marginTop: 20 }}>
-          Empty book. {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."} (15-minute path).
+        <div className="empty">
+          <strong>Empty book</strong>
+          {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."}{" "}
+          (15-minute path).
         </div>
       ) : (
-        <table style={{ marginTop: 18 }}>
+        <Panel flush>
+        <table>
           <thead>
             <tr>
               <th>Name</th>
@@ -61,6 +65,7 @@ export default function CompaniesPage() {
             ))}
           </tbody>
         </table>
+        </Panel>
       )}
     </Shell>
   );

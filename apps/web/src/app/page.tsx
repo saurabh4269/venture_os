@@ -17,8 +17,11 @@ export default function Home() {
       .catch(() => router.replace("/login"));
   }, [router]);
   return (
-    <div className="auth">
-      <p className="lede">Opening the book…</p>
+    <div className="auth-shell">
+      <div className="auth">
+        <div className="auth-mark">Venture OS · the book</div>
+        <p className="lede">Opening the book…</p>
+      </div>
     </div>
   );
 }

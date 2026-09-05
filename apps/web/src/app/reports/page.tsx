@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageHead, Panel } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
 
@@ -57,13 +58,11 @@ export default function ReportsPage() {
 
   return (
     <Shell>
-      <h1 data-testid="reports-ready">Reports</h1>
-      <p className="lede">
-        Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). The
-        monthly pack keeps objective and subjective in separate columns. Exports are real files (session cookie).
-        Narrative cannot invent numbers. EUR columns refuse without a complete FX triple. A worker writes the monthly
-        XLSX to the object store when Redis is up.
-      </p>
+      <PageHead
+        title="Reports"
+        testId="reports-ready"
+        lede="Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). The monthly pack keeps objective and subjective in separate columns. Exports are real files. Narrative cannot invent numbers. EUR columns refuse without a complete FX triple."
+      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
@@ -93,11 +92,13 @@ export default function ReportsPage() {
       )}
       {loading && !err && <p className="lede">Loading drafts…</p>}
       {!loading && rows.length === 0 ? (
-        <div className="empty" style={{ marginTop: 18 }}>
-          No drafts yet. Pick a company and draft a one-pager, or draft the monthly pack from confirmed facts.
+        <div className="empty">
+          <strong>No drafts yet</strong>
+          Pick a company and draft a one-pager, or draft the monthly pack from confirmed facts.
         </div>
       ) : !loading ? (
-        <table style={{ marginTop: 18 }}>
+        <Panel flush>
+        <table>
           <thead>
             <tr>
               <th>Title</th>
@@ -128,6 +129,7 @@ export default function ReportsPage() {
             ))}
           </tbody>
         </table>
+        </Panel>
       ) : null}
     </Shell>
   );
