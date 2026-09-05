@@ -1116,7 +1116,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .settings-subnav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .settings-subnav a {
   padding: 8px 12px;
-  min-height: 36px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   border-radius: var(--radius-sm);
@@ -1136,9 +1136,17 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .companies-table table { min-width: 420px; }
 .companies-toolbar .look-search { flex: 1; }
 .connectors-intro { margin: -6px 0 16px; }
+.connectors-intro code { word-break: break-word; }
 .connectors-foot { margin-top: 16px; }
 .connector-card { padding: 16px; }
-.connector-actions { gap: 8px; }
+.connector-card-head { flex-wrap: wrap; gap: 8px; align-items: center; }
+.connector-card-meta { flex-wrap: wrap; gap: 6px 12px; }
+.connector-form { gap: 10px; }
+.connector-form .field input,
+.connector-form .field select { min-height: 44px; }
+.connector-actions { gap: 10px; flex-wrap: wrap; }
+.connector-actions .btn { min-height: 40px; }
+.connector-actions .btn.sm { padding: 8px 12px; font-size: 13px; min-height: 40px; }
 .compare-pickers { margin: 12px 0; flex-wrap: wrap; }
 .compare-toolbar { margin-bottom: 14px; }
 .compare-section-label { margin: 12px 0 6px; }
@@ -1508,7 +1516,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   max-width: 34rem;
   line-height: 1.5;
 }
-.mkt-hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+.mkt-hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .mkt-hero-ctas .btn { min-height: 44px; padding: 10px 18px; }
 .mkt-hero-visual { min-width: 0; }
 .mkt-frame {
@@ -2533,7 +2541,9 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .settings-form-row select { width: 100%; }
   .settings-form-row .btn { width: 100%; justify-content: center; }
   .connector-actions { flex-direction: column; align-items: stretch; }
-  .connector-actions .btn { width: 100%; justify-content: center; }
+  .connector-actions .btn { width: 100%; justify-content: center; min-height: 44px; }
+  .connector-card { padding: 14px; }
+  .connector-card .field { gap: 6px; }
   .compare-metrics {
     display: grid;
     grid-template-columns: 1fr 1fr;

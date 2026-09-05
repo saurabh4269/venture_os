@@ -231,6 +231,7 @@ function ConnectorCards() {
       <PageHead
         kicker="Settings · Connectors / API vault"
         title="Connectors"
+        testId="connectors-ready"
         badge={
           isAdmin ? (
             <span className="badge">
@@ -271,13 +272,13 @@ function ConnectorCards() {
                   {connectorLabel(kind).slice(0, 1)}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="row">
+                  <div className="row connector-card-head">
                     <strong>{connectorLabel(kind)}</strong>
                     <span className={`badge badge-${status}`} data-testid={`connector-status-${kind}`}>
                       {status === "connected" ? "● Connected" : statusLabel(status)}
                     </span>
                   </div>
-                  <div className="row" style={{ marginTop: 6 }}>
+                  <div className="row connector-card-meta" style={{ marginTop: 6 }}>
                     {row?.usingEnvFallback && <span className="lede">env default</span>}
                     {row?.hasCredentials ? (
                       <span className="lede" data-testid={`connector-hint-${kind}`}>
@@ -306,8 +307,8 @@ function ConnectorCards() {
 
               {isAdmin ? (
                 <form
-                  className="field"
-                  style={{ gap: 8, marginTop: 10 }}
+                  className="field connector-form"
+                  style={{ marginTop: 10 }}
                   onSubmit={(e) => {
                     e.preventDefault();
                     save(kind);
