@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { signupAdmin, waitForInboxActions } from "./helpers/session";
 
@@ -14,28 +14,38 @@ const PATHS = [
   { path: "/settings/connectors", ready: "connector-cards" },
 ];
 
-const AUTH = resolve(process.cwd(), "e2e/.auth/polish-walk.json");
+const AUTH_DIR = resolve(process.cwd(), "e2e/.auth");
+const AUTH = resolve(AUTH_DIR, "polish-walk.json");
+const STAMP_FILE = resolve(AUTH_DIR, "polish-walk-stamp.txt");
 
 test.describe.configure({ mode: "serial" });
 
 test.describe("workflow polish", () => {
-  let stamp = "";
-
-  test.beforeAll(async ({ browser }) => {
-    mkdirSync(dirname(AUTH), { recursive: true });
+  async function ensureAuth(browser: Browser): Promise<string> {
+    mkdirSync(AUTH_DIR, { recursive: true });
+    if (existsSync(AUTH) && existsSync(STAMP_FILE)) {
+      return readFileSync(STAMP_FILE, "utf8").trim();
+    }
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const page = await ctx.newPage();
     const creds = await signupAdmin(page);
-    stamp = creds.stamp;
     await ctx.storageState({ path: AUTH });
+    writeFileSync(STAMP_FILE, creds.stamp, "utf8");
     await ctx.close();
-  });
+    return creds.stamp;
+  }
 
-  test.use({ storageState: AUTH });
+  async function authedPage(browser: Browser, viewport: { width: number; height: number }): Promise<Page> {
+    const ctx = await browser.newContext({ storageState: AUTH, viewport });
+    return ctx.newPage();
+  }
 
-  test("desktop paths load with shell and ready markers", async ({ page }) => {
+  test("desktop paths load with shell and ready markers", async ({ browser }) => {
     test.setTimeout(300_000);
-    await page.setViewportSize({ width: 1280, height: 800 });
+    const stamp = await ensureAuth(browser);
+    const page = await authedPage(browser, { width: 1280, height: 800 });
+    await page.goto("/command");
+    await expect(page.getByTestId("command-ready")).toBeVisible({ timeout: 30_000 });
 
     for (const { path, ready } of PATHS) {
       await page.goto(path);
@@ -63,9 +73,10 @@ test.describe("workflow polish", () => {
     await page.screenshot({ path: "test-results/polish-company-detail.png", fullPage: true });
   });
 
-  test("mobile paths and vault empty CTA", async ({ page }) => {
+  test("mobile paths and vault empty CTA", async ({ browser }) => {
     test.setTimeout(180_000);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await ensureAuth(browser);
+    const page = await authedPage(browser, { width: 390, height: 844 });
     await page.goto("/command");
     await expect(page.getByTestId("command-ready")).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("aside.rail")).toBeHidden();
