@@ -3,24 +3,51 @@ import {
   BFF_UPSTREAM_UNAVAILABLE,
   bffFromUpstream,
   bffUpstreamError,
+  classifyUpstreamFailure,
+  fetchUpstream,
   resolveBffUpstream,
   rewriteAuthEmailBody,
 } from "./bff-proxy";
 
 describe("BFF proxy", () => {
-  it("does not fall back to localhost in production", () => {
+  it("does not fall back to localhost in production or on Vercel", () => {
     expect(resolveBffUpstream({ NODE_ENV: "production" })).toBeNull();
+    expect(resolveBffUpstream({ VERCEL: "1" })).toBeNull();
+    expect(
+      resolveBffUpstream({ NODE_ENV: "production", API_URL: "http://localhost:4000" }),
+    ).toBeNull();
+    expect(resolveBffUpstream({ VERCEL: "1", API_URL: "http://127.0.0.1:4000" })).toBeNull();
     expect(resolveBffUpstream({ NODE_ENV: "production", API_URL: "https://api.example" })).toBe(
       "https://api.example",
     );
     expect(resolveBffUpstream({ NODE_ENV: "development" })).toBe("http://localhost:4000");
   });
 
-  it("returns JSON 502 when upstream is missing", async () => {
+  it("returns JSON 502/503 when upstream is missing or refused", async () => {
     const res = bffUpstreamError();
     expect(res.status).toBe(502);
     expect(res.headers.get("content-type")).toContain("application/json");
+    expect(res.headers.get("cache-control")).toMatch(/no-store/);
     expect(await res.json()).toEqual({ error: BFF_UPSTREAM_UNAVAILABLE });
+    const refused = new Error("fetch failed");
+    refused.cause = { code: "ECONNREFUSED", message: "connect ECONNREFUSED 127.0.0.1:4000" };
+    expect(classifyUpstreamFailure(refused)).toBe(503);
+    expect(classifyUpstreamFailure(new Error("connect ECONNREFUSED 127.0.0.1:4000"))).toBe(503);
+    const timeout = new Error("The operation was aborted due to timeout");
+    timeout.name = "TimeoutError";
+    expect(classifyUpstreamFailure(timeout)).toBe(503);
+  });
+
+  it("turns an uncaught fetch throw into JSON 503, not a broken Next body", async () => {
+    const out = await fetchUpstream("http://127.0.0.1:4000/api/me", { method: "GET" }, async () => {
+      throw new Error("connect ECONNREFUSED 127.0.0.1:4000");
+    });
+    expect(out.status).toBe(503);
+    expect(out.headers.get("content-type")).toContain("application/json");
+    expect(out.headers.get("cache-control")).toMatch(/no-store/);
+    const body = await out.text();
+    expect(() => JSON.parse(body)).not.toThrow();
+    expect(JSON.parse(body)).toEqual({ error: BFF_UPSTREAM_UNAVAILABLE });
   });
 
   it("buffers a decompressed body and drops the compressed content-length", async () => {

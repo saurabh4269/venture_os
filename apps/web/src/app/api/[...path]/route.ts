@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 import {
-  bffFromUpstream,
   bffUpstreamError,
+  fetchUpstream,
   resolveBffUpstream,
   rewriteAuthEmailBody,
 } from "@/lib/bff-proxy";
@@ -25,40 +25,46 @@ const HOP = new Set([
 ]);
 
 async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
-  const upstream = resolveBffUpstream();
-  if (!upstream) return bffUpstreamError();
-
-  const { path } = await ctx.params;
-  const url = new URL(req.url);
-  const target = `${upstream}/api/${path.join("/")}${url.search}`;
-  const headers = new Headers();
-  req.headers.forEach((v, k) => {
-    if (!HOP.has(k.toLowerCase())) headers.set(k, v);
-  });
-  headers.set("x-forwarded-host", req.headers.get("host") ?? "");
-  headers.set("x-forwarded-proto", url.protocol.replace(":", ""));
-
-  const init: RequestInit = {
-    method: req.method,
-    headers,
-    redirect: "manual",
-  };
-
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    const rewritten = await rewriteAuthEmailBody(path, req.headers.get("content-type") ?? "", () => req.formData());
-    if (rewritten) {
-      init.body = rewritten.body;
-      headers.set("content-type", rewritten.contentType);
-    } else {
-      init.body = Buffer.from(await req.arrayBuffer());
-    }
-  }
-
   try {
-    const res = await fetch(target, init);
-    return await bffFromUpstream(res);
+    const upstream = resolveBffUpstream({
+      API_URL: process.env.API_URL,
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL,
+    });
+    if (!upstream) return bffUpstreamError(502);
+
+    const { path } = await ctx.params;
+    const url = new URL(req.url);
+    const target = `${upstream}/api/${path.join("/")}${url.search}`;
+    const headers = new Headers();
+    req.headers.forEach((v, k) => {
+      if (!HOP.has(k.toLowerCase())) headers.set(k, v);
+    });
+    headers.set("x-forwarded-host", req.headers.get("host") ?? "");
+    headers.set("x-forwarded-proto", url.protocol.replace(":", ""));
+
+    const init: RequestInit = {
+      method: req.method,
+      headers,
+      redirect: "manual",
+    };
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      const rewritten = await rewriteAuthEmailBody(path, req.headers.get("content-type") ?? "", () =>
+        req.formData(),
+      );
+      if (rewritten) {
+        init.body = rewritten.body;
+        headers.set("content-type", rewritten.contentType);
+      } else {
+        init.body = Buffer.from(await req.arrayBuffer());
+      }
+    }
+
+    return await fetchUpstream(target, init);
   } catch {
-    return bffUpstreamError();
+    return bffUpstreamError(502);
   }
 }
 

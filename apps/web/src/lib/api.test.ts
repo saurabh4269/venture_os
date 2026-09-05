@@ -4,6 +4,7 @@ import {
   INVALID_JSON_MESSAGE,
   parseJsonSafe,
   TRUNCATED_JSON_MESSAGE,
+  UPSTREAM_UNAVAILABLE_MESSAGE,
 } from "./api";
 
 describe("parseJsonSafe", () => {
@@ -52,5 +53,18 @@ describe("api()", () => {
       }),
     );
     await expect(api("/api/command")).rejects.toThrow("sign_in_required");
+  });
+
+  it("maps 502 upstream_unavailable JSON to a friendly Error, never SyntaxError", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ error: "upstream_unavailable" }), {
+          status: 502,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+    await expect(api("/api/me")).rejects.toThrow(UPSTREAM_UNAVAILABLE_MESSAGE);
   });
 });

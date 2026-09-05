@@ -9,6 +9,7 @@ export const TRUNCATED_JSON_MESSAGE =
   "The book returned a truncated response. Refresh and try again.";
 export const INVALID_JSON_MESSAGE =
   "The book returned a response that was not valid JSON. Refresh and try again.";
+export const UPSTREAM_UNAVAILABLE_MESSAGE = "The book API is unreachable. Try again in a moment.";
 
 /** Parse a response body without throwing raw JSON.parse SyntaxError. */
 export function parseJsonSafe(text: string): unknown {
@@ -53,7 +54,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const data = await readJson(res);
   if (!res.ok) {
-    throw new Error(errorMessage(data, res.statusText || "Request failed"));
+    const msg = errorMessage(data, res.statusText || "Request failed");
+    if (res.status === 502 || res.status === 503 || msg === "upstream_unavailable") {
+      throw new Error(UPSTREAM_UNAVAILABLE_MESSAGE);
+    }
+    throw new Error(msg);
   }
   if (data !== undefined) return data as T;
   return undefined as T;
