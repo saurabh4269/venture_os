@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@venture-os/config/password";
 import { api } from "@/lib/api";
 import { type Me } from "@/lib/auth-client";
 import { destinationAfterAuth, passwordLengthError, postAuthEmail, readAuthForm } from "@/lib/auth-form";
@@ -93,16 +92,15 @@ function SignupForm() {
   }
 
   return (
-    <AuthFrame>
-      <h1>Open the book</h1>
-      <p className="lede">
-        {inviteId
-          ? "Create your user, then accept the invite. You join as the role you were offered."
-          : "Create your user and organisation. You will be Org Admin. You start with an empty book — upload an MIS, or run pnpm demo:vc for labelled FIXTURE_ONLY rows."}
-      </p>
-      <form onSubmit={onSubmit} className="field" style={{ gap: 12, marginTop: 24 }}>
+    <AuthFrame tab="signup">
+      <form onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }}>
+        {inviteId ? (
+          <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
+        ) : (
+          <p className="lede">You will be Org Admin. The book starts empty — we will not seed illustrative NAV.</p>
+        )}
         <label className="field" htmlFor="name">
-          Your name
+          Full name
           <input
             id="name"
             name="name"
@@ -114,7 +112,7 @@ function SignupForm() {
           />
         </label>
         <label className="field" htmlFor="email">
-          Work email
+          Institutional email
           <input
             id="email"
             name="email"
@@ -127,7 +125,12 @@ function SignupForm() {
           />
         </label>
         <label className="field" htmlFor="password">
-          Password ({MIN_PASSWORD_LENGTH}+ characters)
+          <span className="field-hint">
+            Password
+            <span className="lede">
+              {MIN_PASSWORD_LENGTH}–{MAX_PASSWORD_LENGTH} characters
+            </span>
+          </span>
           <input
             id="password"
             name="password"
@@ -136,6 +139,7 @@ function SignupForm() {
             type="password"
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
+            maxLength={MAX_PASSWORD_LENGTH}
             data-testid="signup-password"
             required
           />
@@ -150,6 +154,7 @@ function SignupForm() {
             type="password"
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
+            maxLength={MAX_PASSWORD_LENGTH}
             data-testid="signup-confirm"
             required
           />
@@ -167,9 +172,7 @@ function SignupForm() {
               data-testid="signup-org"
               required
             />
-            {org && (
-              <span className="lede">Slug: {slugifyOrg(org) || "(we will assign one)"}</span>
-            )}
+            {org && <span className="lede">Slug: {slugifyOrg(org) || "(we will assign one)"}</span>}
           </label>
         )}
         <div className="sr-only" aria-live="polite">
@@ -181,15 +184,9 @@ function SignupForm() {
           </div>
         )}
         <button className="btn" type="submit" disabled={busy} data-testid="signup-submit">
-          {busy ? "Working…" : inviteId ? "Create user" : "Create organisation"}
+          {busy ? "Working…" : inviteId ? "Create user" : "Create account"}
         </button>
       </form>
-      <p style={{ marginTop: 16 }}>
-        Already have a login?{" "}
-        <Link href={inviteId ? `/login?next=${encodeURIComponent(`/invite?id=${inviteId}`)}&email=${encodeURIComponent(email)}` : "/login"}>
-          Sign in
-        </Link>
-      </p>
     </AuthFrame>
   );
 }
@@ -198,7 +195,7 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <AuthFrame>
+        <AuthFrame tab="signup">
           <p className="lede">Loading…</p>
         </AuthFrame>
       }

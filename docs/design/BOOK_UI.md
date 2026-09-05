@@ -30,6 +30,15 @@ Type: **Source Serif 4** headlines + KPI figures; **IBM Plex Sans** UI. Tabular 
 
 NAV / MOIC remain as headline chips under the KPI strip (product pulse). They are not invented if null.
 
+## Auth, company, inbox, vault (Stitch fold-in)
+
+| Screen | Mock | Honesty |
+| --- | --- | --- |
+| Sign in / Create account | Centered chip card, tabs, forest CTA, 8–128 hint | Password bounds are real (`MIN`/`MAX_PASSWORD_LENGTH`). No Forgot password, TOS, or Privacy links — those routes are not connected. Footer states AES-at-rest + cite-or-refuse. |
+| Company | Stage badge, ownership, flag pills, Objective + Partner view, Evidence trail, Required docs | Ownership from booked positions only; no cite unless a locator exists. Objective = booked cash/burn/runway + net revenue if extracted. Partner view = latest **subjective** commentary (violet-slate), never MIS. Required kinds are only `mis` / `board_pack` / `transcript`. STALE = MIS older than 45 days. No invented SAFE / cap table / Affinity deep link. |
+| Inbox | Severity-sorted triage; All / Flags / Docs | Flags = unit ambiguity / unknown unit. Docs = other extracts. Mentions pill is honest empty (not connected). No Mark all read. Owner column is `—` until the book stores an owner. Confirm / Reject unchanged. |
+| Connectors | ORG ADMIN badge, masked keys, Rotate / Disconnect / Connect | Save-when-already-has-credentials is **Rotate**. `secretHint` only. Status stays not connected until healthCheck. No plaintext after save. No Billing / Danger zone. |
+
 ## Atoms
 
 - **Fact chip** — click downloads source. Unfact = `—`.

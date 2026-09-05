@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ComponentT
 import { api, downloadAuthed } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
+import { Pipeline } from "@/components/BookUI";
 import {
   IconAsk,
   IconCommand,
@@ -283,6 +284,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
             FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
           </div>
         )}
+        <Pipeline
+          current={
+            path.startsWith("/inbox")
+              ? "proposed"
+              : path.startsWith("/vault") || path.startsWith("/companies/new")
+                ? "source"
+                : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare")
+                  ? "analysis"
+                  : "book"
+          }
+        />
         <div className="sr-only" aria-live="polite">
           {orgLive}
         </div>
@@ -313,7 +325,7 @@ export function Fact({
   sourcePath?: string;
   note?: string | null;
 }) {
-  const chip = !isFact ? (
+  const value = !isFact ? (
     <span className="chip unfact">—</span>
   ) : sourcePath ? (
     <button
@@ -328,13 +340,19 @@ export function Fact({
   ) : (
     <span className="chip">{display}</span>
   );
-  if (!note) return chip;
   return (
-    <span>
-      {chip}
-      <span className="lede" style={{ display: "block", marginTop: 2 }}>
-        {note}
-      </span>
+    <span className="fact">
+      {value}
+      {isFact && sourcePath ? (
+        <button type="button" className="cite" onClick={() => downloadAuthed(sourcePath)} aria-label="Open citation">
+          Cite
+        </button>
+      ) : null}
+      {note ? (
+        <span className="lede" style={{ display: "block", width: "100%", marginTop: 2 }}>
+          {note}
+        </span>
+      ) : null}
     </span>
   );
 }

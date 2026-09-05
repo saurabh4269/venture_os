@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { PageHead, Panel } from "@/components/BookUI";
+import { useEffect, useMemo, useState } from "react";
+import { PageHead } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 
@@ -11,6 +11,7 @@ type Item = {
   status: string;
   confidence: number;
   companyName: string | null;
+  createdAt?: string | null;
   proposed: {
     metricKey?: string;
     valueNumeric?: number | null;
@@ -25,12 +26,30 @@ type Item = {
 };
 
 const STATUSES = ["pending", "confirmed", "edited", "rejected"] as const;
+type KindFilter = "all" | "flags" | "docs" | "mentions";
+
+function severityOf(item: Item): "urgent" | "warning" | "info" {
+  if (item.kind === "unit_ambiguity" || item.proposed.unit === "unknown") return "urgent";
+  if (item.confidence < 0.5) return "warning";
+  return "info";
+}
+
+function relTime(iso?: string | null) {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return "—";
+  const h = Math.floor(ms / 3_600_000);
+  if (h < 1) return `${Math.max(1, Math.floor(ms / 60_000))}m`;
+  if (h < 48) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
 
 export default function InboxPage() {
   const { canWrite, ready: sessionReady } = useBookSession();
   const [items, setItems] = useState<Item[]>([]);
   const [periodEdits, setPeriodEdits] = useState<Record<string, { start: string; end: string }>>({});
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("pending");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [unitEdits, setUnitEdits] = useState<Record<string, string>>({});
   const [valueEdits, setValueEdits] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -112,11 +131,26 @@ export default function InboxPage() {
     }
   }
 
+  const flagsCount = items.filter((i) => i.kind === "unit_ambiguity" || i.proposed.unit === "unknown").length;
+  const docsCount = items.length - flagsCount;
+  const visible = useMemo(() => {
+    const rows =
+      kindFilter === "flags"
+        ? items.filter((i) => i.kind === "unit_ambiguity" || i.proposed.unit === "unknown")
+        : kindFilter === "docs"
+          ? items.filter((i) => i.kind !== "unit_ambiguity" && i.proposed.unit !== "unknown")
+          : kindFilter === "mentions"
+            ? []
+            : items;
+    const rank = { urgent: 0, warning: 1, info: 2 };
+    return [...rows].sort((a, b) => rank[severityOf(a)] - rank[severityOf(b)]);
+  }, [items, kindFilter]);
+
   return (
     <Shell>
       <PageHead
         title="Inbox"
-        lede="AI / parser proposes. You confirm, edit units or values, or reject. Nothing here is a fact until you say so. Re-parse creates new proposals; confirmed rows stay in the book."
+        lede="Needs a look — sorted by severity. Parser proposes; you confirm. Nothing here is a fact until you say so."
       />
       <div className="tabs">
         {STATUSES.map((s) => (
@@ -128,6 +162,25 @@ export default function InboxPage() {
             onClick={() => setStatus(s)}
           >
             {s}
+          </button>
+        ))}
+      </div>
+      <div className="tabs filter-pills" aria-label="Kind filter">
+        {(
+          [
+            ["all", `All (${items.length})`],
+            ["flags", `Flags (${flagsCount})`],
+            ["docs", `Docs (${docsCount})`],
+            ["mentions", "Mentions (—)"],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            className={`filter-pill${k === kindFilter ? " on" : ""}`}
+            onClick={() => setKindFilter(k)}
+          >
+            {label}
           </button>
         ))}
       </div>
@@ -148,39 +201,51 @@ export default function InboxPage() {
             ? "Upload a pack from Companies if you expect extracts."
             : `Nothing in ${status}.`}
         </div>
+      ) : visible.length === 0 ? (
+        <div className="empty">
+          {kindFilter === "mentions"
+            ? "Mentions are not connected. This book does not invent @-notifications."
+            : "No rows in this filter."}
+        </div>
       ) : (
-        <Panel flush>
-        <table>
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>Kind</th>
-              <th>Proposal</th>
-              <th>Locator</th>
-              <th>Conf.</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((i) => (
-              <tr key={i.id} className={i.confidence < 0.5 ? "sev-med" : undefined}>
-                <td>{i.companyName ?? "—"}</td>
-                <td>{i.kind}</td>
-                <td>
-                  {i.proposed.metricKey ?? i.proposed.label}{" "}
-                  {status === "pending" && canWrite ? (
-                    <input
-                      aria-label="Value"
-                      style={{ width: 80 }}
-                      value={valueEdits[i.id] ?? (i.proposed.valueNumeric ?? "")}
-                      onChange={(e) => setValueEdits({ ...valueEdits, [i.id]: e.target.value })}
-                    />
-                  ) : (
-                    <strong>
-                      {i.proposed.valueNumeric == null ? "—" : i.proposed.valueNumeric} {i.proposed.unit}{" "}
-                      {i.proposed.currency}
-                    </strong>
-                  )}
+        <div className="triage">
+          <div className="triage-row" style={{ background: "transparent", boxShadow: "none", border: 0, padding: "0 14px" }}>
+            <div className="page-kicker">Severity</div>
+            <div className="page-kicker">Entity</div>
+            <div className="page-kicker">Summary</div>
+            <div className="page-kicker hide-sm">Cite</div>
+            <div className="page-kicker hide-sm">Time</div>
+            <div className="page-kicker hide-sm">Owner</div>
+            <div className="page-kicker">Actions</div>
+          </div>
+          {visible.map((i) => {
+            const sev = severityOf(i);
+            const loc = [i.locator.sheet, i.locator.cell, i.locator.page != null ? `p.${i.locator.page}` : null]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <article className="triage-row" key={i.id}>
+                <div>
+                  <span className={`sev-pill ${sev}`}>{sev}</span>
+                </div>
+                <div className="look-title">{i.companyName ?? "—"}</div>
+                <div>
+                  <div>
+                    {i.proposed.metricKey ?? i.proposed.label ?? i.kind.replaceAll("_", " ")}{" "}
+                    {status === "pending" && canWrite ? (
+                      <input
+                        aria-label="Value"
+                        style={{ width: 80 }}
+                        value={valueEdits[i.id] ?? (i.proposed.valueNumeric ?? "")}
+                        onChange={(e) => setValueEdits({ ...valueEdits, [i.id]: e.target.value })}
+                      />
+                    ) : (
+                      <strong>
+                        {i.proposed.valueNumeric == null ? "—" : i.proposed.valueNumeric} {i.proposed.unit}{" "}
+                        {i.proposed.currency}
+                      </strong>
+                    )}
+                  </div>
                   {status === "pending" && canWrite ? (
                     <div className="row" style={{ marginTop: 4 }}>
                       <input
@@ -242,14 +307,14 @@ export default function InboxPage() {
                       style={{ marginTop: 4, width: "100%" }}
                     />
                   )}
-                </td>
-                <td>
-                  {i.locator.sheet} {i.locator.cell}
-                  {i.locator.page != null ? ` p.${i.locator.page}` : ""}
-                  <div className="lede">{i.locator.excerpt}</div>
-                </td>
-                <td>{Math.round(i.confidence * 100)}%</td>
-                <td className="row">
+                </div>
+                <div className="hide-sm">
+                  {loc ? <span className="cite">{loc}</span> : <span className="lede">—</span>}
+                  {i.locator.excerpt ? <div className="lede">{i.locator.excerpt}</div> : null}
+                </div>
+                <div className="hide-sm num">{relTime(i.createdAt)}</div>
+                <div className="hide-sm lede">—</div>
+                <div className="row">
                   {status === "pending" && canWrite && (
                     <>
                       <button
@@ -270,12 +335,11 @@ export default function InboxPage() {
                       </button>
                     </>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </Panel>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       )}
     </Shell>
   );

@@ -42,7 +42,14 @@ type Data = {
     confirmedBy?: string | null;
     confirmedAt?: string | null;
   }[];
-  commentary: { id: string; lane: string; body: string; periodEnd: string }[];
+  commentary: {
+    id: string;
+    lane: string;
+    body: string;
+    periodEnd: string;
+    createdBy?: string;
+    createdAt?: string;
+  }[];
   documents: {
     id: string;
     filename: string;
@@ -205,23 +212,78 @@ export default function CompanyPage() {
   if (!data) {
     return (
       <Shell>
-        <p className="lede">Loading company…</p>
+        <p className="lede">Loading the book…</p>
       </Shell>
     );
   }
+
+  const own = data.positions?.map((p) => p.ownershipPct).find((n) => n != null) ?? null;
+  const latestSubjective = [...data.commentary]
+    .filter((n) => n.lane === "subjective")
+    .sort((a, b) => String(b.createdAt ?? b.periodEnd).localeCompare(String(a.createdAt ?? a.periodEnd)))[0];
+  const revenue = bookRows.find((m) => m.metricKey === "net_revenue");
+  const revenueDual = revenue
+    ? formatDualDisplay({
+        value: revenue.valueNumeric,
+        sourceRefId: revenue.sourceRefId,
+        unit: revenue.unit as never,
+        currency: revenue.currency as never,
+        valueEur: revenue.valueEur,
+        fxRate: revenue.fxRate,
+        fxDate: revenue.fxDate,
+        fxSource: revenue.fxSource,
+      })
+    : null;
+  const evidence = data.sourceRefs.map((ref) => {
+    const doc = data.documents.find((d) => d.id === ref.documentId);
+    const loc = [ref.locator?.sheet, ref.locator?.cell].filter(Boolean).join(" ");
+    return {
+      id: ref.id,
+      source: doc?.filename ?? "Source file",
+      kind: (doc?.kind ?? "other").replaceAll("_", " "),
+      date: doc?.createdAt ? new Date(doc.createdAt).toLocaleDateString() : (doc?.periodEnd ?? "—"),
+      cite: loc || "locator",
+      documentId: ref.documentId,
+    };
+  });
+  const required = (
+    [
+      ["mis", "MIS"],
+      ["board_pack", "Board pack"],
+      ["transcript", "Transcript"],
+    ] as const
+  ).map(([key, label]) => {
+    const docs = data.documents.filter((d) => d.kind === key);
+    let state: "covered" | "missing" | "stale" = "missing";
+    if (docs.length) {
+      const newest = Math.max(...docs.map((d) => (d.createdAt ? new Date(d.createdAt).getTime() : 0)));
+      state = key === "mis" && newest > 0 && Date.now() - newest > 45 * 86_400_000 ? "stale" : "covered";
+    }
+    return { key, label, state };
+  });
 
   return (
     <Shell>
       <PageHead
         title={data.company.name}
-        kicker={[data.company.sector, data.company.stage, data.company.country].filter(Boolean).join(" · ") || "Company"}
+        kicker={[data.company.sector, data.company.country].filter(Boolean).join(" · ") || "Company"}
+        badge={data.company.stage ? <span className="badge">{data.company.stage}</span> : undefined}
         lede={
           <>
             {data.company.legalName ? `${data.company.legalName} · ` : ""}
+            {own == null ? (
+              <>
+                Ownership <span className="chip unfact">—</span>
+              </>
+            ) : (
+              <>{own}% ownership</>
+            )}
+            {" · "}
             FY start month {data.company.fyStartMonth ?? 4} (
             {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
             {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
             {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
+            {data.company.affinityCompanyId ? " · Affinity id on file — vendor deep link is not connected" : ""}
           </>
         }
         actions={
@@ -232,12 +294,11 @@ export default function CompanyPage() {
             <Link className="btn ghost sm" href={`/ask?companyId=${id}`}>
               Ask
             </Link>
-            <Link className="btn ghost sm" href="/inbox">
-              Inbox
-            </Link>
-            <Link className="btn ghost sm" href="/flags">
-              Flags
-            </Link>
+            {canWrite && (
+              <a className="btn sm" href="#add-note">
+                Add note
+              </a>
+            )}
             {canWrite && (
               <>
                 <button type="button" className="chip" onClick={() => setEditing((v) => !v)}>
@@ -251,6 +312,13 @@ export default function CompanyPage() {
           </div>
         }
       />
+      <div className="flag-pills">
+        {data.flags.map((f) => (
+          <Link key={f.id} href="/flags" className={`sev-pill ${f.severity === "high" ? "urgent" : f.severity === "med" ? "warning" : "info"}`}>
+            {flagLabel(f.flagKey)}
+          </Link>
+        ))}
+      </div>
       {draftMsg && (
         <p className="sev-high" role="alert">
           {draftMsg}
@@ -384,28 +452,120 @@ export default function CompanyPage() {
         </form>
       )}
 
-      {data.kpi && (
-        <div className="cards cards-3">
-          <div className="kpi accent-forest">
-            <div className="k">Cash</div>
-            <div className="v">
-              <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
-            </div>
+      <div className="grid-2" style={{ marginBottom: 16 }}>
+        <Panel title="Objective metrics" kicker="Book" className="lane-obj-panel" actions={<span className="lane-chip obj">Objective</span>}>
+          <div className="metric-row">
+            <span className="muted">Cash</span>
+            <span>
+              {data.kpi ? (
+                <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} />
+              ) : (
+                <span className="chip unfact">—</span>
+              )}
+            </span>
           </div>
-          <div className="kpi">
-            <div className="k">Burn</div>
-            <div className="v">
-              <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
-            </div>
+          <div className="metric-row">
+            <span className="muted">Burn (monthly)</span>
+            <span>
+              {data.kpi ? (
+                <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} />
+              ) : (
+                <span className="chip unfact">—</span>
+              )}
+            </span>
           </div>
-          <div className="kpi">
-            <div className="k">Runway (3-mo burn)</div>
-            <div className="v">
-              <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} />
-            </div>
+          <div className="metric-row">
+            <span className="muted">Runway (3-mo burn)</span>
+            <span>
+              {data.kpi ? <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} /> : <span className="chip unfact">—</span>}
+            </span>
           </div>
-        </div>
-      )}
+          <div className="metric-row">
+            <span className="muted">Net revenue</span>
+            <span>
+              {revenueDual ? (
+                <Fact
+                  display={revenueDual.display}
+                  isFact={revenueDual.isFact}
+                  sourcePath={pathFor(revenue?.sourceRefId)}
+                  note={revenueDual.fxNote}
+                />
+              ) : (
+                <span className="chip unfact">—</span>
+              )}
+            </span>
+          </div>
+        </Panel>
+        <Panel title="Partner view" kicker="Subjective" className="lane-sub-panel" actions={<span className="lane-chip sub">Judgement</span>}>
+          {latestSubjective ? (
+            <div className="lane-sub" style={{ margin: 0 }}>
+              <p style={{ margin: "0 0 8px" }}>{latestSubjective.body}</p>
+              <p className="lede" style={{ margin: 0 }}>
+                Author {latestSubjective.createdBy ? `${latestSubjective.createdBy.slice(0, 8)}…` : "—"} ·{" "}
+                {latestSubjective.createdAt
+                  ? new Date(latestSubjective.createdAt).toLocaleDateString()
+                  : latestSubjective.periodEnd}
+              </p>
+            </div>
+          ) : (
+            <p className="lede" style={{ margin: 0 }}>
+              No partner commentary on this company. MIS packs never fill this lane.
+            </p>
+          )}
+        </Panel>
+      </div>
+
+      <div className="grid-2" style={{ marginBottom: 16 }}>
+        <Panel title="Evidence trail" kicker="Provenance">
+          {evidence.length === 0 ? (
+            <p className="lede" style={{ margin: 0 }}>
+              No citations yet. Confirm an extract to write a locator.
+            </p>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Cite</th>
+                </tr>
+              </thead>
+              <tbody>
+                {evidence.map((e) => (
+                  <tr key={e.id}>
+                    <td>{e.source}</td>
+                    <td className="lede">{e.kind}</td>
+                    <td className="lede">{e.date}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="cite"
+                        onClick={() => downloadAuthed(`/api/documents/${e.documentId}/file`, e.source)}
+                      >
+                        {e.cite}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Panel>
+        <Panel title="Required documentation" kicker="Coverage">
+          <ul className="doc-req">
+            {required.map((r) => (
+              <li key={r.key} className="doc-row">
+                <span>{r.label}</span>
+                <span className={`cover-pill ${r.state}`}>{r.state}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="lede" style={{ fontSize: 12, margin: "12px 0 0" }}>
+            Only kinds this book stores: MIS, board pack, transcript. Stale is MIS older than 45 days.
+          </p>
+        </Panel>
+      </div>
 
       <Panel title="Positions">
       <p className="lede">
@@ -535,7 +695,7 @@ export default function CompanyPage() {
       </div>
 
       {canWrite && (
-      <form onSubmit={addNote} style={{ marginTop: 16 }} className="field">
+      <form id="add-note" onSubmit={addNote} style={{ marginTop: 16 }} className="field">
         <label className="field">
           Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
           cannot be confirmed as subjective. Period defaults to the latest booked period, not a hardcoded month.

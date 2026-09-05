@@ -142,3 +142,19 @@ export function IconWarn(p: IconProps) {
 export function IconFlagSmall(p: IconProps) {
   return <IconFlags {...p} />;
 }
+export function IconLock(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="3.5" y="7" width="9" height="6.5" rx="1" />
+      <path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7" />
+    </Svg>
+  );
+}
+export function IconKey(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="5.5" cy="8" r="2.4" />
+      <path d="M7.6 8h5.2l1.2 1.4v1.6H12V9.4h-1.2V11H9.4V9.4H7.8" />
+    </Svg>
+  );
+}

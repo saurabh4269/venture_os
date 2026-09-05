@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FLAG_CATALOG, FLAG_THRESHOLD_BOUNDS } from "@venture-os/core";
-import { PageHead, Panel } from "@/components/BookUI";
+import { PageHead, Panel, SettingsSubnav } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
@@ -143,9 +143,11 @@ export default function SettingsPage() {
   return (
     <Shell>
       <PageHead
+        kicker="Organisation"
         title="Settings"
         lede="FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Paste connector keys on Settings → Connectors; vault upload remains the fallback until a health check succeeds."
       />
+      <SettingsSubnav current="firm" />
       <div className="settings-stack">
 
       <Panel title="Firm year">
@@ -198,6 +200,7 @@ export default function SettingsPage() {
       </Panel>
 
       <Panel title="People" flush>
+      <div id="people" />
       {members.length === 0 ? (
         <div className="empty">No members loaded.</div>
       ) : (
