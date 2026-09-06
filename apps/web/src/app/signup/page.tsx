@@ -95,8 +95,8 @@ function SignupForm() {
   return (
     <AuthFrame
       tab="signup"
-      title="Create your account."
-      lede={inviteId ? undefined : "You will be Org Admin. Your book starts empty and ready for your first upload."}
+      title="Create your account"
+      lede={inviteId ? undefined : "You become Org Admin. The book starts empty — ready for the first upload."}
       footer={
         <p className="auth-signup-link">
           Already have an account? <Link href="/login">Sign in</Link>
@@ -121,7 +121,7 @@ function SignupForm() {
           />
         </label>
         <label className="field" htmlFor="email">
-          Institutional email
+          Work email
           <input
             id="email"
             name="email"
@@ -179,7 +179,7 @@ function SignupForm() {
               name="organization"
               value={org}
               onChange={(e) => setOrg(e.target.value)}
-              placeholder="e.g. Your Fund GP"
+              placeholder="Your firm name"
               autoComplete="organization"
               data-testid="signup-org"
               className="auth-field-lg"

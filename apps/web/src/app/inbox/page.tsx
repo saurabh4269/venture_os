@@ -28,7 +28,13 @@ type Item = {
 };
 
 const STATUSES = ["pending", "confirmed", "edited", "rejected"] as const;
-type KindFilter = "all" | "flags" | "docs" | "mentions";
+const STATUS_LABEL: Record<(typeof STATUSES)[number], string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  edited: "Edited",
+  rejected: "Rejected",
+};
+type KindFilter = "all" | "flags" | "docs";
 
 function severityOf(item: Item): "urgent" | "warning" | "info" {
   if (item.kind === "unit_ambiguity" || item.proposed.unit === "unknown") return "urgent";
@@ -160,9 +166,7 @@ export default function InboxPage() {
         ? items.filter((i) => i.kind === "unit_ambiguity" || i.proposed.unit === "unknown")
         : kindFilter === "docs"
           ? items.filter((i) => i.kind !== "unit_ambiguity" && i.proposed.unit !== "unknown")
-          : kindFilter === "mentions"
-            ? []
-            : items;
+          : items;
     const rank = { urgent: 0, warning: 1, info: 2 };
     return [...rows].sort((a, b) => rank[severityOf(a)] - rank[severityOf(b)]);
   }, [items, kindFilter]);
@@ -171,7 +175,7 @@ export default function InboxPage() {
     <Shell>
       <PageHead
         title="Inbox"
-        lede="Proposed extracts ready for your review. Confirm a row to add it to the book."
+        lede="Confirm a proposed row to add it to the book. Nothing posts until you accept it."
       />
       <div className="inbox-filters">
       <div className="tabs filter-pills" aria-label="Status">
@@ -183,7 +187,7 @@ export default function InboxPage() {
             data-testid={`inbox-tab-${s}`}
             onClick={() => setStatus(s)}
           >
-            {s}
+            {STATUS_LABEL[s]}
           </button>
         ))}
       </div>
@@ -193,7 +197,6 @@ export default function InboxPage() {
             ["all", "All", String(items.length)] as const,
             ["flags", "Flags", String(flagsCount)] as const,
             ["docs", "Docs", String(docsCount)] as const,
-            ["mentions", "Mentions", "—"] as const,
           ]
         ).map(([k, label, count]) => (
           <button
@@ -215,21 +218,23 @@ export default function InboxPage() {
       )}
       {listReady && (
         <p className="lede" data-testid="inbox-ready" data-inbox-count={items.length} data-inbox-status={status}>
-          {items.length} {status} {items.length === 1 ? "row" : "rows"} ready for review.
+          {items.length === 0
+            ? status === "pending"
+              ? "Nothing waiting."
+              : `No ${STATUS_LABEL[status].toLowerCase()} rows.`
+            : `${items.length} ${STATUS_LABEL[status].toLowerCase()} ${items.length === 1 ? "row" : "rows"}.`}
         </p>
       )}
       {items.length === 0 ? (
         <div className="empty" data-testid="inbox-empty">
-          <strong>{status === "pending" ? "All caught up" : `No ${status} rows`}</strong>
+          <strong>{status === "pending" ? "All caught up" : `No ${STATUS_LABEL[status].toLowerCase()} rows`}</strong>
           {status === "pending"
             ? "Upload a company pack when you have new files to review."
-            : `Nothing in ${status}.`}
+            : `Nothing in ${STATUS_LABEL[status].toLowerCase()}.`}
         </div>
       ) : visible.length === 0 ? (
         <div className="empty">
-          {kindFilter === "mentions"
-            ? "Mentions need a connected source. Try another filter."
-            : "Try another filter."}
+          Try another filter.
         </div>
       ) : (
         <div className="triage">
@@ -239,7 +244,6 @@ export default function InboxPage() {
             <div className="page-kicker">Summary</div>
             <div className="page-kicker hide-sm">Cite</div>
             <div className="page-kicker hide-sm">Time</div>
-            <div className="page-kicker hide-sm">Owner</div>
             <div className="page-kicker">Actions</div>
           </div>
           {visible.map((i) => {
@@ -345,7 +349,6 @@ export default function InboxPage() {
                   )}
                 </div>
                 <div className="hide-sm num">{relTime(i.createdAt)}</div>
-                <div className="hide-sm lede">—</div>
                 <div className="row">
                   {status === "pending" && canWrite && (
                     <>

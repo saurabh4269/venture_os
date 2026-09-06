@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageHead, Panel } from "@/components/BookUI";
+import { titleCaseKind } from "@/lib/format";
 import { Shell } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -31,7 +32,7 @@ export default function VaultPage() {
       <PageHead
         title="Vault"
         testId="vault-ready"
-        lede="Company vault for MIS, board packs, and transcripts. Upload here, then confirm in Inbox."
+        lede="Source files for the book. Upload from a company page, then confirm rows in Inbox."
       />
       {err && (
         <p className="sev-high" role="alert">
@@ -75,9 +76,9 @@ export default function VaultPage() {
                   </button>
                 </td>
                 <td>{d.companyName ?? "—"}</td>
-                <td>{d.kind}</td>
+                <td>{titleCaseKind(d.kind)}</td>
                 <td>
-                  {d.parseStatus ?? "—"}
+                  {d.parseStatus ? titleCaseKind(d.parseStatus) : "—"}
                   {d.parseError ? <div className="sev-high">{d.parseError}</div> : null}
                 </td>
               </tr>

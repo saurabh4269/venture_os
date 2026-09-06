@@ -73,10 +73,10 @@ export default function OnboardPage() {
     );
   }
 
-  const lede = `${userName ? `${userName}, you` : "You"} are signed in but not in an organisation yet. Create one (you become Org Admin) or accept an invite link from a colleague.`;
+  const lede = `${userName ? `${userName}, you` : "You"} are signed in. Create an organisation to open the book, or open an invite from a colleague.`;
 
   return (
-    <AuthFrame tab="other" title="Create the firm book" lede={lede}>
+    <AuthFrame tab="other" title="Create your organisation" lede={lede}>
       <form onSubmit={onSubmit} className="auth-form onboard-org-form" data-testid="onboard-ready">
         <label className="field" htmlFor="onboard-org">
           Organisation name
@@ -84,7 +84,7 @@ export default function OnboardPage() {
             id="onboard-org"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Your Fund GP"
+            placeholder="Your firm name"
             autoComplete="organization"
             data-testid="onboard-org"
             className="auth-field-lg"

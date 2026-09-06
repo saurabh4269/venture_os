@@ -76,8 +76,7 @@ function InviteInner() {
     Boolean(signedIn && invite?.email && me?.user?.email.toLowerCase() === invite.email.toLowerCase());
 
   return (
-    <AuthFrame>
-      <h1>Join an organisation</h1>
+    <AuthFrame title="Join an organisation">
       {!invite && !err && (
         <p className="lede" aria-live="polite">
           Looking up the invite…

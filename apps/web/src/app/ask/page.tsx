@@ -82,8 +82,7 @@ export default function AskPage() {
         <PageHead
           title="Ask"
           testId="ask-ready"
-          kicker="Institutional research"
-          lede="Answers from your confirmed book, with citations you can open. Ask works best when your vault has recent files."
+          lede="Ask the confirmed book. Every answer cites a file, or we say it is not in the book."
         />
         <form onSubmit={send}>
           <label className="field ask-company-field">

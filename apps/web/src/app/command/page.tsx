@@ -38,6 +38,14 @@ type Pulse = {
 type ConnectorRow = { kind: string; lastSyncAt?: string };
 type PipelineStage = "SOURCE" | "PROPOSED" | "REVIEWED" | "BOOK" | "ANALYSIS";
 
+const STAGE_LABEL: Record<PipelineStage, string> = {
+  SOURCE: "Source",
+  PROPOSED: "Proposed",
+  REVIEWED: "Review",
+  BOOK: "Booked",
+  ANALYSIS: "Analysis",
+};
+
 function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
 }
@@ -144,12 +152,7 @@ export default function CommandPage() {
       <header className="page-head">
         <div>
           <h1 data-testid="command-ready">Command</h1>
-          <p className="lede">Your portfolio at a glance — what needs attention today.</p>
-        </div>
-        <div className="page-actions">
-          <button className="btn ghost sm" type="button" onClick={load} disabled={busy}>
-            {busy ? "Refreshing…" : "Refresh"}
-          </button>
+          <p className="lede">What needs a look this morning — then confirm Inbox, then the book.</p>
         </div>
       </header>
       {err && <p className="sev-high" role="alert">{err}</p>}
@@ -198,7 +201,7 @@ export default function CommandPage() {
                         <div>
                           <Link className="look-title company-link font-medium" href={item.href}>{item.company}</Link>
                           <div className="look-copy text-muted-foreground text-sm">{item.copy}</div>
-                          {item.cite ? <Badge className="mt-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Cite</Badge> : null}
+                          {item.cite ? <span className="cite">Cite</span> : null}
                         </div>
                       </div>
                     ))}
@@ -210,15 +213,15 @@ export default function CommandPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="font-serif text-lg">Pipeline activity</CardTitle>
+              <CardTitle className="font-serif text-lg">On the book</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {pipeline.length === 0 ? (
                 <div className="command-empty-hint p-4">
                   <p className="lede">
                     {emptyBook
-                      ? "Pipeline fills in after your first company and upload."
-                      : "No recent pipeline activity."}
+                      ? "Coverage appears after you add a company and confirm the first pack."
+                      : "No recent coverage yet."}
                   </p>
                 </div>
               ) : (
@@ -245,9 +248,11 @@ export default function CommandPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{r.pipelineStage}</Badge>
+                          <Badge variant="secondary">{STAGE_LABEL[r.pipelineStage]}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground hide-sm">Book</TableCell>
+                        <TableCell className="text-muted-foreground hide-sm">
+                          {r.pipelineStage === "PROPOSED" ? "Inbox" : r.lastMis ? "Book" : "—"}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums hide-sm">{r.updated}</TableCell>
                       </TableRow>
                     ))}

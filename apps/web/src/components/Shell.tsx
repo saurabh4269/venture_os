@@ -19,7 +19,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,24 +89,25 @@ export function useBookSession(): BookSession {
   };
 }
 
-const NAV_PRIMARY = [
+const NAV_TODAY = [
   { href: "/command", label: "Command", Icon: LayoutDashboard },
   { href: "/inbox", label: "Inbox", Icon: Inbox },
   { href: "/flags", label: "Flags", Icon: Flag },
   { href: "/companies", label: "Companies", Icon: Building2 },
 ] as const;
 
-const NAV_SECONDARY = [
+const NAV_RITUALS = [
   { href: "/ask", label: "Ask", Icon: MessageCircleQuestion },
   { href: "/nav", label: "NAV", Icon: TrendingUp },
   { href: "/compare", label: "Compare", Icon: BarChart3 },
   { href: "/reports", label: "Reports", Icon: FileText },
-  { href: "/vault", label: "Vault", Icon: Vault },
 ] as const;
 
-const NAV = [...NAV_PRIMARY, ...NAV_SECONDARY];
+const NAV_FIRM = [{ href: "/vault", label: "Vault", Icon: Vault }] as const;
 
-type NavItem = (typeof NAV_PRIMARY)[number] | (typeof NAV_SECONDARY)[number];
+const NAV = [...NAV_TODAY, ...NAV_RITUALS, ...NAV_FIRM];
+
+type NavItem = (typeof NAV)[number];
 
 function mobileNavTitle(path: string) {
   const items = [...NAV, { href: "/settings", label: "Settings" }];
@@ -325,36 +325,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
         <nav className="nav">
-          {NAV_PRIMARY.map((n) => railItem(n))}
-          <div className="rail-divider" aria-hidden />
-          {railOpen ? (
-            NAV_SECONDARY.map((n) => railItem(n, true))
-          ) : (
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <button type="button" className="rail-item rail-secondary" aria-label="More navigation">
-                      <MoreHorizontal className="size-[18px]" aria-hidden />
-                      <span className="sr-only">More</span>
-                    </button>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent side="right">More</TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent side="right" align="start">
-                <DropdownMenuLabel>More</DropdownMenuLabel>
-                {NAV_SECONDARY.map((n) => (
-                  <DropdownMenuItem key={n.href} onClick={() => router.push(n.href)}>
-                    {n.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          {railOpen ? <p className="rail-section">Today</p> : null}
+          {NAV_TODAY.map((n) => railItem(n))}
+          {railOpen ? <p className="rail-section">Rituals</p> : <div className="rail-divider" aria-hidden />}
+          {NAV_RITUALS.map((n) => railItem(n, true))}
         </nav>
         <div className="rail-spacer" />
         <div className="rail-foot">
+          {railOpen ? <p className="rail-section">Firm</p> : null}
+          {NAV_FIRM.map((n) => railItem(n, true))}
           {railOpen ? (
             <Link
               href="/settings"
@@ -431,12 +410,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 {me?.org?.name ? <p className="mobile-sheet-org">{me.org.name}</p> : null}
               </SheetHeader>
               <nav className="mobile-nav" aria-label="Mobile navigation">
-                {NAV_PRIMARY.map((n) => mobileNavLink(n))}
+                <p className="mobile-nav-label">Today</p>
+                {NAV_TODAY.map((n) => mobileNavLink(n))}
                 <Separator className="my-2" />
-                <p className="mobile-nav-label">More</p>
-                {NAV_SECONDARY.map((n) => mobileNavLink(n, true))}
+                <p className="mobile-nav-label">Rituals</p>
+                {NAV_RITUALS.map((n) => mobileNavLink(n, true))}
               </nav>
               <div className="mobile-sheet-foot">
+                {NAV_FIRM.map((n) => mobileNavLink(n))}
                 <Link
                   href="/settings"
                   onClick={() => setMobileNavOpen(false)}
@@ -465,7 +446,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Search className="size-4" aria-hidden />
             <input
               type="search"
-              placeholder="Search companies, flags, or reports…"
+              placeholder="Search companies…"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               className="topbar-search-input"

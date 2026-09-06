@@ -83,6 +83,18 @@ export default function CompaniesPage() {
 
   return (
     <Shell>
+      <PageHead
+        title="Companies"
+        testId="companies-ready"
+        lede={bookCloseLine()}
+        actions={
+          canWrite ? (
+            <Link className="btn companies-add-inline" href="/companies/new">
+              Add company
+            </Link>
+          ) : undefined
+        }
+      />
       <div className="page-toolbar companies-toolbar">
         <label className="sr-only" htmlFor="co-search">
           Search companies
@@ -123,40 +135,29 @@ export default function CompaniesPage() {
           )}
         </div>
       </div>
-      <PageHead
-        title="Companies"
-        testId="companies-ready"
-        lede={bookCloseLine()}
-        actions={
-          canWrite ? (
-            <Link className="btn companies-add-inline" href="/companies/new">
-              Add company
-            </Link>
-          ) : undefined
-        }
-      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
       <div className="filter-bar" data-testid="companies-filter-bar">
-          <span className="page-kicker filter-label">
-            Stage
-          </span>
-          <div className="tabs filter-pills filter-pills-inline" aria-label="Stage">
-            {stages.length === 0 ? <span className="lede">—</span> : null}
-            {stages.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`filter-pill${stage === s ? " on" : ""}`}
-                onClick={() => setStage(stage === s ? "" : s)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          {stages.length > 0 ? (
+            <>
+              <span className="page-kicker filter-label">Stage</span>
+              <div className="tabs filter-pills filter-pills-inline" aria-label="Stage">
+                {stages.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`filter-pill${stage === s ? " on" : ""}`}
+                    onClick={() => setStage(stage === s ? "" : s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
           <label className="sr-only" htmlFor="own-filter">
             Ownership
           </label>
@@ -205,7 +206,8 @@ export default function CompaniesPage() {
       {rows.length === 0 ? (
         <div className="empty">
           <strong>Empty book</strong>
-          {canWrite ? <Link href="/companies/new">Add your first company</Link> : "Ask your Org Admin to add a company."}
+          <p className="lede">Names appear here after you add a company.</p>
+          {canWrite ? <Link href="/companies/new" className="btn sm">Add company</Link> : "Ask your Org Admin to add a company."}
         </div>
       ) : visible.length === 0 ? (
         <div className="empty">Try different filters or add a company.</div>
@@ -248,7 +250,7 @@ export default function CompaniesPage() {
                         )}
                       </td>
                       <td>
-                        <span className={`status-chip ${kind}`}>{kind === "booked" ? "Booked" : kind === "gap" ? "Upload" : "Review"}</span>
+                        <span className={`status-chip ${kind}`}>{kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}</span>
                       </td>
                     </tr>
                   );

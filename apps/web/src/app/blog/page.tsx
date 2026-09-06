@@ -14,22 +14,23 @@ export default function BlogPage() {
         <p className="mkt-kicker">Notes</p>
         <h1>Build notes</h1>
         <p className="lede">
-          Short posts on sources, inbox confirm, and clear empty states — written for teams who run real books.
+          Short notes on sources, Inbox confirm, and empty states — for teams who run a live book.
         </p>
-        <section>
-          <h2>You confirm</h2>
-          <p>
-            Parser output lands in Inbox. A partner confirms before anything posts to the book — keeping the audit
-            trail clean.
-          </p>
-        </section>
-        <section>
-          <h2>Blanks stay blank</h2>
-          <p>
-            If a cell is empty, the book shows —. That keeps Command and Ask grounded in what you have actually
-            confirmed.
-          </p>
-        </section>
+        <div className="mkt-legal-cards">
+          <section className="mkt-legal-card">
+            <h2>You confirm</h2>
+            <p>
+              Parser output lands in Inbox. A partner confirms before anything posts to the book, so the audit
+              trail stays clean.
+            </p>
+          </section>
+          <section className="mkt-legal-card">
+            <h2>Blanks stay blank</h2>
+            <p>
+              If a cell is empty, the book shows —. Command and Ask stay grounded in what you have confirmed.
+            </p>
+          </section>
+        </div>
         <p className="mkt-soft-login mkt-legal-back">
           <Link href="/">← Back to Venture OS</Link>
           {" · "}

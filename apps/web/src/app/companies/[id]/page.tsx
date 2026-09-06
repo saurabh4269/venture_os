@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
 import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { monthName } from "@/lib/format";
 import { useCite, type CitePayload } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
@@ -320,11 +321,10 @@ export default function CompanyPage() {
               <>{formatOwnership(own)} ownership</>
             )}
             {" · "}
-            FY start month {data.company.fyStartMonth ?? 4} (
-            {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
-            {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
+            FY starts {monthName(data.company.fyStartMonth ?? 4)}
+            {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? " (Apr–Mar)" : ""}
+            {data.company.unitHint ? ` · ${data.company.unitHint}` : ""}
             {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
-            {data.company.affinityCompanyId ? " · Affinity id on file" : ""}
           </>
         }
         actions={
@@ -612,15 +612,12 @@ export default function CompanyPage() {
               </li>
             ))}
           </ul>
-          <p className="lede" style={{ fontSize: 12, margin: "12px 0 0" }}>
-            Only kinds this book stores: MIS, board pack, transcript. Stale is MIS older than 45 days.
-          </p>
         </Panel>
       </div>
 
       <Panel title="Positions">
       <p className="lede">
-        Booked positions only. Affinity writes ownership only after a mapped numeric field id and a successful sync.
+        Booked positions only. Ownership stays — until a mapped field syncs.
       </p>
       {!data.positions?.length ? (
         <div className="empty">Add a fund in Settings, then onboard a company with that fund attached.</div>

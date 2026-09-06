@@ -63,7 +63,7 @@ function LoginForm() {
   }
 
   return (
-    <AuthFrame tab="signin" title="Sign in to your book." lede={loginLede(next)}>
+    <AuthFrame tab="signin" title="Sign in to your book" lede={loginLede(next)}>
       <form method="post" onSubmit={onSubmit} className="auth-form flex flex-col gap-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>
@@ -117,7 +117,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<AuthFrame tab="signin" title="Sign in to your book."><p className="lede">Loading…</p></AuthFrame>}>
+    <Suspense fallback={<AuthFrame tab="signin" title="Sign in to your book"><p className="lede">Loading…</p></AuthFrame>}>
       <LoginForm />
     </Suspense>
   );

@@ -188,16 +188,15 @@ export default function NavPage() {
         testId="nav-ready"
         kicker={
           <span className="row nav-head-badges">
-            <span className="badge">Institutional book</span>
             <span className={`badge${unofficial ? " status-unofficial" : ""}`}>
-              Status: {unofficial ? "unofficial" : "locked"}
+              {unofficial ? "Unofficial" : "Locked"}
             </span>
           </span>
         }
         lede={
           <>
-            Quarterly marks · {quarterLabel(asOf)} · as of {asOf}. Rolled up from positions and marks in your book.
-            MOIC and IRR appear when the underlying data is complete. EUR columns include rate, date, and source.
+            {quarterLabel(asOf)} marks as of {asOf}. MOIC and IRR appear when cost and marks are complete.
+            EUR columns include rate, date, and source.
           </>
         }
         actions={

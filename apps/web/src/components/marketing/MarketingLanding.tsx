@@ -110,14 +110,17 @@ export function MarketingLanding() {
 
         <section className="mkt-section mkt-soft-close" id="pricing" aria-label="Pricing">
           <p className="mkt-kicker">Pricing</p>
-          <h2>Talk to us about seats for your team.</h2>
+          <h2>Start with your team.</h2>
           <p className="lede mkt-lede">
-            Every firm starts with an empty book. We tailor pricing to your team size and workflow.
+            Every firm starts with an empty book. We set seats with you — no public price list, no invented figures.
           </p>
-          <p className="mkt-soft-login">
-            Already on the book?{" "}
-            <Link href="/login" data-testid="landing-log-in">Log in</Link>
-          </p>
+          <div className="mkt-hero-ctas mkt-pricing-cta">
+            <Link href="/signup" className="btn">Get started</Link>
+            <p className="mkt-soft-login">
+              Already on the book?{" "}
+              <Link href="/login" data-testid="landing-log-in">Log in</Link>
+            </p>
+          </div>
         </section>
 
         <p className="mkt-partner-line">

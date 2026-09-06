@@ -156,7 +156,7 @@ export default function FlagsPage() {
       <PageHead
         title="Flags"
         testId="flags-ready"
-        lede="Evidence queue for your portfolio. Each flag links to the source that triggered it."
+        lede="Flags fire only with evidence. Open a row to see the source, then snooze or mute."
       />
       {err && (
         <p className="sev-high" role="alert">
@@ -170,7 +170,7 @@ export default function FlagsPage() {
         <input
           id="flag-search"
           className="look-search"
-          placeholder="Search companies, flags, citations…"
+          placeholder="Search flags…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -190,9 +190,9 @@ export default function FlagsPage() {
       <div className="filter-bar flags-filter-bar">
         <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
           <option value="">Severity</option>
-          <option value="high">high</option>
-          <option value="med">med</option>
-          <option value="low">low</option>
+          <option value="high">High</option>
+          <option value="med">Medium</option>
+          <option value="low">Low</option>
         </select>
         <select
           value={status}
@@ -201,7 +201,7 @@ export default function FlagsPage() {
         >
           {TABS.map((s) => (
             <option key={s} value={s}>
-              Status: {s}
+              {s === "open" ? "Open" : s === "snoozed" ? "Snoozed" : s === "muted" ? "Muted" : s}
             </option>
           ))}
         </select>
@@ -229,7 +229,7 @@ export default function FlagsPage() {
         <div className="empty">
           <strong>{status === "open" ? "All clear" : `No ${status} flags`}</strong>
           {status === "open"
-            ? "Nothing needs attention. Upload fresh MIS or check Inbox after a new pack."
+            ? "No open flags. Upload a fresh pack or confirm Inbox if you expect new evidence."
             : `Nothing in ${status}.`}
         </div>
       ) : visible.length === 0 ? (

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowUpRight, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/api";
@@ -87,7 +86,7 @@ export function AskOsPanel() {
                     {res.answer}
                     {!refused && res.citations.length > 0 ? (
                       <div className="ask-os-entity mt-2 rounded-md border p-2">
-                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Cite</Badge>
+                        <span className="cite">Cite</span>
                         <div className="text-muted-foreground mt-1 text-xs">{res.citations[0]?.excerpt || EM}</div>
                       </div>
                     ) : null}

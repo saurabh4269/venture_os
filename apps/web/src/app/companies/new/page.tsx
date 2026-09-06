@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PageHead } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { MONTH_NAMES } from "@/lib/format";
 
 export default function NewCompanyPage() {
   const { canWrite } = useBookSession();
@@ -135,7 +136,7 @@ export default function NewCompanyPage() {
       <PageHead
         title="Onboard a company"
         testId="companies-new-ready"
-        lede="Fifteen-minute path: company profile, first file, then Inbox confirm. Upload an XLSX or CSV MIS pack to get started."
+        lede="Profile, first file, then confirm in Inbox. Upload an XLSX or CSV MIS pack to start."
       />
       {err && (
         <p className="sev-high" role="alert">
@@ -167,8 +168,14 @@ export default function NewCompanyPage() {
             <input value={country} onChange={(e) => setCountry(e.target.value)} />
           </label>
           <label className="field">
-            FY start month (4 = April)
-            <input type="number" min={1} max={12} value={fy} onChange={(e) => setFy(Number(e.target.value))} />
+            FY starts
+            <select value={fy} onChange={(e) => setFy(Number(e.target.value))} aria-label="FY start month">
+              {MONTH_NAMES.map((label, i) => (
+                <option key={label} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             Unit hint
@@ -181,7 +188,7 @@ export default function NewCompanyPage() {
           <label className="field">
             Fund
             <select value={fundId} onChange={(e) => setFundId(e.target.value)}>
-              <option value="">Main fund (create if missing)</option>
+              <option value="">Main fund</option>
               {funds.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
@@ -189,22 +196,27 @@ export default function NewCompanyPage() {
               ))}
             </select>
           </label>
-          <label className="field">
-            OneDrive folder id (optional)
-            <input value={onedriveFolderId} onChange={(e) => setOnedriveFolderId(e.target.value)} />
-          </label>
-          <label className="field">
-            OneDrive folder path (optional)
-            <input value={onedriveFolderPath} onChange={(e) => setOnedriveFolderPath(e.target.value)} placeholder="/MIS" />
-          </label>
-          <label className="field">
-            Affinity company id (optional)
-            <input value={affinityCompanyId} onChange={(e) => setAffinityCompanyId(e.target.value)} />
-          </label>
-          <label className="field">
-            Granola note id (optional)
-            <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
-          </label>
+          <details className="onboard-advanced">
+            <summary>Optional source mapping</summary>
+            <div className="onboard-advanced-grid">
+              <label className="field">
+                OneDrive folder id
+                <input value={onedriveFolderId} onChange={(e) => setOnedriveFolderId(e.target.value)} />
+              </label>
+              <label className="field">
+                OneDrive folder path
+                <input value={onedriveFolderPath} onChange={(e) => setOnedriveFolderPath(e.target.value)} placeholder="/MIS" />
+              </label>
+              <label className="field">
+                Affinity company id
+                <input value={affinityCompanyId} onChange={(e) => setAffinityCompanyId(e.target.value)} />
+              </label>
+              <label className="field">
+                Granola note id
+                <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
+              </label>
+            </div>
+          </details>
           <div className="onboard-form-actions">
             <button className="btn sm" type="submit" disabled={busy} data-testid="create-company">
               {busy ? "Creating…" : "Create company"}
@@ -262,12 +274,14 @@ export default function NewCompanyPage() {
 
       {step === 3 && (
         <div
-          className="empty onboard-extract"
+          className="onboard-extract"
           data-testid="extract-status"
           data-parse-status={parseStatus || "queued"}
         >
-          Extract {parseStatus || "queued"}. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue,
-          GM). Then this company appears on Command with full provenance.
+          <strong>Extract {parseStatus || "queued"}</strong>
+          <p className="lede">
+            Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue, GM). Command updates after you accept the rows.
+          </p>
         </div>
       )}
     </Shell>

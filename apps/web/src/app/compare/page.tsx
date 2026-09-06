@@ -168,7 +168,7 @@ export default function ComparePage() {
       <PageHead
         title="Compare"
         testId="compare-ready"
-        lede="Compare confirmed metrics across companies. Empty cells show —. Filters help you focus on peers in the same stage or sector."
+        lede="Compare confirmed metrics. Empty cells stay —. Filters narrow to the same stage or sector — they do not invent a peer set."
       />
       {err && (
         <p className="sev-high" role="alert">

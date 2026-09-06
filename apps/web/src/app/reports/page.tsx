@@ -66,7 +66,7 @@ export default function ReportsPage() {
       <PageHead
         title="Reports"
         testId="reports-ready"
-        lede="Drafted from your confirmed book. One-pagers follow a fixed field order; monthly packs keep objective and subjective columns separate."
+        lede="Draft from the confirmed book. One-pagers need a company. Monthly packs keep objective and subjective columns apart."
       />
       {err && (
         <p className="sev-high" role="alert">

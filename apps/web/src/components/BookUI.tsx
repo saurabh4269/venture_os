@@ -74,6 +74,7 @@ export function SettingsSubnav({ current }: { current: "firm" | "connectors" }) 
         Firm
       </Link>
       <Link href="/settings#people">Members</Link>
+      <Link href="/settings#flag-policy">Flag policy</Link>
       <Link
         href="/settings/connectors"
         className={current === "connectors" ? "on" : undefined}

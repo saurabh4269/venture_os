@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
 import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 import { bookErrorMessage } from "@/lib/wake";
+import { MONTH_NAMES, monthName } from "@/lib/format";
 
 type Settings = {
   settings: { fyStartMonth: number; baseCurrency: string; displayCurrency: string } | null;
@@ -173,10 +174,9 @@ export default function SettingsPage() {
   return (
     <Shell>
       <PageHead
-        kicker="Organisation"
         title="Settings"
         testId="settings-ready"
-        lede="Firm defaults, members, connectors, and flag policy. FY starts April–March unless you change it here."
+        lede="Firm year, members, connectors, and flag policy. FY starts in April unless you change it here."
       />
       <SettingsSubnav current="firm" />
       <div className="settings-stack">
@@ -184,7 +184,7 @@ export default function SettingsPage() {
       <Panel title="Firm year">
       {data?.settings && !isAdmin && (
         <p className="lede">
-          FY starts month {data.settings.fyStartMonth}. Base {data.settings.baseCurrency} · display{" "}
+          FY starts in {monthName(data.settings.fyStartMonth)}. Base {data.settings.baseCurrency} · display{" "}
           {data.settings.displayCurrency}. Org Admin can change this.
         </p>
       )}
@@ -206,8 +206,14 @@ export default function SettingsPage() {
           }}
         >
           <label className="field">
-            FY start month
-            <input name="fyStartMonth" type="number" min={1} max={12} defaultValue={data.settings.fyStartMonth} />
+            FY starts
+            <select name="fyStartMonth" defaultValue={String(data.settings.fyStartMonth)} aria-label="FY start month">
+              {MONTH_NAMES.map((label, i) => (
+                <option key={label} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             Base
@@ -223,12 +229,6 @@ export default function SettingsPage() {
         </form>
       )}
       </Panel>
-      <Panel title="Mapping">
-      <p className="lede">
-        Optional vendor ids on each company profile. Unit and currency hints live there too.
-      </p>
-      </Panel>
-
       <Panel title="People" flush id="people">
       {members.length === 0 ? (
         <div className="empty">Members will appear here once invites are accepted.</div>
@@ -427,12 +427,6 @@ export default function SettingsPage() {
           {loadErr}
         </p>
       )}
-
-      <Panel title="Session">
-      <p className="lede">
-        Sessions last seven days and refresh with use. Sign out anytime from the account menu.
-      </p>
-      </Panel>
 
       <Panel title="Flag policy" id="flag-policy">
       <p className="lede">

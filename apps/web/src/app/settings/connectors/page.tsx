@@ -229,7 +229,6 @@ function ConnectorCards() {
   return (
     <Shell>
       <PageHead
-        kicker="Settings · Connectors / API vault"
         title="Connectors"
         testId="connectors-ready"
         badge={
@@ -241,11 +240,11 @@ function ConnectorCards() {
             <span className="badge">Read only</span>
           )
         }
-        lede="Connector keys are encrypted at rest. Status shows connected after a successful health check."
+        lede="Keys stay encrypted. A connector shows connected only after a successful health check."
       />
       <SettingsSubnav current="connectors" />
       <p className="lede connectors-intro">
-        Paste steps: <code>docs/connectors/ADDING_KEYS.md</code>. Map folder / CRM ids on each company.
+        Save credentials, then Test. Map folder or CRM ids on each company profile.
       </p>
       {oauthNote && (
         <p className={search.get("error") ? "sev-high" : "lede"} role="status">
