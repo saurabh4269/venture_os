@@ -75,26 +75,30 @@ export default function ReportsPage() {
       )}
       {canWrite && (
       <div className="row reports-draft-row">
-        <input
-          type="date"
-          value={periodEnd}
-          onChange={(e) => setPeriodEnd(e.target.value)}
-          aria-label="Period end"
-          data-testid="reports-period"
-        />
-        <select
-          value={companyId}
-          onChange={(e) => setCompanyId(e.target.value)}
-          aria-label="Company"
-          data-testid="reports-company"
-        >
-          <option value="">Select company (required for one-pager)</option>
-          {cos.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <label className="field">
+          Period end
+          <input
+            type="date"
+            value={periodEnd}
+            onChange={(e) => setPeriodEnd(e.target.value)}
+            data-testid="reports-period"
+          />
+        </label>
+        <label className="field">
+          Company
+          <select
+            value={companyId}
+            onChange={(e) => setCompanyId(e.target.value)}
+            data-testid="reports-company"
+          >
+            <option value="">Select company (required for one-pager)</option>
+            {cos.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           className="btn sm"
           data-testid="reports-draft-one-pager"
@@ -144,6 +148,7 @@ export default function ReportsPage() {
                       key={fmt}
                       type="button"
                       className="chip"
+                      data-testid={`reports-export-${fmt}`}
                       onClick={() => downloadAuthed(`/api/reports/${r.id}/export/${fmt}`)}
                     >
                       {fmt.toUpperCase()}

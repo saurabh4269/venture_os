@@ -246,7 +246,7 @@ export default function ComparePage() {
         !loading &&
         data && (
         <Panel flush>
-        <div className="table-scroll">
+        <div className="table-scroll compare-results-table" data-testid="compare-results-table">
         <table>
           <thead>
             <tr>
