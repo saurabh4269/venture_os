@@ -163,22 +163,26 @@ export default function CommandPage() {
 
       {!loading && (
         <div className="command-home-grid">
-          <Card>
+          <Card className="command-needs-look" data-testid="command-needs-look">
             <CardHeader className="pb-2">
               <div className="command-card-head flex items-center justify-between gap-2">
                 <CardTitle className="font-serif text-lg">
                   Needs a look{needsLook > 0 ? ` · ${needsLook}` : ""}
                 </CardTitle>
                 {emptyBook ? null : inboxPending > 0 ? (
-                  <Link href="/inbox" className="btn ghost sm">Inbox · {inboxPending}</Link>
+                  <Link href="/inbox" className="btn ghost sm command-inbox-link" data-testid="command-open-inbox">
+                    Inbox · {inboxPending}
+                  </Link>
                 ) : (
-                  <Link href="/inbox" className="btn ghost sm">Open Inbox</Link>
+                  <Link href="/inbox" className="btn ghost sm command-inbox-link" data-testid="command-open-inbox">
+                    Open Inbox
+                  </Link>
                 )}
               </div>
             </CardHeader>
             <CardContent>
               {look.length === 0 ? (
-                <div className="command-empty-hint space-y-2">
+                <div className="command-empty-hint space-y-2" data-testid="command-needs-look-empty">
                   {emptyBook ? (
                     <p className="lede">No companies yet. Add one when you&apos;re ready.</p>
                   ) : (
@@ -187,9 +191,9 @@ export default function CommandPage() {
                 </div>
               ) : (
                 <ScrollArea className="max-h-80">
-                  <div className="look-list">
+                  <div className="look-list" data-testid="command-look-list">
                     {look.map((item) => (
-                      <div className="look-item" key={item.id}>
+                      <div className="look-item" key={item.id} data-testid="command-look-item">
                         {item.severity === "high" ? <IconWarn className="nav-ico look-ico high" /> : <IconFlagSmall className="nav-ico look-ico" />}
                         <div>
                           <Link className="look-title company-link font-medium" href={item.href}>{item.company}</Link>

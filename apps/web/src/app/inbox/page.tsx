@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHead } from "@/components/BookUI";
-import { useCite } from "@/components/Cite";
+import { useCite, type CitePayload } from "@/components/Cite";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -46,9 +46,27 @@ function relTime(iso?: string | null) {
   return `${Math.floor(h / 24)}d`;
 }
 
+function inboxCitePayload(item: Item): CitePayload {
+  return {
+    display: item.proposed.metricKey ?? item.proposed.label ?? item.kind,
+    locator: item.locator,
+    excerpt: item.locator.excerpt ?? item.proposed.excerpt,
+    periodStart: item.proposed.periodStart,
+    periodEnd: item.proposed.periodEnd,
+  };
+}
+
+function InboxCiteButton({ label, payload }: { label: string; payload: CitePayload }) {
+  const openCite = useCite();
+  return (
+    <button type="button" className="cite inbox-cite" data-testid="inbox-cite" onClick={() => openCite(payload)}>
+      {label}
+    </button>
+  );
+}
+
 export default function InboxPage() {
   const { canWrite, ready: sessionReady } = useBookSession();
-  const openCite = useCite();
   const [items, setItems] = useState<Item[]>([]);
   const [periodEdits, setPeriodEdits] = useState<Record<string, { start: string; end: string }>>({});
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("pending");
@@ -290,21 +308,7 @@ export default function InboxPage() {
                   )}
                   {(loc || i.locator.excerpt || i.proposed.excerpt) && (
                     <div className="inbox-cite-mobile show-mobile-only">
-                      <button
-                        type="button"
-                        className="cite"
-                        onClick={() =>
-                          openCite({
-                            display: i.proposed.metricKey ?? i.proposed.label ?? i.kind,
-                            locator: i.locator,
-                            excerpt: i.locator.excerpt ?? i.proposed.excerpt,
-                            periodStart: i.proposed.periodStart,
-                            periodEnd: i.proposed.periodEnd,
-                          })
-                        }
-                      >
-                        {loc || "Cite"}
-                      </button>
+                      <InboxCiteButton label={loc || "Cite"} payload={inboxCitePayload(i)} />
                     </div>
                   )}
                   {(i.kind === "unit_ambiguity" || !i.proposed.unit || i.proposed.unit === "unknown") &&
@@ -335,21 +339,7 @@ export default function InboxPage() {
                 </div>
                 <div className="hide-sm">
                   {loc || i.locator.excerpt || i.proposed.excerpt ? (
-                    <button
-                      type="button"
-                      className="cite"
-                      onClick={() =>
-                        openCite({
-                          display: i.proposed.metricKey ?? i.proposed.label ?? i.kind,
-                          locator: i.locator,
-                          excerpt: i.locator.excerpt ?? i.proposed.excerpt,
-                          periodStart: i.proposed.periodStart,
-                          periodEnd: i.proposed.periodEnd,
-                        })
-                      }
-                    >
-                      {loc || "Cite"}
-                    </button>
+                    <InboxCiteButton label={loc || "Cite"} payload={inboxCitePayload(i)} />
                   ) : (
                     <span className="lede">—</span>
                   )}

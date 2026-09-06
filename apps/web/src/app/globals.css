@@ -1229,6 +1229,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .inbox-value-input { width: 88px; max-width: 100%; min-height: 36px; }
 .inbox-period-row { margin-top: 4px; flex-wrap: wrap; gap: 8px; }
 .inbox-cite-mobile { margin-top: 6px; }
+.triage-row .inbox-cite { min-height: 36px; padding: 6px 12px; }
 .inbox-note-input { margin-top: 4px; width: 100%; min-height: 36px; }
 .nav-filters {
   display: flex;
@@ -2889,7 +2890,9 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .inbox-period-row { flex-direction: column; align-items: stretch; }
   .inbox-period-row input { width: 100%; min-height: 44px; }
   .inbox-value-input { width: 100%; min-height: 44px; }
-  .inbox-cite-mobile .cite { min-height: 44px; padding: 8px 12px; }
+  .inbox-cite-mobile .cite,
+  .inbox-cite-mobile .inbox-cite { min-height: 44px; padding: 8px 12px; }
+  .triage-row .inbox-cite { min-height: 44px; padding: 8px 12px; }
   .triage-row select,
   .triage-row input:not([type="date"]) { width: 100%; min-height: 44px; }
   .inbox-note-input { min-height: 44px; }
@@ -2997,6 +3000,18 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .command-start-actions .btn { width: 100%; justify-content: center; min-height: 44px; }
   .command-home-grid { gap: 12px; }
   .command-card-head { flex-direction: column; align-items: flex-start !important; }
+  .command-needs-look .command-card-head .btn,
+  .command-needs-look .command-inbox-link,
+  .command-needs-look a.command-inbox-link.btn.sm {
+    min-height: 44px;
+    padding: 8px 14px;
+  }
+  .command-needs-look .look-item .company-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 4px 0;
+  }
   .mkt-notes,
   .mkt-steps-plain { grid-template-columns: 1fr; }
   .mkt-header-actions .mkt-login-btn,
