@@ -153,14 +153,24 @@ export default function FlagsPage() {
 
   return (
     <Shell>
-      <div className="page-toolbar">
+      <PageHead
+        title="Flags"
+        testId="flags-ready"
+        lede="Flags fire only with evidence. Open a row to see the source, then snooze or mute."
+      />
+      {err && (
+        <p className="sev-high" role="alert">
+          {err}
+        </p>
+      )}
+      <div className="page-toolbar flags-toolbar">
         <label className="sr-only" htmlFor="flag-search">
           Search flags
         </label>
         <input
           id="flag-search"
           className="look-search"
-          placeholder="Search companies, flags, citations…"
+          placeholder="Search flags…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -177,22 +187,12 @@ export default function FlagsPage() {
           ) : null}
         </div>
       </div>
-      <PageHead
-        title="Flags"
-        testId="flags-ready"
-        lede="Evidence queue · open items require a cite. Catalog detectors only — missing inputs do not fire a flag."
-      />
-      {err && (
-        <p className="sev-high" role="alert">
-          {err}
-        </p>
-      )}
-      <div className="filter-bar">
+      <div className="filter-bar flags-filter-bar">
         <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
           <option value="">Severity</option>
-          <option value="high">high</option>
-          <option value="med">med</option>
-          <option value="low">low</option>
+          <option value="high">High</option>
+          <option value="med">Medium</option>
+          <option value="low">Low</option>
         </select>
         <select
           value={status}
@@ -201,7 +201,7 @@ export default function FlagsPage() {
         >
           {TABS.map((s) => (
             <option key={s} value={s}>
-              Status: {s}
+              {s === "open" ? "Open" : s === "snoozed" ? "Snoozed" : s === "muted" ? "Muted" : s}
             </option>
           ))}
         </select>
@@ -227,13 +227,13 @@ export default function FlagsPage() {
       </div>
       {data.flags.length === 0 ? (
         <div className="empty">
-          <strong>{status === "open" ? "No open flags" : `No ${status} flags`}</strong>
+          <strong>{status === "open" ? "All clear" : `No ${status} flags`}</strong>
           {status === "open"
-            ? "Either the book is quiet, or headlines are still unconfirmed."
+            ? "No open flags. Upload a fresh pack or confirm Inbox if you expect new evidence."
             : `Nothing in ${status}.`}
         </div>
       ) : visible.length === 0 ? (
-        <div className="empty">No flags match this search.</div>
+        <div className="empty">Try a different search or filter.</div>
       ) : (
         <div className="flags-split">
           <Panel flush>
@@ -306,15 +306,15 @@ export default function FlagsPage() {
                 "Evidence"
               )
             }
-            title={selected ? (selected.companyName ?? "—") : "Inspect a row"}
+            title={selected ? (selected.companyName ?? "—") : "Flag detail"}
           >
             <div data-testid="flags-detail">
               {!selected ? (
-                <p className="lede">Select a row to inspect detector evidence. Nothing here is generated commentary.</p>
+                <p className="lede">Pick a row to see the source and evidence behind the flag.</p>
               ) : (
                 <>
-                  <p className="look-title">{flagLabel(selected.flagKey)}</p>
-                  <p className="lede" style={{ marginTop: 6 }}>
+                  <p className="look-title flag-detail-title">{flagLabel(selected.flagKey)}</p>
+                  <p className="lede flag-detail-meta">
                     {selected.detectedAt
                       ? `Detected ${new Date(selected.detectedAt).toLocaleString()}`
                       : "Detected time —"}
@@ -323,16 +323,16 @@ export default function FlagsPage() {
                     <div className="flag-actions">
                       {status === "open" ? (
                         <>
-                          <button className="btn" type="button" onClick={() => snooze(selected.id)}>
+                          <button className="btn sm" type="button" onClick={() => snooze(selected.id)}>
                             Snooze 14d
                           </button>
-                          <button className="btn ghost" type="button" onClick={() => mute(selected.id)}>
+                          <button className="btn ghost sm" type="button" onClick={() => mute(selected.id)}>
                             Mute
                           </button>
                         </>
                       ) : (
                         <button
-                          className="btn ghost"
+                          className="btn ghost sm"
                           type="button"
                           onClick={() => api(`/api/flags/${selected.id}/unmute`, { method: "POST", body: "{}" }).then(() => load())}
                         >
@@ -345,7 +345,7 @@ export default function FlagsPage() {
                   <div className="lane-obj">
                     <div className="page-kicker">Objective fact</div>
                     {evidenceEntries(selected.evidence ?? {}).length === 0 ? (
-                      <p className="lede">No evidence fields on this row.</p>
+                      <p className="lede">Evidence will appear here once the flag rule has source fields.</p>
                     ) : (
                       evidenceEntries(selected.evidence ?? {}).map(([k, v]) => (
                         <div className="metric-row" key={k}>
@@ -355,23 +355,23 @@ export default function FlagsPage() {
                       ))
                     )}
                     {(selected.sourceRefIds ?? []).length > 0 && (
-                      <div className="row" style={{ marginTop: 10 }}>
+                      <div className="row flag-detail-cites">
                         {(selected.sourceRefIds ?? []).map((id) => (
                           <Fact key={id} display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, id)} />
                         ))}
                       </div>
                     )}
                   </div>
-                  <div className="lane-sub" style={{ marginTop: 10 }}>
+                  <div className="lane-sub flag-detail-sub">
                     <div className="page-kicker">Subjective take</div>
                     {take ? (
                       <p>{take.body}</p>
                     ) : (
-                      <p className="lede">No partner take on the book. We will not invent analysis from a detector.</p>
+                      <p className="lede">Add partner notes on the company page to see them here.</p>
                     )}
                   </div>
                   {selected.note ? (
-                    <p className="lede" style={{ marginTop: 12 }}>
+                    <p className="lede flag-detail-note">
                       Note: {selected.note}
                     </p>
                   ) : null}
@@ -379,8 +379,8 @@ export default function FlagsPage() {
                     <p className="lede">Until {new Date(selected.snoozedUntil).toLocaleDateString()}</p>
                   ) : null}
                   {selected.companyId && (
-                    <p style={{ marginTop: 12 }}>
-                      <Link className="lede" href={`/compare?companyIds=${selected.companyId}`}>
+                    <p className="flag-detail-link">
+                      <Link className="btn ghost sm" href={`/compare?companyIds=${selected.companyId}`}>
                         Compare
                       </Link>
                     </p>

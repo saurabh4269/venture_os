@@ -83,7 +83,19 @@ export default function CompaniesPage() {
 
   return (
     <Shell>
-      <div className="page-toolbar">
+      <PageHead
+        title="Companies"
+        testId="companies-ready"
+        lede={bookCloseLine()}
+        actions={
+          canWrite ? (
+            <Link className="btn companies-add-inline" href="/companies/new">
+              Add company
+            </Link>
+          ) : undefined
+        }
+      />
+      <div className="page-toolbar companies-toolbar">
         <label className="sr-only" htmlFor="co-search">
           Search companies
         </label>
@@ -93,6 +105,7 @@ export default function CompaniesPage() {
           placeholder="Search companies…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          data-testid="companies-search"
         />
         <div className="toolbar-actions">
           {visible.length > 0 && (
@@ -122,44 +135,39 @@ export default function CompaniesPage() {
           )}
         </div>
       </div>
-      <PageHead
-        title="Companies"
-        testId="companies-ready"
-        lede={bookCloseLine()}
-        actions={
-          canWrite ? (
-            <Link className="btn" href="/companies/new">
-              Add company
-            </Link>
-          ) : undefined
-        }
-      />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      <div className="filter-bar">
-          <span className="page-kicker" style={{ margin: 0 }}>
-            Stage
-          </span>
-          <div className="tabs filter-pills" style={{ margin: 0 }} aria-label="Stage">
-            {stages.length === 0 ? <span className="lede">—</span> : null}
-            {stages.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`filter-pill${stage === s ? " on" : ""}`}
-                onClick={() => setStage(stage === s ? "" : s)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+      <div className="filter-bar" data-testid="companies-filter-bar">
+          {stages.length > 0 ? (
+            <>
+              <span className="page-kicker filter-label">Stage</span>
+              <div className="tabs filter-pills filter-pills-inline" aria-label="Stage">
+                {stages.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`filter-pill${stage === s ? " on" : ""}`}
+                    onClick={() => setStage(stage === s ? "" : s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
           <label className="sr-only" htmlFor="own-filter">
             Ownership
           </label>
-          <select id="own-filter" value={own} onChange={(e) => setOwn(e.target.value as typeof own)} aria-label="Ownership">
+          <select
+            id="own-filter"
+            value={own}
+            onChange={(e) => setOwn(e.target.value as typeof own)}
+            aria-label="Ownership"
+            data-testid="companies-own-filter"
+          >
             <option value="all">Ownership</option>
             <option value="has">Has booked ownership</option>
             <option value="missing">Ownership —</option>
@@ -167,7 +175,13 @@ export default function CompaniesPage() {
           <label className="sr-only" htmlFor="cover-filter">
             Coverage
           </label>
-          <select id="cover-filter" value={cover} onChange={(e) => setCover(e.target.value as typeof cover)} aria-label="Coverage">
+          <select
+            id="cover-filter"
+            value={cover}
+            onChange={(e) => setCover(e.target.value as typeof cover)}
+            aria-label="Coverage"
+            data-testid="companies-cover-filter"
+          >
             <option value="all">Coverage</option>
             <option value="booked">Booked</option>
             <option value="gap">Gap</option>
@@ -177,6 +191,7 @@ export default function CompaniesPage() {
             <button
               type="button"
               className="linkish push"
+              data-testid="companies-clear-filters"
               onClick={() => {
                 setQ("");
                 setStage("");
@@ -191,22 +206,22 @@ export default function CompaniesPage() {
       {rows.length === 0 ? (
         <div className="empty">
           <strong>Empty book</strong>
-          {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."}{" "}
-          (15-minute path).
+          <p className="lede">Names appear here after you add a company.</p>
+          {canWrite ? <Link href="/companies/new" className="btn sm">Add company</Link> : "Ask your Org Admin to add a company."}
         </div>
       ) : visible.length === 0 ? (
-        <div className="empty">No companies match these filters.</div>
+        <div className="empty">Try different filters or add a company.</div>
       ) : (
         <Panel flush>
-          <div className="table-scroll">
+          <div className="table-scroll table-scroll--compact companies-table">
             <table>
               <thead>
                 <tr>
                   <th>Company</th>
                   <th>Stage</th>
                   <th>Ownership</th>
-                  <th>Last MIS</th>
-                  <th>Flags</th>
+                  <th className="hide-sm">Last MIS</th>
+                  <th className="hide-sm">Flags</th>
                   <th>Coverage</th>
                 </tr>
               </thead>
@@ -226,8 +241,8 @@ export default function CompaniesPage() {
                       </td>
                       <td>{c.stage ?? EM}</td>
                       <td className="num">{formatOwnership(cov?.ownershipPct)}</td>
-                      <td className="lede">{cov?.lastMis ?? EM}</td>
-                      <td>
+                      <td className="lede hide-sm">{cov?.lastMis ?? EM}</td>
+                      <td className="hide-sm">
                         {cov?.openFlags ? (
                           <span className={`flag-n${cov.openFlags >= 2 ? " high" : ""}`}>{cov.openFlags}</span>
                         ) : (
@@ -245,8 +260,7 @@ export default function CompaniesPage() {
           </div>
           <p className="table-foot">
             Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
-            {filtered ? " matching current filters" : ""}. Last MIS and coverage are booked evidence — never a note or a
-            score.
+            {filtered ? " matching current filters" : ""}. Last MIS and coverage come from confirmed book rows.
           </p>
         </Panel>
       )}

@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
 import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 import { bookErrorMessage } from "@/lib/wake";
+import { MONTH_NAMES, monthName } from "@/lib/format";
 
 type Settings = {
   settings: { fyStartMonth: number; baseCurrency: string; displayCurrency: string } | null;
@@ -42,6 +43,33 @@ type Invite = {
   acceptUrl: string;
 };
 
+function flagLabelForKey(key: string) {
+  return FLAG_CATALOG.find((f) => f.key === key)?.label ?? key.replaceAll("_", " ");
+}
+
+function summarizeFlagPolicyAudit(before: Record<string, unknown>, after: Record<string, unknown>) {
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+  const changes: { key: string; label: string; text: string }[] = [];
+  for (const key of keys) {
+    const prev = before[key];
+    const next = after[key];
+    if (prev === undefined && next === undefined) continue;
+    const label = flagLabelForKey(key);
+    if (prev === undefined) {
+      changes.push({ key, label, text: `${label}: ${String(next)}` });
+      continue;
+    }
+    if (next === undefined) {
+      changes.push({ key, label, text: `${label}: removed` });
+      continue;
+    }
+    if (prev !== next) {
+      changes.push({ key, label, text: `${label}: ${String(prev)} → ${String(next)}` });
+    }
+  }
+  return changes;
+}
+
 export default function SettingsPage() {
   const { isAdmin, canWrite } = useBookSession();
   const [data, setData] = useState<Settings | null>(null);
@@ -54,6 +82,7 @@ export default function SettingsPage() {
   const [invite, setInvite] = useState({ email: "", role: "analyst" });
   const [inviteMsg, setInviteMsg] = useState("");
   const [inviteErr, setInviteErr] = useState("");
+  const [lastInviteUrl, setLastInviteUrl] = useState("");
   const [copied, setCopied] = useState("");
   const [busy, setBusy] = useState(false);
   const [policyDraft, setPolicyDraft] = useState<Record<string, string>>({});
@@ -118,9 +147,10 @@ export default function SettingsPage() {
         body: JSON.stringify(invite),
       });
       setInviteMsg(
-        `Invite created. Email delivery is not connected — copy the link and send it to ${invite.email}.`,
+        `Invite created for ${invite.email}. Copy the link below and send it to them.`,
       );
-      setCopied(res.acceptUrl);
+      setLastInviteUrl(res.acceptUrl);
+      setCopied("");
       setInvite({ email: "", role: "analyst" });
       load();
     } catch (ex) {
@@ -144,9 +174,9 @@ export default function SettingsPage() {
   return (
     <Shell>
       <PageHead
-        kicker="Organisation"
         title="Settings"
-        lede="FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Paste connector keys on Settings → Connectors; vault upload remains the fallback until a health check succeeds."
+        testId="settings-ready"
+        lede="Firm year, members, connectors, and flag policy. FY starts in April unless you change it here."
       />
       <SettingsSubnav current="firm" />
       <div className="settings-stack">
@@ -154,13 +184,13 @@ export default function SettingsPage() {
       <Panel title="Firm year">
       {data?.settings && !isAdmin && (
         <p className="lede">
-          FY starts month {data.settings.fyStartMonth}. Base {data.settings.baseCurrency} · display{" "}
+          FY starts in {monthName(data.settings.fyStartMonth)}. Base {data.settings.baseCurrency} · display{" "}
           {data.settings.displayCurrency}. Org Admin can change this.
         </p>
       )}
       {data?.settings && isAdmin && (
         <form
-          className="row"
+          className="row settings-form-row settings-firm-row"
           onSubmit={async (e) => {
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
@@ -176,8 +206,14 @@ export default function SettingsPage() {
           }}
         >
           <label className="field">
-            FY start month
-            <input name="fyStartMonth" type="number" min={1} max={12} defaultValue={data.settings.fyStartMonth} />
+            FY starts
+            <select name="fyStartMonth" defaultValue={String(data.settings.fyStartMonth)} aria-label="FY start month">
+              {MONTH_NAMES.map((label, i) => (
+                <option key={label} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             Base
@@ -193,18 +229,11 @@ export default function SettingsPage() {
         </form>
       )}
       </Panel>
-      <Panel title="Mapping">
-      <p className="lede">
-        Firm-wide metric aliases are not configured yet. Company OneDrive / Affinity / Granola ids are optional
-        fields on each company — paste vendor values only. Unit and currency hints live on the company profile.
-      </p>
-      </Panel>
-
-      <Panel title="People" flush>
-      <div id="people" />
+      <Panel title="People" flush id="people">
       {members.length === 0 ? (
-        <div className="empty">No members loaded.</div>
+        <div className="empty">Members will appear here once invites are accepted.</div>
       ) : (
+        <div className="table-scroll table-scroll--compact">
         <table>
           <thead>
             <tr>
@@ -260,43 +289,44 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
-      <Panel title="Invite">
+      <Panel title="Invite" id="invite">
       <p className="lede">
-        Locked roles: Org Admin, Partner, Analyst, Viewer. Viewer cannot write or confirm. There is no email
-        sender yet — copy the accept link.
+        Invite teammates by role. Copy the accept link and send it by email.
       </p>
       {isAdmin ? (
-      <form onSubmit={inviteMember} className="row">
-        <label className="sr-only" htmlFor="invite-email">
-          Invite email
+      <form onSubmit={inviteMember} className="row settings-form-row settings-invite-form">
+        <label className="field" htmlFor="invite-email">
+          Email
+          <input
+            id="invite-email"
+            type="email"
+            data-testid="invite-email"
+            value={invite.email}
+            onChange={(e) => setInvite({ ...invite, email: e.target.value })}
+            placeholder="analyst@firm"
+            autoComplete="off"
+            required
+          />
         </label>
-        <input
-          id="invite-email"
-          type="email"
-          value={invite.email}
-          onChange={(e) => setInvite({ ...invite, email: e.target.value })}
-          placeholder="analyst@firm"
-          autoComplete="off"
-          required
-        />
-        <label className="sr-only" htmlFor="invite-role">
+        <label className="field" htmlFor="invite-role">
           Role
+          <select
+            id="invite-role"
+            value={invite.role}
+            onChange={(e) => setInvite({ ...invite, role: e.target.value })}
+          >
+            {ROLES.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
+            ))}
+          </select>
         </label>
-        <select
-          id="invite-role"
-          value={invite.role}
-          onChange={(e) => setInvite({ ...invite, role: e.target.value })}
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABEL[r]}
-            </option>
-          ))}
-        </select>
-        <button className="btn sm" type="submit" disabled={busy}>
+        <button className="btn sm settings-invite-btn" type="submit" disabled={busy} data-testid="invite-submit">
           {busy ? "Creating…" : "Create invite"}
         </button>
       </form>
@@ -313,14 +343,27 @@ export default function SettingsPage() {
           {inviteMsg}
         </p>
       )}
+      {lastInviteUrl && (
+        <div className="settings-invite-link-row">
+          <button
+            type="button"
+            className="btn ghost sm settings-invite-copy"
+            data-testid="invite-copy-link"
+            onClick={() => copy(lastInviteUrl)}
+          >
+            {copied === lastInviteUrl ? "Copied" : "Copy link"}
+          </button>
+        </div>
+      )}
 
       {pending.length > 0 && (
-        <table style={{ marginTop: 12 }}>
+        <div className="table-scroll table-scroll--compact settings-pending-table">
+        <table>
           <thead>
             <tr>
               <th>Pending</th>
               <th>Role</th>
-              <th>Expires</th>
+              <th className="hide-sm">Expires</th>
               <th></th>
             </tr>
           </thead>
@@ -329,7 +372,7 @@ export default function SettingsPage() {
               <tr key={i.id}>
                 <td>{i.email}</td>
                 <td>{roleLabel(i.role)}</td>
-                <td>{new Date(i.expiresAt).toLocaleDateString()}</td>
+                <td className="hide-sm">{new Date(i.expiresAt).toLocaleDateString()}</td>
                 <td>
                   <button className="btn ghost sm" type="button" onClick={() => copy(i.acceptUrl)}>
                     {copied === i.acceptUrl ? "Copied" : "Copy link"}
@@ -339,16 +382,17 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
       <Panel title="Connectors" flush>
       <div className="panel-body">
       <p className="lede" id="connector-honest">
-        Paste keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a successful
-        test. Last-sync is shown only after a real sync. Upload remains the fallback:{" "}
-        <Link href="/vault">Vault</Link>. Domain auto-join and SMTP are not connected.
+        Add connector keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a
+        successful health check. You can always upload files in the <Link href="/vault">Vault</Link>.
       </p>
+      <div className="table-scroll table-scroll--compact">
       <table>
         <thead>
           <tr>
@@ -362,15 +406,16 @@ export default function SettingsPage() {
           {(data?.connectors ?? []).map((c) => (
             <tr key={c.kind}>
               <td>{connectorLabel(c.kind)}</td>
-              <td>{c.status === "not_connected" ? "not connected" : c.status.replaceAll("_", " ")}</td>
+              <td>{c.status === "not_connected" ? "Setup" : c.status.replaceAll("_", " ")}</td>
               <td>{c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : "—"}</td>
               <td className="lede">{c.lastError ?? "—"}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p>
-        <Link className="btn sm" href="/settings/connectors">
+      </div>
+      <p className="settings-cta-row">
+        <Link className="btn sm" href="/settings/connectors" data-testid="settings-connectors-cta">
           Open connector settings
         </Link>
       </p>
@@ -383,20 +428,12 @@ export default function SettingsPage() {
         </p>
       )}
 
-      <Panel title="Session">
+      <Panel title="Flag policy" id="flag-policy">
       <p className="lede">
-        Cookies are HttpOnly + SameSite=Lax. A session lasts 7 days and refreshes after 24 hours of use. Sign-out is
-        idempotent. SSO, password reset by email, and idle rotation for viewers are not connected.
-      </p>
-      </Panel>
-
-      <Panel title="Flag policy">
-      <p className="lede">
-        Firm thresholds persist for this organisation. Flags reads these values, not only catalog defaults. Missing
-        keys keep the catalog default — missing is not zero. Org Admin can edit. Out-of-range values are refused.
-        Recompute Flags after a save.
+        Set firm-wide thresholds for flag detectors. Org Admin can edit values; save to refresh Flags.
       </p>
       <form
+        data-testid="flag-policy-form"
         onSubmit={async (e) => {
           e.preventDefault();
           if (!isAdmin) return;
@@ -430,12 +467,13 @@ export default function SettingsPage() {
           }
         }}
       >
+        <div className="table-scroll table-scroll--wide" data-testid="flag-policy-table">
         <table>
           <thead>
             <tr>
               <th>Flag</th>
-              <th>Catalog default</th>
-              <th>Bounds</th>
+              <th className="hide-sm">Catalog default</th>
+              <th className="hide-sm">Bounds</th>
               <th>This firm</th>
             </tr>
           </thead>
@@ -448,10 +486,15 @@ export default function SettingsPage() {
                 ...FLAG_THRESHOLD_BOUNDS[c.key],
               }))
             ).map((f) => (
-              <tr key={f.key}>
-                <td>{f.label}</td>
-                <td>{f.defaultThreshold}</td>
-                <td className="lede">
+              <tr key={f.key} data-testid={`flag-policy-row-${f.key}`}>
+                <td>
+                  {f.label}
+                  <div className="lede flag-policy-meta">
+                    Default {f.defaultThreshold} · {f.min ?? 0}–{f.max ?? "—"} {f.unit ?? ""}
+                  </div>
+                </td>
+                <td className="hide-sm">{f.defaultThreshold}</td>
+                <td className="hide-sm lede">
                   {f.min ?? 0}–{f.max ?? "—"} {f.unit ?? ""}
                 </td>
                 <td>
@@ -459,6 +502,8 @@ export default function SettingsPage() {
                     <>
                       <input
                         type="number"
+                        className="flag-policy-threshold"
+                        data-testid={`flag-policy-threshold-${f.key}`}
                         min={f.min ?? 0}
                         max={f.max}
                         step="any"
@@ -481,48 +526,69 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
         {isAdmin && (
-          <button className="btn sm" type="submit" style={{ marginTop: 10 }} data-testid="save-flag-policy">
+          <button className="btn sm settings-save-row" type="submit" data-testid="save-flag-policy">
             Save flag policy
           </button>
         )}
       </form>
       {policyMsg && (
-        <p className="lede" role="status">
+        <p
+          className={`settings-policy-msg lede${/saved/i.test(policyMsg) ? " settings-policy-msg--ok" : ""}`}
+          role="status"
+          data-testid="flag-policy-msg"
+        >
           {policyMsg}
         </p>
       )}
       {(data?.flagPolicyAudits ?? []).length > 0 && (
-        <>
-          <h3>Policy audit</h3>
+        <div data-testid="flag-policy-audit">
+          <h3 className="settings-audit-title">Policy audit</h3>
+          <div className="table-scroll table-scroll--compact settings-audit-table">
           <table>
             <thead>
               <tr>
                 <th>When</th>
                 <th>Who</th>
-                <th>After</th>
+                <th>Changes</th>
               </tr>
             </thead>
             <tbody>
-              {data!.flagPolicyAudits!.map((a) => (
-                <tr key={a.id}>
-                  <td className="lede">{new Date(a.changedAt).toLocaleString()}</td>
-                  <td>{a.changedByName ?? a.changedByEmail ?? "—"}</td>
-                  <td className="lede">{JSON.stringify(a.after)}</td>
-                </tr>
-              ))}
+              {data!.flagPolicyAudits!.map((a) => {
+                const changes = summarizeFlagPolicyAudit(a.before, a.after);
+                return (
+                  <tr key={a.id} data-testid="flag-policy-audit-row">
+                    <td className="lede settings-audit-when">{new Date(a.changedAt).toLocaleString()}</td>
+                    <td className="settings-audit-who">{a.changedByName ?? a.changedByEmail ?? "—"}</td>
+                    <td className="lede settings-audit-changes">
+                      {changes.length === 0 ? (
+                        "—"
+                      ) : (
+                        <ul className="flag-policy-audit-list">
+                          {changes.map((c) => (
+                            <li key={c.key}>{c.text}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </>
+          </div>
+        </div>
       )}
 
       </Panel>
       <Panel title="Funds">
       {funds.length === 0 ? (
         <div className="empty">
-          No funds yet. Add a fund here, then attach positions when you onboard a company. NAV is empty without both.
+          Add your first fund here, then attach positions when you onboard a company.
         </div>
       ) : (
+        <div className="table-scroll table-scroll--compact">
         <table>
           <thead>
             <tr>
@@ -543,9 +609,10 @@ export default function SettingsPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       {canWrite && (
-      <form onSubmit={addFund} className="row" style={{ flexWrap: "wrap" }}>
+      <form onSubmit={addFund} className="row settings-form-row">
         <label className="sr-only" htmlFor="fund-name">
           Fund name
         </label>

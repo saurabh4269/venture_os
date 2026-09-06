@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -15,11 +15,12 @@ import {
   FileText,
   Vault,
   Settings,
-  HelpCircle,
   Search,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,11 +35,12 @@ import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
-import { Pipeline } from "@/components/BookUI";
 import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
 import { WakingBook } from "@/components/WakingBook";
 import { UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { isWakeError, WAKING_COPY } from "@/lib/wake";
+
+const RAIL_STORAGE_KEY = "vos.railExpanded";
 
 type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean; ready: boolean };
 const BookSessionContext = createContext<BookSession>({
@@ -87,17 +89,59 @@ export function useBookSession(): BookSession {
   };
 }
 
-const NAV = [
+const NAV_TODAY = [
   { href: "/command", label: "Command", Icon: LayoutDashboard },
   { href: "/inbox", label: "Inbox", Icon: Inbox },
   { href: "/flags", label: "Flags", Icon: Flag },
   { href: "/companies", label: "Companies", Icon: Building2 },
+] as const;
+
+const NAV_RITUALS = [
   { href: "/ask", label: "Ask", Icon: MessageCircleQuestion },
   { href: "/nav", label: "NAV", Icon: TrendingUp },
   { href: "/compare", label: "Compare", Icon: BarChart3 },
   { href: "/reports", label: "Reports", Icon: FileText },
-  { href: "/vault", label: "Vault", Icon: Vault },
 ] as const;
+
+const NAV_FIRM = [{ href: "/vault", label: "Vault", Icon: Vault }] as const;
+
+const NAV = [...NAV_TODAY, ...NAV_RITUALS, ...NAV_FIRM];
+
+type NavItem = (typeof NAV)[number];
+
+function mobileNavTitle(path: string) {
+  const items = [...NAV, { href: "/settings", label: "Settings" }];
+  const hit = items.find((n) => path === n.href || path.startsWith(`${n.href}/`));
+  return hit?.label ?? "Venture OS";
+}
+
+function useRailExpanded() {
+  const [expanded, setExpanded] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      setExpanded(localStorage.getItem(RAIL_STORAGE_KEY) === "1");
+    } catch {
+      /* ignore */
+    }
+    setReady(true);
+  }, []);
+
+  function toggle() {
+    setExpanded((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(RAIL_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  return { expanded, toggle, ready };
+}
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -112,6 +156,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [searchQ, setSearchQ] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { expanded: railExpanded, toggle: toggleRail, ready: railReady } = useRailExpanded();
+  const topbarTitle = useMemo(() => mobileNavTitle(path), [path]);
 
   const alive = useRef(true);
 
@@ -196,8 +243,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (q) router.push(`/companies?q=${encodeURIComponent(q)}`);
   }
 
-  const fixture =
-    Boolean(me?.org?.metadata?.includes("fixtureOnly")) || /FIXTURE_ONLY/i.test(me?.org?.name ?? "");
+  const fixture = Boolean(me?.org?.metadata?.includes("fixtureOnly"));
   const canWrite = isWriteRole(me?.role);
   const initial = (me?.user?.name?.trim()[0] || "?").toUpperCase();
 
@@ -214,48 +260,114 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const railLink = (n: (typeof NAV)[number]) => {
+  function mobileNavLink(n: NavItem, secondary = false) {
     const active = path.startsWith(n.href);
     return (
+      <Link
+        key={n.href}
+        href={n.href}
+        onClick={() => setMobileNavOpen(false)}
+        className={`mobile-nav-link${secondary ? " mobile-nav-secondary" : ""}${active ? " active" : ""}`}
+        aria-current={active ? "page" : undefined}
+        data-testid={`mobile-nav-${n.label.toLowerCase()}`}
+      >
+        <n.Icon className="size-4 shrink-0" aria-hidden />
+        {n.label}
+      </Link>
+    );
+  }
+
+  const railOpen = railReady && railExpanded;
+
+  function railItem(n: NavItem, secondary = false) {
+    const active = path.startsWith(n.href);
+    const link = (
+      <Link
+        href={n.href}
+        className={`rail-item ${secondary ? "rail-secondary" : ""} ${active ? "active" : ""}`}
+        aria-current={active ? "page" : undefined}
+        aria-label={n.label}
+      >
+        <n.Icon className="size-[18px] shrink-0" aria-hidden />
+        {railOpen ? <span className="rail-label">{n.label}</span> : <span className="sr-only">{n.label}</span>}
+      </Link>
+    );
+
+    if (railOpen) return <Fragment key={n.href}>{link}</Fragment>;
+
+    return (
       <Tooltip key={n.href}>
-        <TooltipTrigger asChild>
-          <Link
-            href={n.href}
-            className={`grid size-10 place-items-center rounded-md transition-colors ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-            aria-current={active ? "page" : undefined}
-          >
-            <n.Icon className="size-[18px]" />
-            <span className="sr-only">{n.label}</span>
-          </Link>
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
         <TooltipContent side="right">{n.label}</TooltipContent>
       </Tooltip>
     );
-  };
+  }
 
   return (
-    <div className="app" data-testid="shell-ready">
+    <div className={`app ${railOpen ? "app-rail-expanded" : ""}`} data-testid="shell-ready">
       <a href="#main" className="skip-link">Skip to book</a>
-      <aside className="rail hidden md:flex" aria-label="Primary navigation">
-        <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
-        <nav className="nav flex flex-col items-center gap-1">{NAV.map(railLink)}</nav>
+      <aside
+        className={`rail hidden md:flex ${railOpen ? "rail-expanded" : ""}`}
+        aria-label="Primary navigation"
+      >
+        <div className="rail-head">
+          <Link href="/command" className="rail-brand" title="Venture OS">V</Link>
+          {railOpen ? <span className="rail-wordmark">Venture OS</span> : null}
+          <button
+            type="button"
+            className="rail-toggle"
+            data-testid="rail-toggle"
+            onClick={toggleRail}
+            aria-label={railOpen ? "Collapse navigation" : "Expand navigation"}
+            aria-expanded={railOpen}
+          >
+            {railOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+          </button>
+        </div>
+        <nav className="nav">
+          {railOpen ? <p className="rail-section">Today</p> : null}
+          {NAV_TODAY.map((n) => railItem(n))}
+          {railOpen ? <p className="rail-section">Rituals</p> : <div className="rail-divider" aria-hidden />}
+          {NAV_RITUALS.map((n) => railItem(n, true))}
+        </nav>
         <div className="rail-spacer" />
         <div className="rail-foot">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link href="/settings" className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-muted">
-                <Settings className="size-[18px]" />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">Settings</TooltipContent>
-          </Tooltip>
+          {railOpen ? <p className="rail-section">Firm</p> : null}
+          {NAV_FIRM.map((n) => railItem(n, true))}
+          {railOpen ? (
+            <Link
+              href="/settings"
+              className={`rail-item ${path.startsWith("/settings") ? "active" : ""}`}
+              aria-label="Settings"
+              aria-current={path.startsWith("/settings") ? "page" : undefined}
+            >
+              <Settings className="size-[18px]" aria-hidden />
+              <span className="rail-label">Settings</span>
+            </Link>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/settings"
+                  className={`rail-item ${path.startsWith("/settings") ? "active" : ""}`}
+                  aria-label="Settings"
+                  aria-current={path.startsWith("/settings") ? "page" : undefined}
+                >
+                  <Settings className="size-[18px]" aria-hidden />
+                  <span className="sr-only">Settings</span>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Settings</TooltipContent>
+            </Tooltip>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" title="Account" aria-label="Account" className="grid size-10 place-items-center rounded-md">
+              <button type="button" className="rail-item rail-account" aria-label="Account" data-testid="account-menu">
                 <span className="rail-avatar">{initial}</span>
+                {railOpen ? <span className="rail-label">{me?.user?.name ?? "Account"}</span> : null}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" className="w-56">
+            <DropdownMenuContent side="right" align="end" className="w-56" data-testid="account-dropdown">
               <DropdownMenuLabel>
                 <div className="who">{me?.user?.name}</div>
                 <div className="who-meta text-xs text-muted-foreground">{roleLabel(me?.role)}</div>
@@ -271,7 +383,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 </>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+              <DropdownMenuItem onClick={signOut} data-testid="sign-out">Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -279,69 +391,83 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="app-body">
         <header className="topbar">
-          <Sheet>
+          <div className="topbar-leading">
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon-sm" className="md:hidden" aria-label="Open navigation">
-                <LayoutDashboard className="size-4" />
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="md:hidden"
+                aria-label="Open menu"
+                data-testid="mobile-nav-open"
+              >
+                <Menu className="size-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64">
-              <SheetHeader><SheetTitle>Venture OS</SheetTitle></SheetHeader>
-              <nav className="flex flex-col gap-1 mt-4">
-                {NAV.map((n) => (
-                  <Link key={n.href} href={n.href} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-                    <n.Icon className="size-4" /> {n.label}
-                  </Link>
-                ))}
+            <SheetContent side="left" className="mobile-sheet p-0" data-testid="mobile-nav">
+              <SheetHeader className="mobile-sheet-head">
+                <SheetTitle>Venture OS</SheetTitle>
+                {me?.org?.name ? <p className="mobile-sheet-org">{me.org.name}</p> : null}
+              </SheetHeader>
+              <nav className="mobile-nav" aria-label="Mobile navigation">
+                <p className="mobile-nav-label">Today</p>
+                {NAV_TODAY.map((n) => mobileNavLink(n))}
                 <Separator className="my-2" />
-                <Link href="/settings" className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-                  <Settings className="size-4" /> Settings
-                </Link>
-                <Button variant="ghost" className="justify-start" onClick={signOut}>Sign out</Button>
+                <p className="mobile-nav-label">Rituals</p>
+                {NAV_RITUALS.map((n) => mobileNavLink(n, true))}
               </nav>
+              <div className="mobile-sheet-foot">
+                {NAV_FIRM.map((n) => mobileNavLink(n))}
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileNavOpen(false)}
+                  className={`mobile-nav-link${path.startsWith("/settings") ? " active" : ""}`}
+                >
+                  <Settings className="size-4 shrink-0" aria-hidden />
+                  Settings
+                </Link>
+                <button
+                  type="button"
+                  className="mobile-nav-link mobile-nav-signout"
+                  onClick={() => {
+                    setMobileNavOpen(false);
+                    void signOut();
+                  }}
+                  data-testid="mobile-sign-out"
+                >
+                  Sign out
+                </button>
+              </div>
             </SheetContent>
           </Sheet>
-          <span className="topbar-title hidden sm:inline">Venture OS</span>
+          <span className="topbar-title md:hidden" data-testid="topbar-mobile-title">{topbarTitle}</span>
+          </div>
           <form className="topbar-search" onSubmit={onSearch} role="search">
             <Search className="size-4" aria-hidden />
-            <Input
+            <input
               type="search"
-              placeholder="Search companies, flags, or reports…"
+              placeholder="Search companies…"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              className="rounded-full bg-muted/50 pl-9"
+              className="topbar-search-input"
               aria-label="Search"
             />
           </form>
           <div className="topbar-actions">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" asChild>
-                  <Link href="/security"><HelpCircle className="size-4" /></Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Methodology</TooltipContent>
-            </Tooltip>
-            {canWrite ? (
-              <Button size="sm" asChild><Link href="/companies/new">Create</Link></Button>
+            {canWrite && !path.startsWith("/companies/new") ? (
+              <Link href="/companies/new" className="btn sm topbar-add-btn" aria-label="Add company">
+                <span className="topbar-add-full">Add company</span>
+                <span className="topbar-add-short" aria-hidden="true">Add</span>
+              </Link>
             ) : null}
           </div>
         </header>
         <main className="main" id="main">
           {fixture && (
-            <div className="banner" role="alert">
-              FIXTURE_ONLY — illustrative rows. Not the live V3 book. Do not report these figures.
+            <div className="banner" role="status">
+              Demo data for testing. Upload your own files for real portfolio work.
             </div>
           )}
-          <Pipeline
-            current={
-              path.startsWith("/inbox") ? "proposed"
-                : path.startsWith("/vault") || path.startsWith("/companies/new") ? "source"
-                : path.startsWith("/flags") ? "reviewed"
-                : path.startsWith("/ask") || path.startsWith("/reports") || path.startsWith("/compare") ? "analysis"
-                : "book"
-            }
-          />
           <div className="sr-only" aria-live="polite">{orgLive}</div>
           <BookSessionContext.Provider
             value={{ me, canWrite, isAdmin: isAdminRole(me?.role), canLock: isLockRole(me?.role), ready: true }}

@@ -41,6 +41,7 @@ export function Panel({
   flush,
   className,
   kicker,
+  id,
 }: {
   title?: ReactNode;
   actions?: ReactNode;
@@ -48,9 +49,10 @@ export function Panel({
   flush?: boolean;
   className?: string;
   kicker?: ReactNode;
+  id?: string;
 }) {
   return (
-    <section className={`panel${className ? ` ${className}` : ""}`}>
+    <section id={id} className={`panel${className ? ` ${className}` : ""}`}>
       {(title || actions || kicker) && (
         <div className="panel-head">
           <div>
@@ -72,6 +74,7 @@ export function SettingsSubnav({ current }: { current: "firm" | "connectors" }) 
         Firm
       </Link>
       <Link href="/settings#people">Members</Link>
+      <Link href="/settings#flag-policy">Flag policy</Link>
       <Link
         href="/settings/connectors"
         className={current === "connectors" ? "on" : undefined}
@@ -122,26 +125,33 @@ export function AuthFrame({
   children,
   tab,
   footer,
+  title,
+  lede,
 }: {
   children: ReactNode;
   tab?: "signin" | "signup" | "other";
   footer?: ReactNode;
+  title?: string;
+  lede?: string;
 }) {
   const mode = tab ?? "other";
   return (
     <div className="auth-shell">
       <div className="auth">
+        <Link href="/" className="auth-back">← Back to Venture OS</Link>
         <div className="auth-brand">
-          <h1>
+          <p className="auth-wordmark">
             <Link href="/">Venture OS</Link>
-          </h1>
+          </p>
+          {title ? <h1 className="auth-title">{title}</h1> : null}
+          {lede ? <p className="auth-lede">{lede}</p> : null}
         </div>
         {children}
         {footer}
       </div>
       <footer className="auth-page-foot" aria-hidden={mode === "other"}>
         <span>© 2026 Venture OS. All rights reserved.</span>
-        <Link href="/security">Methodology</Link>
+        <Link href="/security">How we work</Link>
       </footer>
     </div>
   );

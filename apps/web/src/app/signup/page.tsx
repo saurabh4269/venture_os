@@ -95,18 +95,18 @@ function SignupForm() {
   return (
     <AuthFrame
       tab="signup"
+      title="Create your account"
+      lede={inviteId ? undefined : "You become Org Admin. The book starts empty — ready for the first upload."}
       footer={
         <p className="auth-signup-link">
           Already have an account? <Link href="/login">Sign in</Link>
         </p>
       }
     >
-      <form method="post" onSubmit={onSubmit} className="field" style={{ gap: 14, paddingTop: 4 }}>
+      <form method="post" onSubmit={onSubmit} className="auth-form" noValidate>
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
-        ) : (
-          <p className="lede">You will be Org Admin. The book starts empty — we will not seed illustrative NAV.</p>
-        )}
+        ) : null}
         <label className="field" htmlFor="name">
           Full name
           <input
@@ -116,11 +116,12 @@ function SignupForm() {
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
             data-testid="signup-name"
+            className="auth-field-lg"
             required
           />
         </label>
         <label className="field" htmlFor="email">
-          Institutional email
+          Work email
           <input
             id="email"
             name="email"
@@ -129,14 +130,15 @@ function SignupForm() {
             type="email"
             autoComplete="username"
             data-testid="signup-email"
+            className="auth-field-lg"
             required
           />
         </label>
         <label className="field" htmlFor="password">
           <span className="field-hint">
             Password
-            <span className="lede">
-              {MIN_PASSWORD_LENGTH}–{MAX_PASSWORD_LENGTH} characters
+            <span className="auth-pw-hint">
+              {MIN_PASSWORD_LENGTH} to {MAX_PASSWORD_LENGTH} characters
             </span>
           </span>
           <input
@@ -149,6 +151,7 @@ function SignupForm() {
             minLength={MIN_PASSWORD_LENGTH}
             maxLength={MAX_PASSWORD_LENGTH}
             data-testid="signup-password"
+            className="auth-field-lg"
             required
           />
         </label>
@@ -164,6 +167,7 @@ function SignupForm() {
             minLength={MIN_PASSWORD_LENGTH}
             maxLength={MAX_PASSWORD_LENGTH}
             data-testid="signup-confirm"
+            className="auth-field-lg"
             required
           />
         </label>
@@ -175,9 +179,10 @@ function SignupForm() {
               name="organization"
               value={org}
               onChange={(e) => setOrg(e.target.value)}
-              placeholder="e.g. V3 Ventures"
+              placeholder="Your firm name"
               autoComplete="organization"
               data-testid="signup-org"
+              className="auth-field-lg"
               required
             />
             {org && <span className="lede">Slug: {slugifyOrg(org) || "(we will assign one)"}</span>}
@@ -191,7 +196,7 @@ function SignupForm() {
             {err}
           </div>
         )}
-        <button className="btn" type="submit" disabled={busy} data-testid="signup-submit">
+        <button className="btn auth-submit" type="submit" disabled={busy} data-testid="signup-submit">
           {busy ? "Creating account…" : inviteId ? "Create user" : "Create account"}
         </button>
       </form>

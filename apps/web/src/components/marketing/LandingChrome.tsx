@@ -2,14 +2,11 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const NAV = [
-  { href: "/#platform", label: "Platform" },
-  { href: "/#insights", label: "Insights" },
-  { href: "/#network", label: "Network" },
-  { href: "/#pricing", label: "Pricing" },
+  { href: "/security", label: "How we work" },
+  { href: "/blog", label: "Notes" },
 ] as const;
 
 export function LandingHeader() {
@@ -24,26 +21,30 @@ export function LandingHeader() {
           ))}
         </nav>
         <div className="mkt-header-actions">
-          <Link href="/login" className="mkt-login">Sign in</Link>
-          <Button asChild className="mkt-cta">
-            <Link href="/signup">Get Started</Link>
-          </Button>
+          <Link href="/login" className="btn ghost sm mkt-login-btn" data-testid="landing-header-login">
+            Log in
+          </Link>
+          <Link href="/signup" className="btn mkt-cta" data-testid="landing-header-get-started">
+            Get started
+          </Link>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="mkt-menu">Menu</Button>
+              <button type="button" className="mkt-menu btn ghost sm">Menu</button>
             </SheetTrigger>
             <SheetContent side="right">
               <SheetHeader>
                 <SheetTitle>Venture OS</SheetTitle>
               </SheetHeader>
-              <nav className="flex flex-col gap-2 mt-4" aria-label="Marketing menu">
+              <nav className="mkt-mobile-nav" aria-label="Marketing menu">
                 {NAV.map((n) => (
-                  <a key={n.href} href={n.href} onClick={() => setOpen(false)} className="py-2">{n.label}</a>
+                  <a key={n.href} href={n.href} onClick={() => setOpen(false)}>{n.label}</a>
                 ))}
-                <Link href="/login" onClick={() => setOpen(false)} className="py-2">Sign in</Link>
-                <Button asChild onClick={() => setOpen(false)}>
-                  <Link href="/signup">Get Started</Link>
-                </Button>
+                <Link href="/login" onClick={() => setOpen(false)} className="btn ghost">
+                  Log in
+                </Link>
+                <Link href="/signup" onClick={() => setOpen(false)} className="btn">
+                  Get started
+                </Link>
               </nav>
             </SheetContent>
           </Sheet>
@@ -59,8 +60,8 @@ export function LandingFooter() {
       <div className="mkt-footer-inner">
         <Link href="/" className="mkt-logo">Venture OS</Link>
         <nav className="mkt-foot-links" aria-label="Footer">
-          <Link href="/security">Methodology</Link>
-          <a href="/#platform">Changelog</a>
+          <Link href="/security">How we work</Link>
+          <Link href="/blog">Notes</Link>
           <a href="/api/health">Status</a>
         </nav>
         <p className="mkt-copy">© 2026 Venture OS. All rights reserved.</p>
@@ -69,9 +70,15 @@ export function LandingFooter() {
   );
 }
 
-export function LandingShell({ children }: { children: ReactNode }) {
+export function LandingShell({
+  children,
+  testId = "marketing-landing",
+}: {
+  children: ReactNode;
+  testId?: string;
+}) {
   return (
-    <div className="mkt" data-testid="marketing-landing">
+    <div className="mkt" data-testid={testId}>
       <a href="#main" className="skip-link">Skip to content</a>
       <LandingHeader />
       {children}

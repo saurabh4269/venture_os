@@ -60,7 +60,7 @@ const EMPTY: FormState = {
 };
 
 function statusLabel(status: ConnectorStatus) {
-  if (status === "not_connected") return "not connected";
+  if (status === "not_connected") return "Setup";
   return status.replaceAll("_", " ");
 }
 
@@ -219,9 +219,9 @@ function ConnectorCards() {
       onedrive:
         "Azure app: Files.Read.All + offline_access (delegated) or Files.Read.All (app-only). Redirect URI must be this site’s /api/connectors/onedrive/callback.",
       affinity:
-        "Paste an Affinity v2 API key (Settings → Manage Apps). Ownership is only written when you set a verified field id — we will not invent CRM fields.",
+        "Paste an Affinity v2 API key (Settings → Manage Apps). Map ownership only when you set a verified field id.",
       granola:
-        "Granola Business/Enterprise key (grn_…). Transcripts become subjective commentary sources only — never objective metric cells.",
+        "Granola Business/Enterprise key (grn_…). Transcripts feed the subjective commentary lane.",
     }),
     [],
   );
@@ -229,8 +229,8 @@ function ConnectorCards() {
   return (
     <Shell>
       <PageHead
-        kicker="Settings · Connectors / API vault"
         title="Connectors"
+        testId="connectors-ready"
         badge={
           isAdmin ? (
             <span className="badge">
@@ -240,11 +240,11 @@ function ConnectorCards() {
             <span className="badge">Read only</span>
           )
         }
-        lede="Keys are AES-encrypted at rest. Plaintext never shown after save. Status stays not connected until a health check succeeds — we never invent a last-sync time."
+        lede="Keys stay encrypted. A connector shows connected only after a successful health check."
       />
       <SettingsSubnav current="connectors" />
-      <p className="lede" style={{ margin: "-4px 0 16px" }}>
-        Paste steps: <code>docs/connectors/ADDING_KEYS.md</code>. Map folder / CRM ids on each company.
+      <p className="lede connectors-intro">
+        Save credentials, then Test. Map folder or CRM ids on each company profile.
       </p>
       {oauthNote && (
         <p className={search.get("error") ? "sev-high" : "lede"} role="status">
@@ -270,21 +270,21 @@ function ConnectorCards() {
                 <div className="conn-mark" aria-hidden>
                   {connectorLabel(kind).slice(0, 1)}
                 </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="row">
+                <div className="connector-card-body">
+                  <div className="row connector-card-head">
                     <strong>{connectorLabel(kind)}</strong>
                     <span className={`badge badge-${status}`} data-testid={`connector-status-${kind}`}>
                       {status === "connected" ? "● Connected" : statusLabel(status)}
                     </span>
                   </div>
-                  <div className="row" style={{ marginTop: 6 }}>
+                  <div className="row connector-card-meta">
                     {row?.usingEnvFallback && <span className="lede">env default</span>}
                     {row?.hasCredentials ? (
                       <span className="lede" data-testid={`connector-hint-${kind}`}>
                         <IconKey /> {row.secretHint ?? "••••"}
                       </span>
                     ) : (
-                      <span className="lede">No org key saved</span>
+                      <span className="lede">Add your org key below</span>
                     )}
                     {row?.lastHealthAt ? (
                       <span className="lede">Last health {new Date(row.lastHealthAt).toLocaleDateString()}</span>
@@ -292,7 +292,7 @@ function ConnectorCards() {
                   </div>
                 </div>
               </div>
-              <p className="lede" style={{ marginTop: 8 }}>
+              <p className="lede connector-card-help">
                 {help[kind]}
               </p>
               {row?.lastError && (
@@ -301,13 +301,12 @@ function ConnectorCards() {
                 </p>
               )}
               <p className="lede">
-                Last successful sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "—"}
+                Last successful sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "Ready after first sync"}
               </p>
 
               {isAdmin ? (
                 <form
-                  className="field"
-                  style={{ gap: 8, marginTop: 10 }}
+                  className="field connector-form"
                   onSubmit={(e) => {
                     e.preventDefault();
                     save(kind);
@@ -416,7 +415,7 @@ function ConnectorCards() {
                       />
                     </label>
                   )}
-                  <div className="row">
+                  <div className="row connector-actions">
                     <button className="btn sm" type="submit" disabled={Boolean(busy)}>
                       {busy === `save-${kind}`
                         ? row?.hasCredentials
@@ -472,23 +471,19 @@ function ConnectorCards() {
           );
         })}
       </div>
-      <p className="lede" style={{ marginTop: 16 }}>
+      <p className="lede connectors-foot">
         Map a OneDrive folder, Affinity company id, or Granola note id on each{" "}
         <Link href="/companies">company</Link>. Then sync pulls into the same parse / inbox path as upload.
       </p>
       <Panel title="Vault architecture & permissions" className="vault-card-panel">
-        <div className="vault-card" style={{ marginTop: 0 }}>
+        <div className="vault-card vault-card--flat">
           <div className="vault-ico" aria-hidden>
             <IconLock />
           </div>
-          <div>
-            <p style={{ margin: "0 0 8px" }}>
-              Org keys are sealed with AES-256-GCM. Postgres holds ciphertext, nonce, and key version — never the
-              envelope key. After save, this form clears client secret, API key, client id, and tenant id from memory.
-            </p>
-            <p className="lede" style={{ margin: 0 }}>
-              Only Org Admin can paste or rotate. Partners lock NAV; they do not hold vendor keys. Disconnect nulls
-              the envelope. Status is never marked connected without a real health check.
+          <div className="vault-card-copy">
+            <p>Connector keys are encrypted at rest. Only Org Admins can add or rotate them.</p>
+            <p className="lede">
+              Connected status appears after a successful health check. Upload in the Vault works anytime.
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatOwnership } from "./format";
+import { formatOwnership, monthName, titleCaseKind } from "./format";
 
 describe("formatOwnership", () => {
   it("keeps missing as an em dash", () => {
@@ -15,5 +15,20 @@ describe("formatOwnership", () => {
 
   it("leaves values above 1 as percents", () => {
     expect(formatOwnership(18.5)).toBe("18.5%");
+  });
+});
+
+describe("monthName", () => {
+  it("names April as the FY default", () => {
+    expect(monthName(4)).toBe("April");
+    expect(monthName(null)).toBe("April");
+  });
+});
+
+describe("titleCaseKind", () => {
+  it("keeps MIS and humanizes other kinds", () => {
+    expect(titleCaseKind("mis")).toBe("MIS");
+    expect(titleCaseKind("board_pack")).toBe("Board pack");
+    expect(titleCaseKind("pending")).toBe("Pending");
   });
 });

@@ -5,17 +5,42 @@ import { createInvite } from "./invite";
 
 const password = "password123";
 
-export async function signupAdmin(page: Page, stamp = Date.now().toString(36)) {
-  const email = `e2e-admin-${stamp}@example.test`;
-  const org = `E2E ${stamp}`;
+export async function signupAdmin(
+  page: Page,
+  stamp = Date.now().toString(36),
+  opts?: { name?: string; org?: string; emailPrefix?: string },
+) {
+  const email = `${opts?.emailPrefix ?? "e2e-admin"}-${stamp}@example.test`;
+  const org = opts?.org ?? `E2E ${stamp}`;
+  const name = opts?.name ?? "E2E Admin";
   await page.goto("/signup");
-  await page.getByTestId("signup-name").fill("E2E Admin");
+  await expect(page.getByTestId("signup-name")).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId("signup-name").fill(name);
   await page.getByTestId("signup-email").fill(email);
   await page.getByTestId("signup-password").fill(password);
   await page.getByTestId("signup-confirm").fill(password);
   await page.getByTestId("signup-org").fill(org);
   await page.getByTestId("signup-submit").click();
+  const rateLimited = page.getByRole("alert", { name: /too many (requests|sign-in attempts)/i });
+  if (await rateLimited.isVisible({ timeout: 5000 }).catch(() => false)) {
+    throw new Error("signup_rate_limited");
+  }
+  const landed = await Promise.race([
+    page.waitForURL("**/command", { timeout: 90_000 }).then(() => "command" as const),
+    page.waitForURL("**/onboard", { timeout: 90_000 }).then(() => "onboard" as const),
+  ]).catch(() => "stuck" as const);
+  if (landed === "stuck") {
+    if (await rateLimited.isVisible().catch(() => false)) throw new Error("signup_rate_limited");
+    throw new Error("signup_did_not_finish");
+  }
+  if (landed === "onboard") {
+    await expect(page.getByTestId("onboard-ready")).toBeVisible();
+    await page.getByTestId("onboard-org").fill(org);
+    await page.getByTestId("onboard-submit").click();
+    await page.waitForURL("**/command", { timeout: 30_000 });
+  }
   await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("command-ready")).toBeVisible({ timeout: 30_000 });
   return { email, password, org, stamp };
 }
 

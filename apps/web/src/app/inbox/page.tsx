@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHead } from "@/components/BookUI";
-import { useCite } from "@/components/Cite";
+import { useCite, type CitePayload } from "@/components/Cite";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -28,7 +28,13 @@ type Item = {
 };
 
 const STATUSES = ["pending", "confirmed", "edited", "rejected"] as const;
-type KindFilter = "all" | "flags" | "docs" | "mentions";
+const STATUS_LABEL: Record<(typeof STATUSES)[number], string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  edited: "Edited",
+  rejected: "Rejected",
+};
+type KindFilter = "all" | "flags" | "docs";
 
 function severityOf(item: Item): "urgent" | "warning" | "info" {
   if (item.kind === "unit_ambiguity" || item.proposed.unit === "unknown") return "urgent";
@@ -46,9 +52,27 @@ function relTime(iso?: string | null) {
   return `${Math.floor(h / 24)}d`;
 }
 
+function inboxCitePayload(item: Item): CitePayload {
+  return {
+    display: item.proposed.metricKey ?? item.proposed.label ?? item.kind,
+    locator: item.locator,
+    excerpt: item.locator.excerpt ?? item.proposed.excerpt,
+    periodStart: item.proposed.periodStart,
+    periodEnd: item.proposed.periodEnd,
+  };
+}
+
+function InboxCiteButton({ label, payload }: { label: string; payload: CitePayload }) {
+  const openCite = useCite();
+  return (
+    <button type="button" className="cite inbox-cite" data-testid="inbox-cite" onClick={() => openCite(payload)}>
+      {label}
+    </button>
+  );
+}
+
 export default function InboxPage() {
   const { canWrite, ready: sessionReady } = useBookSession();
-  const openCite = useCite();
   const [items, setItems] = useState<Item[]>([]);
   const [periodEdits, setPeriodEdits] = useState<Record<string, { start: string; end: string }>>({});
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("pending");
@@ -89,7 +113,7 @@ export default function InboxPage() {
   async function confirm(item: Item) {
     const unit = unitEdits[item.id] || item.proposed.unit;
     if ((item.kind === "unit_ambiguity" || unit === "unknown") && !unitEdits[item.id]) {
-      setErr("Set the unit before confirming — we will not guess lakh vs crore.");
+      setErr("Set the unit before confirming.");
       return;
     }
     const raw = valueEdits[item.id];
@@ -142,9 +166,7 @@ export default function InboxPage() {
         ? items.filter((i) => i.kind === "unit_ambiguity" || i.proposed.unit === "unknown")
         : kindFilter === "docs"
           ? items.filter((i) => i.kind !== "unit_ambiguity" && i.proposed.unit !== "unknown")
-          : kindFilter === "mentions"
-            ? []
-            : items;
+          : items;
     const rank = { urgent: 0, warning: 1, info: 2 };
     return [...rows].sort((a, b) => rank[severityOf(a)] - rank[severityOf(b)]);
   }, [items, kindFilter]);
@@ -153,8 +175,9 @@ export default function InboxPage() {
     <Shell>
       <PageHead
         title="Inbox"
-        lede="Proposed extracts — confirm to write the book. Sorted by severity. Nothing here is a fact until you say so."
+        lede="Confirm a proposed row to add it to the book. Nothing posts until you accept it."
       />
+      <div className="inbox-filters">
       <div className="tabs filter-pills" aria-label="Status">
         {STATUSES.map((s) => (
           <button
@@ -164,7 +187,7 @@ export default function InboxPage() {
             data-testid={`inbox-tab-${s}`}
             onClick={() => setStatus(s)}
           >
-            {s}
+            {STATUS_LABEL[s]}
           </button>
         ))}
       </div>
@@ -174,7 +197,6 @@ export default function InboxPage() {
             ["all", "All", String(items.length)] as const,
             ["flags", "Flags", String(flagsCount)] as const,
             ["docs", "Docs", String(docsCount)] as const,
-            ["mentions", "Mentions", "—"] as const,
           ]
         ).map(([k, label, count]) => (
           <button
@@ -188,6 +210,7 @@ export default function InboxPage() {
           </button>
         ))}
       </div>
+      </div>
       {err && (
         <p className="sev-high" role="alert">
           {err}
@@ -195,21 +218,23 @@ export default function InboxPage() {
       )}
       {listReady && (
         <p className="lede" data-testid="inbox-ready" data-inbox-count={items.length} data-inbox-status={status}>
-          {items.length} {status} {items.length === 1 ? "row" : "rows"} — confirm before anything posts to the book.
+          {items.length === 0
+            ? status === "pending"
+              ? "Nothing waiting."
+              : `No ${STATUS_LABEL[status].toLowerCase()} rows.`
+            : `${items.length} ${STATUS_LABEL[status].toLowerCase()} ${items.length === 1 ? "row" : "rows"}.`}
         </p>
       )}
       {items.length === 0 ? (
         <div className="empty" data-testid="inbox-empty">
-          <strong>{status === "pending" ? "Queue is clear" : `No ${status} rows`}</strong>
+          <strong>{status === "pending" ? "All caught up" : `No ${STATUS_LABEL[status].toLowerCase()} rows`}</strong>
           {status === "pending"
-            ? "Upload a pack from Companies if you expect extracts."
-            : `Nothing in ${status}.`}
+            ? "Upload a company pack when you have new files to review."
+            : `Nothing in ${STATUS_LABEL[status].toLowerCase()}.`}
         </div>
       ) : visible.length === 0 ? (
         <div className="empty">
-          {kindFilter === "mentions"
-            ? "Mentions are not connected. This book does not invent @-notifications."
-            : "No rows in this filter."}
+          Try another filter.
         </div>
       ) : (
         <div className="triage">
@@ -219,7 +244,6 @@ export default function InboxPage() {
             <div className="page-kicker">Summary</div>
             <div className="page-kicker hide-sm">Cite</div>
             <div className="page-kicker hide-sm">Time</div>
-            <div className="page-kicker hide-sm">Owner</div>
             <div className="page-kicker">Actions</div>
           </div>
           {visible.map((i) => {
@@ -239,7 +263,7 @@ export default function InboxPage() {
                     {status === "pending" && canWrite ? (
                       <input
                         aria-label="Value"
-                        style={{ width: 80 }}
+                        className="inbox-value-input"
                         value={valueEdits[i.id] ?? (i.proposed.valueNumeric ?? "")}
                         onChange={(e) => setValueEdits({ ...valueEdits, [i.id]: e.target.value })}
                       />
@@ -251,7 +275,7 @@ export default function InboxPage() {
                     )}
                   </div>
                   {status === "pending" && canWrite ? (
-                    <div className="row" style={{ marginTop: 4 }}>
+                    <div className="row inbox-period-row">
                       <input
                         type="date"
                         aria-label="Period start"
@@ -286,6 +310,11 @@ export default function InboxPage() {
                       {i.proposed.periodStart} – {i.proposed.periodEnd}
                     </div>
                   )}
+                  {(loc || i.locator.excerpt || i.proposed.excerpt) && (
+                    <div className="inbox-cite-mobile show-mobile-only">
+                      <InboxCiteButton label={loc || "Cite"} payload={inboxCitePayload(i)} />
+                    </div>
+                  )}
                   {(i.kind === "unit_ambiguity" || !i.proposed.unit || i.proposed.unit === "unknown") &&
                     status === "pending" &&
                     canWrite && (
@@ -304,37 +333,22 @@ export default function InboxPage() {
                     )}
                   {status === "pending" && canWrite && (
                     <input
+                      className="inbox-note-input"
                       placeholder="Correction note (if you edit)"
                       value={notes[i.id] ?? ""}
                       onChange={(e) => setNotes({ ...notes, [i.id]: e.target.value })}
                       aria-label="Correction note"
-                      style={{ marginTop: 4, width: "100%" }}
                     />
                   )}
                 </div>
                 <div className="hide-sm">
                   {loc || i.locator.excerpt || i.proposed.excerpt ? (
-                    <button
-                      type="button"
-                      className="cite"
-                      onClick={() =>
-                        openCite({
-                          display: i.proposed.metricKey ?? i.proposed.label ?? i.kind,
-                          locator: i.locator,
-                          excerpt: i.locator.excerpt ?? i.proposed.excerpt,
-                          periodStart: i.proposed.periodStart,
-                          periodEnd: i.proposed.periodEnd,
-                        })
-                      }
-                    >
-                      {loc || "Cite"}
-                    </button>
+                    <InboxCiteButton label={loc || "Cite"} payload={inboxCitePayload(i)} />
                   ) : (
                     <span className="lede">—</span>
                   )}
                 </div>
                 <div className="hide-sm num">{relTime(i.createdAt)}</div>
-                <div className="hide-sm lede">—</div>
                 <div className="row">
                   {status === "pending" && canWrite && (
                     <>

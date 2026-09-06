@@ -76,8 +76,7 @@ function InviteInner() {
     Boolean(signedIn && invite?.email && me?.user?.email.toLowerCase() === invite.email.toLowerCase());
 
   return (
-    <AuthFrame>
-      <h1>Join an organisation</h1>
+    <AuthFrame title="Join an organisation">
       {!invite && !err && (
         <p className="lede" aria-live="polite">
           Looking up the invite…
@@ -101,7 +100,7 @@ function InviteInner() {
         </p>
       )}
       {pending && !signedIn && (
-        <div className="row" style={{ marginTop: 16 }}>
+        <div className="auth-actions">
           <Link className="btn" href={`/signup?invite=${id}`}>
             Create user
           </Link>
@@ -117,7 +116,7 @@ function InviteInner() {
         </p>
       )}
       {pending && emailMatch && (
-        <div className="row" style={{ marginTop: 16 }}>
+        <div className="auth-actions">
           <button className="btn" type="button" disabled={busy} onClick={accept}>
             {busy ? "Joining…" : "Accept invite"}
           </button>

@@ -158,7 +158,7 @@ export default function NavPage() {
   async function addMark(e: React.FormEvent) {
     e.preventDefault();
     if (form.value === "" && !clearMark) {
-      setErr("Enter a mark value, or confirm clear to store a null mark. We will not silently wipe NAV.");
+      setErr("Enter a mark value, or confirm clear to store a blank mark.");
       return;
     }
     const triple = form.fxRate && form.fxDate && form.fxSource;
@@ -187,25 +187,23 @@ export default function NavPage() {
         title="NAV"
         testId="nav-ready"
         kicker={
-          <span className="row" style={{ gap: 8 }}>
-            <span className="badge">Institutional book</span>
+          <span className="row nav-head-badges">
             <span className={`badge${unofficial ? " status-unofficial" : ""}`}>
-              Status: {unofficial ? "unofficial" : "locked"}
+              {unofficial ? "Unofficial" : "Locked"}
             </span>
           </span>
         }
         lede={
           <>
-            Quarterly marks · {quarterLabel(asOf)} · as of {asOf}. Deterministic from positions and marks. Missing is —.
-            MOIC is blank unless the rollup is complete. IRR appears only when every sourced mark has an{" "}
-            <code>investedAt</code>. Dual EUR only with a complete FX triple.
+            {quarterLabel(asOf)} marks as of {asOf}. MOIC and IRR appear when cost and marks are complete.
+            EUR columns include rate, date, and source.
           </>
         }
         actions={
           canLock && unofficial ? (
             <button
               type="button"
-              className="btn"
+              className="btn sm"
               data-testid="nav-lock"
               disabled={lockBusy}
               onClick={async () => {
@@ -221,7 +219,7 @@ export default function NavPage() {
                 }
               }}
             >
-              <span className="row" style={{ gap: 6 }}>
+              <span className="row nav-lock-label">
                 <IconLock />
                 {lockBusy ? "Locking…" : "Lock marks"}
               </span>
@@ -229,16 +227,16 @@ export default function NavPage() {
           ) : undefined
         }
       />
-      <div className="row" style={{ flexWrap: "wrap" }}>
-        <label className="field" style={{ maxWidth: 200 }}>
+      <div className="nav-filters">
+        <label className="field">
           As-of
           <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
         </label>
-        <label className="field" style={{ maxWidth: 200 }}>
+        <label className="field">
           Prior as-of
           <input type="date" value={priorAsOf} onChange={(e) => setPriorAsOf(e.target.value)} />
         </label>
-        <label className="field" style={{ maxWidth: 220 }}>
+        <label className="field">
           Fund
           <select value={fundId} onChange={(e) => setFundId(e.target.value)} aria-label="Fund">
             <option value="">All funds</option>
@@ -261,10 +259,10 @@ export default function NavPage() {
         </p>
       )}
       {canLock && (
-        <div className="row" style={{ marginBottom: 12 }}>
+        <div className="nav-unlock-row">
           {data?.period?.status === "locked" && (
             <>
-              <label className="field" style={{ maxWidth: 320 }}>
+              <label className="field">
                 Unlock reason
                 <input
                   value={unlockReason}
@@ -336,17 +334,20 @@ export default function NavPage() {
               <p className="lede">
                 {unmarked.length === 0
                   ? "Every position on this as-of has a mark — or there are no positions yet."
-                  : "Needs a booked mark. We will not invent a figure."}{" "}
-                {unmarked.map((u) => (
-                  <button
-                    key={`${u.companyName}-${u.positionId ?? ""}`}
-                    type="button"
-                    className="chip"
-                    onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
-                  >
-                    {u.companyName}
-                  </button>
-                ))}
+                  : "Add a booked mark for this company first."}{" "}
+                <span className="nav-unmarked-list" data-testid="nav-unmarked-list">
+                  {unmarked.map((u) => (
+                    <button
+                      key={`${u.companyName}-${u.positionId ?? ""}`}
+                      type="button"
+                      className="chip"
+                      data-testid="nav-unmarked-chip"
+                      onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
+                    >
+                      {u.companyName}
+                    </button>
+                  ))}
+                </span>
               </p>
             </div>
             <div className={`notice${unprovenanced.length ? " warn" : ""}`}>
@@ -359,7 +360,7 @@ export default function NavPage() {
               </p>
             </div>
           </div>
-          <div className="cards cards-4">
+          <div className="cards cards-4" data-testid="nav-kpis">
             <div className="kpi">
               <div className="k">Cost</div>
               <div className="v">{inr(data.rollup.cost.total)}</div>
@@ -387,14 +388,14 @@ export default function NavPage() {
               {data.irr == null && <div className="meta">Needs investedAt on every sourced mark</div>}
             </div>
           </div>
-          <p className="lede" style={{ marginTop: -8, marginBottom: 16 }}>
+          <p className="lede nav-bridge-lede">
             Bridge Δ {data.bridge.deltaNav == null ? "—" : inr(data.bridge.deltaNav)} vs {data.priorAsOf}.
           </p>
         </>
       )}
       {data && data.positions.length === 0 && (
         <div className="empty">
-          No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
+          Add a fund in <Link href="/settings">Settings</Link>, then onboard a company with that fund.
         </div>
       )}
       {data && data.positions.length > 0 && (
@@ -408,14 +409,15 @@ export default function NavPage() {
           {data.bridge.lines.length > 0 && (
             <>
               <Panel title="Period bridge" flush>
+              <div className="table-scroll table-scroll--compact">
               <table>
                 <thead>
                   <tr>
                     <th>Company</th>
                     <th>Prior</th>
-                    <th>Prior as-of</th>
+                    <th className="hide-sm">Prior as-of</th>
                     <th>Current</th>
-                    <th>Current as-of</th>
+                    <th className="hide-sm">Current as-of</th>
                     <th>Δ</th>
                   </tr>
                 </thead>
@@ -424,29 +426,30 @@ export default function NavPage() {
                     <tr key={`${l.companyName}-${l.currentAsOf}`}>
                       <td>{l.companyName}</td>
                       <td>{l.priorMark == null ? "—" : inr(l.priorMark)}</td>
-                      <td>{l.priorAsOf ?? "—"}</td>
+                      <td className="hide-sm">{l.priorAsOf ?? "—"}</td>
                       <td>{l.currentMark == null ? "—" : inr(l.currentMark)}</td>
-                      <td>{l.currentAsOf ?? "—"}</td>
+                      <td className="hide-sm">{l.currentAsOf ?? "—"}</td>
                       <td>{l.delta == null ? "—" : inr(l.delta)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
               </Panel>
             </>
           )}
           <Panel title="Company marks" flush>
-          <div className="table-scroll">
+          <div className="table-scroll" data-testid="nav-marks-table">
           <table>
             <thead>
               <tr>
                 <th>Company</th>
-                <th>Stage</th>
+                <th className="hide-sm">Stage</th>
                 <th>Cost</th>
                 <th>NAV</th>
                 <th>MOIC</th>
-                <th>IRR</th>
-                <th>Mark date</th>
+                <th className="hide-sm">IRR</th>
+                <th className="hide-sm">Mark date</th>
                 <th>Provenance</th>
               </tr>
             </thead>
@@ -471,7 +474,7 @@ export default function NavPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{stageById.get(p.position.companyId ?? "") ?? "—"}</td>
+                    <td className="hide-sm">{stageById.get(p.position.companyId ?? "") ?? "—"}</td>
                     <td className="num">{p.cost == null ? "—" : inr(p.cost)}</td>
                     <td>
                       <Fact
@@ -482,8 +485,8 @@ export default function NavPage() {
                       />
                     </td>
                     <td className="num">{moic == null ? "—" : `${moic.toFixed(2)}x`}</td>
-                    <td className="num">{pctIrr(p.irr)}</td>
-                    <td className="num">{p.markAsOf ?? "—"}</td>
+                    <td className="hide-sm num">{pctIrr(p.irr)}</td>
+                    <td className="hide-sm num">{p.markAsOf ?? "—"}</td>
                     <td>
                       {p.sourceRefId ? (
                         <Fact display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)} />
@@ -502,7 +505,7 @@ export default function NavPage() {
             <p className="lede">This as-of is locked. Unlock with a reason before changing marks.</p>
           )}
           {canWrite && data.period?.status !== "locked" && (
-            <form onSubmit={addMark} className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
+            <form onSubmit={addMark} className="nav-mark-form" data-testid="nav-mark-form">
               <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required>
                 <option value="">Position</option>
                 {data.positions.map((p) => (
@@ -555,7 +558,7 @@ export default function NavPage() {
                 onChange={(e) => setForm({ ...form, documentId: e.target.value })}
                 aria-label="Mark memo"
               >
-                <option value="">Memo (optional — chip stays — without a file)</option>
+                <option value="">Memo (optional)</option>
                 {(data.documents ?? [])
                   .filter((d) => {
                     const pos = data.positions.find((p) => p.position.id === form.positionId);
@@ -571,11 +574,11 @@ export default function NavPage() {
                 <input type="checkbox" checked={clearMark} onChange={(e) => setClearMark(e.target.checked)} /> Confirm
                 clear (null mark)
               </label>
-              <button className="btn sm">Add mark</button>
+              <button type="submit" className="btn sm" data-testid="nav-add-mark">Add mark</button>
             </form>
           )}
           {canWrite && (
-            <p className="lede">EUR conversion is stored only when rate, date, and source are all set. Incomplete triples are refused, not invented.</p>
+            <p className="lede">EUR conversion needs rate, date, and source together. Add all three when you enter a mark.</p>
           )}
         </>
       )}

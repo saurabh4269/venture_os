@@ -15,6 +15,6 @@ test.describe("@smoke connectors settings", () => {
     await page.getByTestId("connector-card-affinity").getByRole("button", { name: "Save" }).click();
     await expect(page.getByTestId("connector-form-error-affinity")).toBeVisible();
     await expect(page.getByTestId("connector-form-error-affinity")).toContainText(/invalid_affinity/i);
-    await expect(page.getByTestId("connector-status-affinity")).toContainText(/not connected|configured|error/i);
+    await expect(page.getByTestId("connector-status-affinity")).toContainText(/setup|configured|error/i);
   });
 });

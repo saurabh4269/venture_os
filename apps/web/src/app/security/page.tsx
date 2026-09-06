@@ -3,51 +3,56 @@ import Link from "next/link";
 import { LandingShell } from "@/components/marketing/LandingChrome";
 
 export const metadata: Metadata = {
-  title: "Trust & methodology — Venture OS",
-  description: "Cite or refuse, AES-backed connector vault, and honest empty states. No invented certifications.",
+  title: "How we work — Venture OS",
+  description: "Sources, confirmed facts, encrypted connectors, and clear empty states for VC portfolio teams.",
 };
 
 export default function SecurityPage() {
   return (
-    <LandingShell>
+    <LandingShell testId="security-ready">
       <main id="main" className="mkt-legal">
-        <p className="mkt-kicker">Trust</p>
-        <h1>Methodology, not a badge wall.</h1>
+        <p className="mkt-kicker">Standards</p>
+        <h1>How we work</h1>
         <p className="lede">
-          We do not claim SOC 2 or ISO here. What the product actually does: cite or refuse, encrypt connector
-          keys at rest, and isolate organisations in the database.
+          A clear book for the investment team — sources on every figure, confirmed facts, and a separate lane for judgement.
         </p>
 
-        <section id="methodology">
-          <h2>Methodology</h2>
-          <ul>
-            <li>
-              <strong>Cite or refuse.</strong> A figure without a source file and locator is not displayed as fact.
-              Ask refuses when retrieval is empty.
-            </li>
-            <li>
-              <strong>Missing is —.</strong> Null stays null. Aggregations skip blanks. Zero is only a stored zero.
-            </li>
-            <li>
-              <strong>Propose, then confirm.</strong> The model never writes objective financial facts into the book.
-            </li>
-            <li>
-              <strong>FX is a triple.</strong> Converted displays need rate, date, and source — or they refuse.
-            </li>
-            <li>
-              <strong>Connectors stay honest.</strong> Saved keys are not “connected”. A health check must succeed.
-            </li>
-          </ul>
+        <section id="methodology" className="mkt-legal-cards">
+          <article className="mkt-legal-card">
+            <h2>Sources attached</h2>
+            <p>Every displayed figure links to a file and locator in your vault.</p>
+          </article>
+          <article className="mkt-legal-card">
+            <h2>Blanks stay blank</h2>
+            <p>Empty cells show —. Aggregations skip gaps. Zero means a stored zero.</p>
+          </article>
+          <article className="mkt-legal-card">
+            <h2>You confirm</h2>
+            <p>Parser output lands in Inbox. A partner accepts before it joins the book.</p>
+          </article>
+          <article className="mkt-legal-card">
+            <h2>FX with context</h2>
+            <p>Converted amounts include rate, date, and source.</p>
+          </article>
+          <article className="mkt-legal-card">
+            <h2>Connectors stay honest</h2>
+            <p>A connector shows connected only after a successful health check.</p>
+          </article>
         </section>
 
         <section id="support">
-          <h2>Support</h2>
+          <h2>Access</h2>
           <p>
-            There is no public Terms or Privacy route yet — those are sent in writing with design-partner access.
-            Sessions are HttpOnly, SameSite=Lax, seven days. Connector keys are AES-encrypted at rest. New firms{" "}
-            <Link href="/signup">get started</Link>. Existing users <Link href="/login">log in</Link>.
+            Terms and privacy are shared in writing when you join. Sessions last seven days. Connector keys are
+            encrypted at rest. New firms <Link href="/signup">get started</Link>. Existing users{" "}
+            <Link href="/login">log in</Link>.
           </p>
         </section>
+        <p className="mkt-soft-login mkt-legal-back">
+          <Link href="/">← Back to Venture OS</Link>
+          {" · "}
+          <Link href="/blog">Notes</Link>
+        </p>
       </main>
     </LandingShell>
   );

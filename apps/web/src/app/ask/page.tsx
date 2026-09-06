@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageHead } from "@/components/BookUI";
-import { useCite } from "@/components/Cite";
+import { useCite, type CitePayload } from "@/components/Cite";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -15,8 +15,22 @@ type Res = {
 
 type Doc = { id: string; filename: string; kind: string; createdAt?: string | null; companyName?: string | null };
 
-export default function AskPage() {
+function AskCiteButton({ payload }: { payload: CitePayload }) {
   const openCite = useCite();
+  return (
+    <button
+      type="button"
+      className="cite"
+      data-testid="ask-cite"
+      onClick={() => openCite(payload)}
+      aria-label="Open citation"
+    >
+      Cite
+    </button>
+  );
+}
+
+export default function AskPage() {
   const [q, setQ] = useState("");
   const [res, setRes] = useState<Res | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,11 +82,10 @@ export default function AskPage() {
         <PageHead
           title="Ask"
           testId="ask-ready"
-          kicker="Institutional research"
-          lede="From the book only. If it is not in the corpus, the system refuses. Open a cite to verify file and excerpt — we will not invent a locator."
+          lede="Ask the confirmed book. Every answer cites a file, or we say it is not in the book."
         />
         <form onSubmit={send}>
-          <label className="field" style={{ textAlign: "left" }}>
+          <label className="field ask-company-field">
             Company (optional)
             <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
               <option value="">All companies</option>
@@ -109,25 +122,23 @@ export default function AskPage() {
         </p>
       )}
       {res && refused && (
-        <div className="ask-answer" data-testid="ask-refused" role="status">
-          <p className="page-kicker">Insufficient evidence</p>
+        <div className="ask-answer ask-answer--refused" data-testid="ask-refused" role="status">
+          <p className="page-kicker">Need more sources</p>
           <p className="body">{res.answer}</p>
-          <p className="lede" style={{ marginTop: 10 }}>
-            Related figures stay —. We will not guess.
+          <p className="lede ask-answer-foot">
+            Upload more files or confirm Inbox rows to give Ask more to work with.
           </p>
         </div>
       )}
       {res && !refused && (
-        <div className="ask-answer">
+        <div className="ask-answer" data-testid="ask-answer-card">
           <p className="page-kicker">From the book</p>
           <p className="body" data-testid="ask-answer">
             {res.answer}
           </p>
-          <p className="page-kicker" style={{ marginTop: 16 }}>
-            Provenance
-          </p>
+          <p className="page-kicker ask-answer-section">Provenance</p>
           {res.citations.length === 0 ? (
-            <p className="lede">None — refusal or empty evidence.</p>
+            <p className="lede">Citations will appear when the answer is grounded in the book.</p>
           ) : (
             <div className="ask-prov">
               {res.citations.map((c, i) => {
@@ -135,23 +146,17 @@ export default function AskPage() {
                 return (
                   <article key={`${c.documentId ?? "x"}-${i}`}>
                     {c.documentId || c.excerpt ? (
-                      <button
-                        type="button"
-                        className="cite"
-                        onClick={() =>
-                          openCite({
-                            display: doc?.filename ?? "Ask citation",
-                            sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
-                            excerpt: c.excerpt,
-                          })
-                        }
-                      >
-                        Cite
-                      </button>
+                      <AskCiteButton
+                        payload={{
+                          display: doc?.filename ?? "Ask citation",
+                          sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
+                          excerpt: c.excerpt,
+                        }}
+                      />
                     ) : (
                       <span className="lede">unresolved</span>
                     )}
-                    <div className="look-title" style={{ marginTop: 8 }}>
+                    <div className="look-title ask-prov-filename">
                       {doc?.filename ?? "Source file"}
                     </div>
                     <p className="lede">
@@ -179,7 +184,7 @@ export default function AskPage() {
               }}
             >
               {h.question}
-              {h.refused ? " · refused" : ""}
+              {h.refused ? " · needs more evidence" : ""}
             </button>
           ))}
         </div>

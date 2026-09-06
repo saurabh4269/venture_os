@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageHead, Panel } from "@/components/BookUI";
+import { titleCaseKind } from "@/lib/format";
 import { Shell } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -29,7 +31,8 @@ export default function VaultPage() {
     <Shell>
       <PageHead
         title="Vault"
-        lede="Company vault — MIS, board packs, and transcripts. Upload here, confirm in Inbox. A firm library and LP room are not in this release."
+        testId="vault-ready"
+        lede="Source files for the book. Upload from a company page, then confirm rows in Inbox."
       />
       {err && (
         <p className="sev-high" role="alert">
@@ -38,11 +41,18 @@ export default function VaultPage() {
       )}
       {docs.length === 0 ? (
         <div className="empty">
-          <strong>No documents</strong>
-          Open a company and upload.
+          <strong>Vault is empty</strong>
+          <p className="lede vault-empty-lede">
+            Upload MIS or board packs from a company page, then confirm rows in Inbox.
+          </p>
+          <div className="row vault-empty-actions">
+            <Link href="/companies" className="btn ghost sm">View companies</Link>
+            <Link href="/companies/new" className="btn sm">Add company</Link>
+          </div>
         </div>
       ) : (
         <Panel flush>
+        <div className="table-scroll table-scroll--compact vault-documents-table" data-testid="vault-documents-table">
         <table>
           <thead>
             <tr>
@@ -54,22 +64,28 @@ export default function VaultPage() {
           </thead>
           <tbody>
             {docs.map((d) => (
-              <tr key={d.id}>
+              <tr key={d.id} data-testid="vault-document-row">
                 <td>
-                  <button type="button" className="chip" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
+                  <button
+                    type="button"
+                    className="chip vault-download-chip"
+                    data-testid="vault-download"
+                    onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}
+                  >
                     {d.filename}
                   </button>
                 </td>
                 <td>{d.companyName ?? "—"}</td>
-                <td>{d.kind}</td>
+                <td>{titleCaseKind(d.kind)}</td>
                 <td>
-                  {d.parseStatus ?? "—"}
+                  {d.parseStatus ? titleCaseKind(d.parseStatus) : "—"}
                   {d.parseError ? <div className="sev-high">{d.parseError}</div> : null}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
         </Panel>
       )}
     </Shell>

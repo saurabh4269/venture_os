@@ -92,8 +92,10 @@ export default function ComparePage() {
       .then(setData)
       .catch((e: Error) => setErr(bookErrorMessage(e.message)))
       .finally(() => setLoading(false));
-    const next = `${window.location.pathname}?${qs}`;
-    window.history.replaceState(null, "", next);
+    if (window.location.pathname === "/compare") {
+      const next = `${window.location.pathname}?${qs}`;
+      window.history.replaceState(null, "", next);
+    }
   }, [qs, hydrated]);
 
   function toggleMetric(m: string) {
@@ -165,14 +167,16 @@ export default function ComparePage() {
     <Shell>
       <PageHead
         title="Compare"
-        lede="Confirmed objective book only. No imputation, no peer-average fill. Empty cell is —. Canonical INR Cr shows when the unit converts; otherwise —. EUR only with a complete FX triple. Stage and sector filter peers; they do not invent a peer set."
+        testId="compare-ready"
+        lede="Compare confirmed metrics. Empty cells stay —. Filters narrow to the same stage or sector — they do not invent a peer set."
       />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      <div className="row" style={{ margin: "12px 0", flexWrap: "wrap" }}>
+      <div className="compare-toolbar">
+      <div className="row compare-filters compare-pickers">
         <label className="field">
           Period
           <select value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period">
@@ -214,14 +218,16 @@ export default function ComparePage() {
           Export CSV
         </button>
       </div>
-      <div className="row">
+      <p className="page-kicker compare-section-label">Companies</p>
+      <div className="row compare-companies">
         {(data?.companies ?? []).map((c) => (
           <label key={c.id} className="lede">
             <input type="checkbox" checked={checked(c.id)} onChange={() => toggleCo(c.id)} /> {c.name}
           </label>
         ))}
       </div>
-      <div className="row" style={{ marginTop: 8 }}>
+      <p className="page-kicker compare-section-label">Metrics</p>
+      <div className="row compare-metrics">
         {ALL_METRICS.map((m) => (
           <label key={m} className="lede">
             <input type="checkbox" checked={metrics.includes(m)} onChange={() => toggleMetric(m)} />{" "}
@@ -229,17 +235,18 @@ export default function ComparePage() {
           </label>
         ))}
       </div>
+      </div>
       {loading && <p className="lede">Loading the book…</p>}
       {!loading && !err && visible.length === 0 ? (
         <div className="empty">
-          <strong>Nothing to compare</strong>
+          <strong>Ready to compare</strong>
           Add companies and confirm metrics, or turn off “hide empty rows.”
         </div>
       ) : (
         !loading &&
         data && (
         <Panel flush>
-        <div className="table-scroll">
+        <div className="table-scroll compare-results-table" data-testid="compare-results-table">
         <table>
           <thead>
             <tr>
@@ -250,7 +257,7 @@ export default function ComparePage() {
                     {metricLabel(m, data.labels)}
                     {sortKey === m ? " ↓" : ""}
                   </button>
-                  <div className="lede">native · INR Cr · EUR</div>
+                  <div className="lede compare-table-sub">native · INR Cr · EUR</div>
                 </th>
               ))}
             </tr>

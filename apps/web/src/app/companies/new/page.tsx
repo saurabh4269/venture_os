@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PageHead } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { MONTH_NAMES } from "@/lib/format";
 
 export default function NewCompanyPage() {
   const { canWrite } = useBookSession();
@@ -94,7 +95,7 @@ export default function NewCompanyPage() {
         { method: "POST", body: fd },
       );
       if (res.duplicateOf) {
-        setMsg("This file matches a vault object already stored (same SHA). Extract still queued — confirm Inbox, do not treat as a new source.");
+        setMsg("This file matches one already in the vault. Extract is queued — review it in Inbox.");
       }
       setStep(3);
       await api(`/api/parse/${res.document.id}`, { method: "POST", body: "{}" }).catch(() => null);
@@ -124,7 +125,7 @@ export default function NewCompanyPage() {
       <Shell>
         <PageHead title="Onboard a company" />
         <p className="lede" data-testid="viewer-read-only">
-          Viewers cannot add companies. Ask an Org Admin to onboard a name. The book stays read-only for your role.
+          Your role is read-only. Ask an Org Admin to add companies to the book.
         </p>
       </Shell>
     );
@@ -134,21 +135,22 @@ export default function NewCompanyPage() {
     <Shell>
       <PageHead
         title="Onboard a company"
-        lede="Fifteen-minute path: profile → first file → Inbox confirm. Nothing auto-posts. Upload an XLSX or CSV MIS pack — we will not invent a company from an empty vault."
+        testId="companies-new-ready"
+        lede="Profile, first file, then confirm in Inbox. Upload an XLSX or CSV MIS pack to start."
       />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      <ol className="steps">
-        <li className={step === 1 ? "on" : undefined}>1 · Profile</li>
-        <li className={step === 2 ? "on" : undefined}>2 · Vault</li>
-        <li className={step === 3 ? "on" : undefined}>3 · Confirm inbox</li>
+      <ol className="steps onboard-steps">
+        <li className={step === 1 ? "on" : undefined}>Profile</li>
+        <li className={step === 2 ? "on" : undefined}>Vault</li>
+        <li className={step === 3 ? "on" : undefined}>Confirm inbox</li>
       </ol>
 
       {step === 1 && (
-        <form onSubmit={create} className="grid-2" style={{ maxWidth: 640, marginTop: 16 }}>
+        <form onSubmit={create} className="grid-2 onboard-form">
           <label className="field">
             Name
             <input data-testid="company-name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -166,8 +168,14 @@ export default function NewCompanyPage() {
             <input value={country} onChange={(e) => setCountry(e.target.value)} />
           </label>
           <label className="field">
-            FY start month (4 = April)
-            <input type="number" min={1} max={12} value={fy} onChange={(e) => setFy(Number(e.target.value))} />
+            FY starts
+            <select value={fy} onChange={(e) => setFy(Number(e.target.value))} aria-label="FY start month">
+              {MONTH_NAMES.map((label, i) => (
+                <option key={label} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             Unit hint
@@ -180,7 +188,7 @@ export default function NewCompanyPage() {
           <label className="field">
             Fund
             <select value={fundId} onChange={(e) => setFundId(e.target.value)}>
-              <option value="">Main fund (create if missing)</option>
+              <option value="">Main fund</option>
               {funds.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
@@ -188,24 +196,29 @@ export default function NewCompanyPage() {
               ))}
             </select>
           </label>
-          <label className="field">
-            OneDrive folder id (optional)
-            <input value={onedriveFolderId} onChange={(e) => setOnedriveFolderId(e.target.value)} />
-          </label>
-          <label className="field">
-            OneDrive folder path (optional)
-            <input value={onedriveFolderPath} onChange={(e) => setOnedriveFolderPath(e.target.value)} placeholder="/MIS" />
-          </label>
-          <label className="field">
-            Affinity company id (optional)
-            <input value={affinityCompanyId} onChange={(e) => setAffinityCompanyId(e.target.value)} />
-          </label>
-          <label className="field">
-            Granola note id (optional)
-            <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
-          </label>
-          <div>
-            <button className="btn" type="submit" disabled={busy} data-testid="create-company">
+          <details className="onboard-advanced">
+            <summary>Optional source mapping</summary>
+            <div className="onboard-advanced-grid">
+              <label className="field">
+                OneDrive folder id
+                <input value={onedriveFolderId} onChange={(e) => setOnedriveFolderId(e.target.value)} />
+              </label>
+              <label className="field">
+                OneDrive folder path
+                <input value={onedriveFolderPath} onChange={(e) => setOnedriveFolderPath(e.target.value)} placeholder="/MIS" />
+              </label>
+              <label className="field">
+                Affinity company id
+                <input value={affinityCompanyId} onChange={(e) => setAffinityCompanyId(e.target.value)} />
+              </label>
+              <label className="field">
+                Granola note id
+                <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
+              </label>
+            </div>
+          </details>
+          <div className="onboard-form-actions">
+            <button className="btn sm" type="submit" disabled={busy} data-testid="create-company">
               {busy ? "Creating…" : "Create company"}
             </button>
           </div>
@@ -213,22 +226,22 @@ export default function NewCompanyPage() {
       )}
 
       {step === 2 && (
-        <form onSubmit={upload} style={{ marginTop: 16 }}>
+        <form onSubmit={upload} className="onboard-upload">
           <p className="lede">
             {onedriveReady
               ? "OneDrive is connected. Upload a file or pull from the mapped folder."
-              : "OneDrive is not connected. Upload the first MIS / board pack, or paste keys in Settings → Connectors."}
+              : "Upload your first MIS or board pack. Connect OneDrive anytime in Settings → Connectors."}
           </p>
           <label className="field">
             First file (MIS / board pack)
             <input type="file" name="file" accept=".xlsx,.xls,.csv,.pdf" aria-label="First MIS file" data-testid="mis-file" />
           </label>
-          <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn" type="submit" disabled={busy} data-testid="mis-upload">
+          <div className="upload-actions">
+            <button className="btn sm" type="submit" disabled={busy} data-testid="mis-upload">
               {busy ? "Uploading…" : "Upload and extract"}
             </button>
             <button
-              className="btn ghost"
+              className="btn ghost sm"
               type="button"
               disabled={!onedriveReady || busy}
               data-testid="onedrive-pull"
@@ -251,7 +264,7 @@ export default function NewCompanyPage() {
             >
               Pull from OneDrive
             </button>
-            <button className="btn ghost" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
+            <button className="btn ghost sm" type="button" onClick={() => router.push(`/companies/${companyId}`)}>
               Skip for now
             </button>
           </div>
@@ -261,13 +274,14 @@ export default function NewCompanyPage() {
 
       {step === 3 && (
         <div
-          className="empty"
-          style={{ marginTop: 16 }}
+          className="onboard-extract"
           data-testid="extract-status"
           data-parse-status={parseStatus || "queued"}
         >
-          Extract {parseStatus || "queued"}. Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue,
-          GM). Nothing auto-posts. Then this name appears on Command with provenance.
+          <strong>Extract {parseStatus || "queued"}</strong>
+          <p className="lede">
+            Open <a href="/inbox">Inbox</a> and confirm headlines (cash, burn, revenue, GM). Command updates after you accept the rows.
+          </p>
         </div>
       )}
     </Shell>

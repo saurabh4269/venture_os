@@ -91,7 +91,7 @@ export function CiteProvider({ children }: { children: ReactNode }) {
               </div>
             </dl>
             <p className="lede" style={{ margin: "12px 0 0" }}>
-              Footnote from the book. Missing fields stay — ; we will not invent a locator.
+              Footnote from the book. Missing fields stay —.
             </p>
             {cite.sourcePath ? (
               <button

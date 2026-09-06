@@ -44,7 +44,6 @@ export default function OnboardPage() {
 
   useEffect(() => {
     loadMe();
-    // First mount only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
@@ -74,39 +73,36 @@ export default function OnboardPage() {
     );
   }
 
+  const lede = `${userName ? `${userName}, you` : "You"} are signed in. Create an organisation to open the book, or open an invite from a colleague.`;
+
   return (
-    <AuthFrame>
-      <h1>Create the firm book</h1>
-      <p className="lede">
-        {userName ? `${userName}, you` : "You"} are signed in but not in an organisation yet. Create one
-        (you become Org Admin) or accept an invite link from a colleague.
-      </p>
-      <form onSubmit={onSubmit} className="field" style={{ gap: 12, marginTop: 24 }}>
-        <label className="field" htmlFor="org">
+    <AuthFrame tab="other" title="Create your organisation" lede={lede}>
+      <form onSubmit={onSubmit} className="auth-form onboard-org-form" data-testid="onboard-ready">
+        <label className="field" htmlFor="onboard-org">
           Organisation name
           <input
-            id="org"
+            id="onboard-org"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. V3 Ventures"
+            placeholder="Your firm name"
             autoComplete="organization"
+            data-testid="onboard-org"
+            className="auth-field-lg"
             required
           />
-          {name && <span className="lede">Slug: {slugifyOrg(name) || "(we will assign one)"}</span>}
+          {name ? <span className="lede">Slug: {slugifyOrg(name) || "(we will assign one)"}</span> : null}
         </label>
-        {err && (
+        {err ? (
           <div className="sev-high" role="alert">
             {err}
           </div>
-        )}
-        <button className="btn" type="submit" disabled={busy}>
+        ) : null}
+        <button className="btn auth-submit" type="submit" disabled={busy} data-testid="onboard-submit">
           {busy ? "Creating…" : "Create organisation"}
         </button>
       </form>
-      <p className="lede" style={{ marginTop: 16 }}>
-        Have an invite? Open the link you were sent. Domain auto-join is not connected.
-      </p>
-      <p style={{ marginTop: 8 }}>
+      <p className="auth-onboard-foot lede">Have an invite? Open the link from your colleague.</p>
+      <p className="auth-login-link">
         <Link href="/login">Use a different account</Link>
       </p>
     </AuthFrame>

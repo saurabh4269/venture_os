@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
 import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
-import { useCite } from "@/components/Cite";
+import { monthName } from "@/lib/format";
+import { useCite, type CitePayload } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -106,11 +107,24 @@ function evidenceLine(ev: Record<string, unknown> | undefined) {
     .join(" · ");
 }
 
+function EvidenceCiteButton({ label, payload }: { label: string; payload: CitePayload }) {
+  const openCite = useCite();
+  return (
+    <button
+      type="button"
+      className="cite company-evidence-cite"
+      data-testid="company-evidence-cite"
+      onClick={() => openCite(payload)}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function CompanyPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { canWrite } = useBookSession();
-  const openCite = useCite();
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState("");
   const [lane, setLane] = useState<"objective" | "subjective">("objective");
@@ -286,13 +300,14 @@ export default function CompanyPage() {
       const newest = Math.max(...docs.map((d) => (d.createdAt ? new Date(d.createdAt).getTime() : 0)));
       state = key === "mis" && newest > 0 && Date.now() - newest > 45 * 86_400_000 ? "stale" : "covered";
     }
-    return { key, label, state };
+    return { key, label, state, statusLabel: state === "covered" ? "On file" : state === "stale" ? "Stale" : "Upload" };
   });
 
   return (
     <Shell>
       <PageHead
         title={data.company.name}
+        testId="company-ready"
         kicker={[data.company.sector, data.company.country].filter(Boolean).join(" · ") || "Company"}
         badge={data.company.stage ? <span className="badge">{data.company.stage}</span> : undefined}
         lede={
@@ -306,15 +321,14 @@ export default function CompanyPage() {
               <>{formatOwnership(own)} ownership</>
             )}
             {" · "}
-            FY start month {data.company.fyStartMonth ?? 4} (
-            {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
-            {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
+            FY starts {monthName(data.company.fyStartMonth ?? 4)}
+            {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? " (Apr–Mar)" : ""}
+            {data.company.unitHint ? ` · ${data.company.unitHint}` : ""}
             {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
-            {data.company.affinityCompanyId ? " · Affinity id on file — vendor deep link is not connected" : ""}
           </>
         }
         actions={
-          <div className="row">
+          <div className="row page-actions-row">
             <Link className="btn ghost sm" href="/compare">
               Compare
             </Link>
@@ -406,7 +420,7 @@ export default function CompanyPage() {
 
       {canWrite && (
         <form
-          className="grid-2"
+          className="grid-2 company-connector-form"
           style={{ maxWidth: 720, marginBottom: 16 }}
           onSubmit={async (e) => {
             e.preventDefault();
@@ -431,7 +445,7 @@ export default function CompanyPage() {
         >
           <h2 style={{ gridColumn: "1 / -1" }}>Connector mapping</h2>
           <p className="lede" style={{ gridColumn: "1 / -1" }}>
-            Optional. Paste vendor ids only — we will not invent folder or CRM fields. Pull from OneDrive uses the
+            Optional. Paste vendor ids from your connector setup. Pull from OneDrive uses the
             same parse pipeline as upload.
           </p>
           <label className="field">
@@ -450,7 +464,7 @@ export default function CompanyPage() {
             Granola note id
             <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} data-testid="map-granola-link" />
           </label>
-          <div className="row">
+          <div className="row company-connector-actions">
             <button className="btn sm" type="submit">
               Save mapping
             </button>
@@ -537,19 +551,20 @@ export default function CompanyPage() {
             </div>
           ) : (
             <p className="lede" style={{ margin: 0 }}>
-              No partner commentary on this company. MIS packs never fill this lane.
+              Add partner notes on the company page to see them here.
             </p>
           )}
         </Panel>
       </div>
 
-      <div className="grid-2" style={{ marginBottom: 16 }}>
+      <div className="grid-2 company-evidence-grid">
         <Panel title="Evidence trail" kicker="Provenance">
           {evidence.length === 0 ? (
-            <p className="lede" style={{ margin: 0 }}>
-              No citations yet. Confirm an extract to write a locator.
+            <p className="lede company-evidence-empty" data-testid="company-evidence-empty">
+              Upload documents to build your evidence trail.
             </p>
           ) : (
+            <div className="table-scroll table-scroll--compact company-evidence-table" data-testid="company-evidence-table">
             <table>
               <thead>
                 <tr>
@@ -566,30 +581,26 @@ export default function CompanyPage() {
                     <td className="lede">{e.kind}</td>
                     <td className="lede">{e.date}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="cite"
-                        onClick={() =>
-                          openCite({
-                            display: e.source,
-                            filename: e.source,
-                            sourcePath: `/api/documents/${e.documentId}/file`,
-                            locator: e.locator,
-                            excerpt: e.excerpt,
-                            periodStart: e.periodStart,
-                            periodEnd: e.periodEnd,
-                            confirmedBy: e.confirmedBy,
-                            confirmedAt: e.confirmedAt,
-                          })
-                        }
-                      >
-                        {e.cite}
-                      </button>
+                      <EvidenceCiteButton
+                        label={e.cite}
+                        payload={{
+                          display: e.source,
+                          filename: e.source,
+                          sourcePath: `/api/documents/${e.documentId}/file`,
+                          locator: e.locator,
+                          excerpt: e.excerpt,
+                          periodStart: e.periodStart,
+                          periodEnd: e.periodEnd,
+                          confirmedBy: e.confirmedBy,
+                          confirmedAt: e.confirmedAt,
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </Panel>
         <Panel title="Required documentation" kicker="Coverage">
@@ -597,23 +608,21 @@ export default function CompanyPage() {
             {required.map((r) => (
               <li key={r.key} className="doc-row">
                 <span>{r.label}</span>
-                <span className={`cover-pill ${r.state}`}>{r.state}</span>
+                <span className={`cover-pill ${r.state}`}>{r.statusLabel}</span>
               </li>
             ))}
           </ul>
-          <p className="lede" style={{ fontSize: 12, margin: "12px 0 0" }}>
-            Only kinds this book stores: MIS, board pack, transcript. Stale is MIS older than 45 days.
-          </p>
         </Panel>
       </div>
 
       <Panel title="Positions">
       <p className="lede">
-        Booked positions only. Affinity writes ownership only after a mapped numeric field id and a successful sync.
+        Booked positions only. Ownership stays — until a mapped field syncs.
       </p>
       {!data.positions?.length ? (
-        <div className="empty">No positions on the book. Add a fund in Settings, then onboard with a fund attached.</div>
+        <div className="empty">Add a fund in Settings, then onboard a company with that fund attached.</div>
       ) : (
+        <div className="table-scroll table-scroll--compact">
         <table>
           <thead>
             <tr>
@@ -640,6 +649,7 @@ export default function CompanyPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
@@ -650,63 +660,65 @@ export default function CompanyPage() {
       </label>
       {data.metrics.length === 0 ? (
         <div className="empty">
-          No confirmed facts. Upload MIS and <Link href="/inbox">confirm Inbox</Link>.
+          Upload MIS and <Link href="/inbox">confirm in Inbox</Link> to populate the book.
         </div>
       ) : (
+        <div className="table-scroll">
         <table>
-          <thead>
-            <tr>
-              <th>Metric</th>
-              <th>Value</th>
-              <th>Period</th>
-              <th>Locator</th>
-              <th>Lane</th>
-              <th>Ver.</th>
-              <th>Confirmed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookRows.map((m) => {
-              const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
-              const loc = ref?.locator;
-              const dual = formatDualDisplay({
-                value: m.valueNumeric,
-                sourceRefId: m.sourceRefId,
-                unit: m.unit as never,
-                currency: m.currency as never,
-                valueEur: m.valueEur,
-                fxRate: m.fxRate,
-                fxDate: m.fxDate,
-                fxSource: m.fxSource,
-              });
-              return (
-                <tr key={m.id}>
-                  <td>{m.metricKey}</td>
-                  <td>
-                    <Fact
-                      display={dual.display}
-                      isFact={dual.isFact}
-                      sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
-                      note={dual.fxNote}
-                      cite={citeFor(data, m.sourceRefId)}
-                    />
-                  </td>
-                  <td>{m.periodEnd}</td>
-                  <td className="lede">
-                    {loc?.sheet} {loc?.cell}
-                    {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
-                  </td>
-                  <td>{m.lane}</td>
-                  <td>{m.version}</td>
-                  <td className="lede">
-                    {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
-                    {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
-                  </td>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Value</th>
+                  <th>Period</th>
+                  <th className="hide-sm">Locator</th>
+                  <th className="hide-sm">Lane</th>
+                  <th className="hide-sm">Ver.</th>
+                  <th className="hide-sm">Confirmed</th>
                 </tr>
-              );
-            })}
+              </thead>
+              <tbody>
+                {bookRows.map((m) => {
+                  const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
+                  const loc = ref?.locator;
+                  const dual = formatDualDisplay({
+                    value: m.valueNumeric,
+                    sourceRefId: m.sourceRefId,
+                    unit: m.unit as never,
+                    currency: m.currency as never,
+                    valueEur: m.valueEur,
+                    fxRate: m.fxRate,
+                    fxDate: m.fxDate,
+                    fxSource: m.fxSource,
+                  });
+                  return (
+                    <tr key={m.id}>
+                      <td>{m.metricKey}</td>
+                      <td>
+                        <Fact
+                          display={dual.display}
+                          isFact={dual.isFact}
+                          sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
+                          note={dual.fxNote}
+                          cite={citeFor(data, m.sourceRefId)}
+                        />
+                      </td>
+                      <td>{m.periodEnd}</td>
+                      <td className="hide-sm lede">
+                        {loc?.sheet} {loc?.cell}
+                        {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
+                      </td>
+                      <td className="hide-sm">{m.lane}</td>
+                      <td className="hide-sm">{m.version}</td>
+                      <td className="hide-sm lede">
+                        {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
+                        {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
+                      </td>
+                    </tr>
+                  );
+                })}
           </tbody>
         </table>
+        </div>
       )}
       </Panel>
 
@@ -738,14 +750,14 @@ export default function CompanyPage() {
       {canWrite && (
       <form id="add-note" onSubmit={addNote} style={{ marginTop: 16 }} className="field">
         <label className="field">
-          Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
-          cannot be confirmed as subjective. Period defaults to the latest booked period, not a hardcoded month.
+          Add commentary in the lane you choose. Subjective notes are partner judgement; objective notes stay tied to
+          booked facts. Period defaults to the latest booked period.
           <select value={lane} onChange={(e) => setLane(e.target.value as "objective" | "subjective")}>
             <option value="objective">Objective</option>
             <option value="subjective">Subjective</option>
           </select>
         </label>
-        <div className="row">
+        <div className="row company-note-dates">
           <label className="field">
             Period start
             <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} required />
@@ -770,12 +782,12 @@ export default function CompanyPage() {
             {evidenceLine(f.evidence) && <div className="lede">{evidenceLine(f.evidence)}</div>}
           </li>
         ))}
-        {data.flags.length === 0 && <li className="lede">No open flags.</li>}
+        {data.flags.length === 0 && <li className="lede">All clear — no flags on this company.</li>}
       </ul>
       </Panel>
 
       <Panel title="Vault">
-      <p className="lede">DOCX is not supported yet — upload XLSX, XLS, CSV, or PDF.</p>
+      <p className="lede">Upload XLSX, XLS, CSV, or PDF for now.</p>
       <label className="field" style={{ maxWidth: 220 }}>
         Kind
         <select value={vaultKind} onChange={(e) => setVaultKind(e.target.value)} aria-label="Vault kind">
@@ -834,8 +846,8 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
       );
       setMsg(
         res.duplicateOf
-          ? "Same SHA as a vault file already stored. Extract queued — confirm Inbox; do not treat as a new source."
-          : "Queued. Confirm extracts in Inbox — nothing auto-posts.",
+          ? "This file matches one already in the vault. Extract is queued — review it in Inbox."
+          : "Queued. Confirm extracts in Inbox when ready.",
       );
       if (res.document?.id) await pollParse(res.document.id);
       onDone();
@@ -846,7 +858,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
     }
   }
   return (
-    <form onSubmit={send} className="row" style={{ marginTop: 8 }}>
+    <form onSubmit={send} className="row company-upload-form" style={{ marginTop: 8 }}>
       <label className="sr-only" htmlFor="kind">
         Document kind
       </label>
@@ -858,7 +870,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
         <option value="other">Other</option>
       </select>
       <input type="file" name="file" required accept=".xlsx,.xls,.csv,.pdf" aria-label="File" />
-      <button className="btn sm" type="submit" disabled={busy}>
+      <button className="btn company-upload-btn" type="submit" disabled={busy} data-testid="company-upload-submit">
         {busy ? "Uploading…" : "Upload to vault"}
       </button>
       {msg && (
