@@ -1,51 +1,61 @@
 import type { Currency, MetricKey, Unit } from "@venture-os/schema";
-import { parsePeriodHint } from "@venture-os/core";
+import { monthBounds, parsePeriodHint } from "@venture-os/core";
 
-/** Vendored public/illustrative corpus shape (fixtures/v3-onboard/corpus.json). */
+/** Heisenbug demo corpus vendored from v3.heisenbug.in chunk 651. */
 export type V3Corpus = {
-  version: number;
-  attribution: string;
-  fx: { fxRate: number; fxDate: string; fxSource: string };
-  funds: Array<{
-    id: string;
-    name: string;
-    vintage: number;
-    currency: string;
-    committedCapital: number;
-  }>;
-  companies: V3CorpusCompany[];
-  documents: V3CorpusDocument[];
-  pendingInbox: V3CorpusInbox[];
+  vendoredAt?: string;
+  sourceUrl?: string;
+  attribution?: string;
+  generatedAt?: string;
+  asOf?: string;
+  fx: Record<string, number>;
+  funds: HeisenbugFund[];
+  companies: HeisenbugCompany[];
+  documents: HeisenbugDocument[];
+  inbox: HeisenbugInbox[];
+  notes?: string[];
+  publicProfiles?: PublicProfile[];
 };
 
-export type V3CorpusCompany = {
+export type PublicProfile = {
   id: string;
   name: string;
-  sector: string;
-  stage: string;
-  country: string;
-  fundId: string;
-  ownershipPct: number;
-  costBasis: number;
-  costCurrency: string;
-  investedAt: string;
-  unitHint: string;
-  currencyHint: string;
-  mark?: { asOf: string; value: number; method: string };
-  monthly: V3CorpusMonthly[];
-  commentary?: V3CorpusCommentary[];
+  website?: string;
+  sector?: string;
+  country?: string;
 };
 
-export type V3CorpusDocument = {
+export type HeisenbugFund = {
   id: string;
-  companyId: string;
-  filename: string;
-  periodStart: string;
-  periodEnd: string;
-  kind?: string;
+  name: string;
+  vintage?: number;
+  currency: string;
+  deployed?: { amount: number; currency: string };
+  geography?: string;
 };
 
-export type V3CorpusMonthly = {
+export type HeisenbugCompany = {
+  id: string;
+  name: string;
+  legalName?: string;
+  sector?: string;
+  subSector?: string;
+  geo?: string;
+  city?: string;
+  fundId: string;
+  stage?: string;
+  status?: string;
+  website?: string;
+  currency?: string;
+  ownershipFd?: number;
+  cost?: { amount: number; currency: string };
+  fairValue?: { amount: number; currency: string };
+  founded?: number;
+  monthly?: HeisenbugMonthly[];
+  marks?: HeisenbugMark[];
+};
+
+export type HeisenbugMonthly = {
   period: string;
   sourceDocumentId: string;
   sourcePage?: number;
@@ -63,31 +73,41 @@ export type V3CorpusMonthly = {
   revenueVsPlanPct?: number;
 };
 
-export type V3CorpusCommentary = {
-  period: string;
-  objective?: string;
-  subjective?: string;
-  sourceDocumentId?: string;
-  sourcePage?: number;
-};
-
-export type V3CorpusInbox = {
+export type HeisenbugDocument = {
+  id: string;
   companyId: string;
-  documentId: string;
-  metricKey: MetricKey;
-  valueNumeric: number;
-  unit: Unit;
-  currency: Currency;
-  period: string;
-  locator: Record<string, unknown>;
-  confidence: number;
+  type?: string;
+  title?: string;
+  date?: string;
+  fileName?: string;
+  excerpts?: { page: number; heading?: string; text: string }[];
 };
 
-type MappedMetric = {
-  metricKey: MetricKey;
-  valueNumeric: number;
-  unit: Unit;
-  currency: Currency;
+export type HeisenbugInbox = {
+  id: string;
+  companyId: string;
+  fileName: string;
+  type?: string;
+  status: string;
+  fields: HeisenbugInboxField[];
+};
+
+export type HeisenbugInboxField = {
+  key: string;
+  label?: string;
+  value: string;
+  unit?: string;
+  period?: string;
+  page?: number;
+  excerpt?: string;
+  confidence?: number;
+};
+
+export type HeisenbugMark = {
+  asOf: string;
+  method: string;
+  fairValue?: { amount: number; currency: string };
+  rationale?: string;
 };
 
 const CORPUS_FIELD_MAP: Record<string, MetricKey | null> = {
@@ -103,6 +123,10 @@ const CORPUS_FIELD_MAP: Record<string, MetricKey | null> = {
   onlineMixPct: null,
   paybackMonths: null,
   revenueVsPlanPct: null,
+  runwayMonths: null,
+  occupancy: null,
+  promoDepth: null,
+  keyPerson: null,
 };
 
 const PERCENT_KEYS = new Set<MetricKey>([
@@ -112,29 +136,94 @@ const PERCENT_KEYS = new Set<MetricKey>([
 ]);
 
 const COUNT_KEYS = new Set<MetricKey>(["headcount"]);
+const MONEY_KEYS = new Set<MetricKey>([
+  "net_revenue",
+  "cash",
+  "burn",
+  "plan_revenue",
+  "cac",
+]);
+
+export function parseCorpusPeriod(
+  period: string,
+  fyStartMonth = 4,
+): { start: string; end: string; grain: "month" } | null {
+  const ym = period.match(/^(20\d{2})-(\d{2})$/);
+  if (ym) {
+    const bounds = monthBounds(Number(ym[1]), Number(ym[2]));
+    return { ...bounds, grain: "month" };
+  }
+  const hint = parsePeriodHint(period, fyStartMonth);
+  if (!hint) return null;
+  return { start: hint.start, end: hint.end, grain: "month" };
+}
+
+/** Absolute native currency amounts → book units (INR crore / GBP|EUR million). */
+export function normalizeMoneyValue(
+  value: number,
+  currency: string,
+  metricKey: MetricKey,
+): { valueNumeric: number; unit: Unit; currency: Currency } {
+  const cur = currency as Currency;
+  if (PERCENT_KEYS.has(metricKey)) {
+    return { valueNumeric: value, unit: "percent", currency: "unknown" };
+  }
+  if (COUNT_KEYS.has(metricKey)) {
+    return { valueNumeric: value, unit: "count", currency: "unknown" };
+  }
+  if (metricKey === "cac") {
+    return { valueNumeric: value, unit: "unit", currency: cur };
+  }
+  if (cur === "INR") {
+    return { valueNumeric: value / 10_000_000, unit: "crore", currency: "INR" };
+  }
+  return { valueNumeric: value / 1_000_000, unit: "million", currency: cur };
+}
+
+export function fxTripleFromCorpus(
+  fx: Record<string, number>,
+  asOf: string,
+  currency: string,
+): { fxRate: number; fxDate: string; fxSource: string } {
+  const eurInr = fx.EUR ?? 91;
+  const curInr = fx[currency] ?? (currency === "INR" ? 1 : eurInr);
+  const fxRate = currency === "EUR" ? 1 : curInr / eurInr;
+  return {
+    fxRate,
+    fxDate: asOf.length === 7 ? `${asOf}-01` : asOf,
+    fxSource: "HEISENBUG_CORPUS_FX",
+  };
+}
+
+export function mapInboxFieldKey(key: string): MetricKey | null {
+  return CORPUS_FIELD_MAP[key] ?? null;
+}
+
+type MappedMetric = {
+  metricKey: MetricKey;
+  valueNumeric: number;
+  unit: Unit;
+  currency: Currency;
+};
 
 /** Corpus monthly row → book metric rows. Skips unsupported keys; derives plan_revenue when possible. */
 export function mapCorpusMonthly(
-  row: V3CorpusMonthly,
-  unitHint: string,
-  currencyHint: string,
+  row: HeisenbugMonthly,
+  currency: string,
   fyStartMonth = 4,
 ): Array<MappedMetric & { periodStart: string; periodEnd: string; grain: "month" }> {
-  const bounds = parsePeriodHint(row.period, fyStartMonth);
+  const bounds = parseCorpusPeriod(row.period, fyStartMonth);
   if (!bounds) return [];
   const out: Array<MappedMetric & { periodStart: string; periodEnd: string; grain: "month" }> = [];
 
   for (const [field, metricKey] of Object.entries(CORPUS_FIELD_MAP)) {
     if (!metricKey) continue;
-    const raw = row[field as keyof V3CorpusMonthly];
+    const raw = row[field as keyof HeisenbugMonthly];
     if (raw === undefined || raw === null) continue;
-    const unit = metricUnit(metricKey, unitHint);
-    const currency = metricCurrency(metricKey, currencyHint);
+    const normalized = normalizeMoneyValue(Number(raw), currency, metricKey);
     out.push({
       metricKey,
-      valueNumeric: Number(raw),
-      unit,
-      currency,
+      ...normalized,
       periodStart: bounds.start,
       periodEnd: bounds.end,
       grain: "month",
@@ -144,14 +233,13 @@ export function mapCorpusMonthly(
   if (
     row.revenueVsPlanPct !== undefined &&
     row.netRevenue !== undefined &&
-    row.revenueVsPlanPct > 0
+    row.revenueVsPlanPct !== 0
   ) {
-    const plan = row.netRevenue / (row.revenueVsPlanPct / 100);
+    const planNative = Number(row.netRevenue) / (1 + row.revenueVsPlanPct / 100);
+    const plan = normalizeMoneyValue(planNative, currency, "plan_revenue");
     out.push({
       metricKey: "plan_revenue",
-      valueNumeric: plan,
-      unit: unitHint as Unit,
-      currency: currencyHint as Currency,
+      ...plan,
       periodStart: bounds.start,
       periodEnd: bounds.end,
       grain: "month",
@@ -161,16 +249,13 @@ export function mapCorpusMonthly(
   return out;
 }
 
-function metricUnit(metricKey: MetricKey, unitHint: string): Unit {
-  if (PERCENT_KEYS.has(metricKey)) return "percent";
-  if (COUNT_KEYS.has(metricKey)) return "count";
-  if (metricKey === "cac") return "unit";
-  return unitHint === "million" ? "million" : (unitHint as Unit);
-}
-
-function metricCurrency(metricKey: MetricKey, currencyHint: string): Currency {
-  if (PERCENT_KEYS.has(metricKey) || COUNT_KEYS.has(metricKey)) return "unknown";
-  return currencyHint as Currency;
+export function geoToCountry(geo?: string): string | undefined {
+  if (!geo) return undefined;
+  if (geo.includes("India")) return "IN";
+  if (geo.includes("UK")) return "GB";
+  if (geo.includes("EU") || geo.includes("Germany") || geo.includes("France")) return "EU";
+  if (geo.includes("US")) return "US";
+  return geo.slice(0, 2).toUpperCase();
 }
 
 export const V3_ONBOARD_ORG_ID = "org_v3_onboard_seed";

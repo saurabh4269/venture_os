@@ -28,15 +28,25 @@ Refuses when `NODE_ENV=production`. Refuses to overwrite an organisation that is
 | --- | --- |
 | Organisation | `V3 Ventures (ONBOARD_SEED)` / slug `v3-ventures-onboard-seed` |
 | Funds | 2 (India Evergreen, Europe & US Evergreen) |
-| Companies | 16 public portfolio names |
-| Documents + source refs | MIS / board pack per company |
+| Book companies | 16 — full heisenbug corpus (metrics, docs, inbox, marks) |
+| Public-profile companies | 20 — name + website + sector only; empty book (—) |
+| Documents + source refs | MIS / board pack per book company |
 | Metric book | Monthly objective lane via `metric_values` |
-| Commentary | Objective + subjective lanes kept separate |
-| Inbox | 3 pending metric proposals for confirm workflow |
+| Commentary | Objective excerpts from document pages where present |
+| Inbox | 3 pending metric proposals (Hosteller, Go Zero, Ugaoo) |
 | Connectors | onedrive / affinity / granola = `not_connected` |
-| FX | INR base, EUR display with rate + date + source |
+| FX | INR base, EUR display with rate + date + source from corpus |
 
 Corpus snapshot: `fixtures/v3-onboard/corpus.json` (see `ATTRIBUTION.txt`).
+
+## Refresh corpus from heisenbug
+
+```bash
+python3 packages/db/scripts/vendor-v3-corpus.py
+```
+
+Extracts `JSON.parse(...)` from chunk `651-f14569331a86d75b.js` and merges
+`publicProfiles` from the v3.ventures public portfolio scrape.
 
 ## Corpus → schema mapping
 
@@ -83,7 +93,7 @@ No frontend branches for individual company names.
 | NAV | Yes — marks on positions | FX on marks partial vs full dual-display spec |
 | Objective vs subjective commentary | Yes — separate `commentary` lanes | Subjective not from live Granola |
 | On-demand reports | Endpoints load; book has metrics | Report content depends on book depth |
-| 15–40 companies | 16 companies | Expand corpus JSON to scale |
+| 15–40 companies | 36 companies (16 book + 20 public profiles) | Expand publicProfiles in vendor script |
 | Missing ≠ 0 | Enforced in mapper + sparse corpus | — |
 | FY April–March | `fyStartMonth: 4` | — |
 | INR crore + EUR + FX triple | Yes on money metrics | EUR-native cos use EUR unit; INR crore null |
@@ -92,10 +102,9 @@ No frontend branches for individual company names.
 
 ## Rebuild corpus snapshot
 
-If you need to regenerate the illustrative JSON (e.g. add companies):
-
 ```bash
-node packages/db/scripts/build-v3-corpus.mjs
+python3 packages/db/scripts/vendor-v3-corpus.py
 ```
 
-Prefer editing the builder or hand-editing `fixtures/v3-onboard/corpus.json` over fetching at seed time.
+Re-fetches the heisenbug JS bundle and re-merges public profiles. Commit the
+updated `fixtures/v3-onboard/corpus.json` — seed reads the vendored file only.

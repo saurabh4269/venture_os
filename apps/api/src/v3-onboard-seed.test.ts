@@ -45,7 +45,7 @@ describe.skipIf(!url)("v3 onboard seed smoke", () => {
     const [org] = await db.select().from(organization).where(eq(organization.id, V3_ONBOARD_ORG_ID));
     expect(org?.metadata).toContain("onboardSeed");
     const cos = await db.select().from(companies).where(eq(companies.orgId, V3_ONBOARD_ORG_ID));
-    expect(cos.length).toBeGreaterThanOrEqual(15);
+    expect(cos.length).toBeGreaterThanOrEqual(36);
   });
 
   it("Command returns non-empty coverage after org switch", async () => {
@@ -63,8 +63,8 @@ describe.skipIf(!url)("v3 onboard seed smoke", () => {
       pulse: { companies: number; inboxPending: number };
       coverage: unknown[];
     };
-    expect(body.pulse.companies).toBeGreaterThanOrEqual(15);
-    expect(body.coverage.length).toBeGreaterThanOrEqual(15);
+    expect(body.pulse.companies).toBeGreaterThanOrEqual(36);
+    expect(body.coverage.length).toBeGreaterThanOrEqual(36);
     expect(body.pulse.inboxPending).toBeGreaterThanOrEqual(3);
   });
 
@@ -73,6 +73,7 @@ describe.skipIf(!url)("v3 onboard seed smoke", () => {
     expect(list.status).toBe(200);
     const cos = (await list.json()) as { companies: { name: string }[] };
     expect(cos.companies.some((c) => c.name === "SuperYou")).toBe(true);
+    expect(cos.companies.some((c) => c.name === "Pattern Brands")).toBe(true);
 
     const inbox = await app.request("/api/inbox", { headers: { cookie } });
     expect(inbox.status).toBe(200);

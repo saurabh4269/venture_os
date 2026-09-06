@@ -31,6 +31,7 @@ test.describe("@smoke v3 onboard seed", () => {
 
     await page.goto("/companies");
     await expect(page.getByRole("link", { name: "The Hosteller" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Pattern Brands" }).first()).toBeVisible();
     await page.getByRole("link", { name: "The Hosteller" }).first().click();
     await expect(page.getByTestId("shell-ready")).toBeVisible();
     await expect(page.getByText(/objective/i).first()).toBeVisible();
