@@ -149,7 +149,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   pathRef.current = path;
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
-  const [orgs, setOrgs] = useState<{ id: string; name: string; fixtureOnly?: boolean }[]>([]);
+  const [orgs, setOrgs] = useState<{ id: string; name: string; fixtureOnly?: boolean; onboardSeed?: boolean }[]>([]);
   const [ready, setReady] = useState(false);
   const [orgLive, setOrgLive] = useState("");
   const [wake, setWake] = useState<"loading" | "slow" | "error">("loading");
@@ -167,7 +167,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     setRetrying(true);
     Promise.all([
       api<Me>("/api/me"),
-      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
+      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean; onboardSeed?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
     ])
       .then(([m, o]) => {
         if (!alive.current) return;
@@ -215,7 +215,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       await api("/api/orgs/select", { method: "POST", body: JSON.stringify({ organizationId: id }) });
       const [m, o] = await Promise.all([
         api<Me>("/api/me"),
-        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
+        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean; onboardSeed?: boolean }[] }>("/api/orgs").catch(() => ({ orgs: [] })),
       ]);
       setMe(m);
       setOrgs(o.orgs);
@@ -244,6 +244,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }
 
   const fixture = Boolean(me?.org?.metadata?.includes("fixtureOnly"));
+  const onboardSeed = Boolean(me?.org?.metadata?.includes("onboardSeed"));
+  const seedBanner = fixture || onboardSeed;
   const canWrite = isWriteRole(me?.role);
   const initial = (me?.user?.name?.trim()[0] || "?").toUpperCase();
 
@@ -463,9 +465,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main className="main" id="main">
-          {fixture && (
-            <div className="banner" role="status">
-              Demo data for testing. Upload your own files for real portfolio work.
+          {seedBanner && (
+            <div className="banner" role="status" data-testid="seed-banner">
+              {onboardSeed
+                ? "Onboard seed — illustrative public corpus only. Not the live book."
+                : "Demo data for testing. Upload your own files for real portfolio work."}
             </div>
           )}
           <div className="sr-only" aria-live="polite">{orgLive}</div>

@@ -7,3 +7,6 @@ export * from "./flags-job.js";
 export * from "./report-job.js";
 export * from "./ensure.js";
 export * from "./connector-jobs.js";
+export { seedV3Onboard } from "./seed-v3-onboard.js";
+export * from "./v3-onboard/map.js";
+export { loadV3Corpus, corpusPath } from "./v3-onboard/load-corpus.js";

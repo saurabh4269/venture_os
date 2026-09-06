@@ -11,6 +11,7 @@
     "db:migrate": "pnpm --filter @venture-os/db migrate",
     "db:generate": "pnpm --filter @venture-os/db generate",
     "seed:demo": "pnpm --filter @venture-os/db seed:demo",
+    "seed:v3-onboard": "pnpm --filter @venture-os/db seed:v3-onboard",
     "demo:vc": "bash scripts/demo-vc.sh",
     "test:e2e": "pnpm --filter @venture-os/web test:e2e",
     "clean": "turbo clean && rm -rf node_modules"

@@ -12,6 +12,7 @@
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "seed:demo": "tsx src/seed-demo.ts",
+    "seed:v3-onboard": "tsx src/seed-v3-onboard.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "echo ok"
