@@ -325,11 +325,11 @@ export default function InboxPage() {
                     )}
                   {status === "pending" && canWrite && (
                     <input
+                      className="inbox-note-input"
                       placeholder="Correction note (if you edit)"
                       value={notes[i.id] ?? ""}
                       onChange={(e) => setNotes({ ...notes, [i.id]: e.target.value })}
                       aria-label="Correction note"
-                      style={{ marginTop: 4, width: "100%" }}
                     />
                   )}
                 </div>

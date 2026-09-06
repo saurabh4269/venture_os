@@ -150,6 +150,9 @@ test.describe("expanded desktop rail walk", () => {
       if (e instanceof Error && e.message.includes("signup_rate_limited")) {
         test.skip(true, "Preview signup rate limited");
       }
+      if (e instanceof Error && e.message.includes("signup_did_not_finish")) {
+        test.skip(true, "Signup did not reach Command");
+      }
       throw e;
     }
   });

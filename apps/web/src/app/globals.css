@@ -1213,6 +1213,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .inbox-value-input { width: 88px; max-width: 100%; min-height: 36px; }
 .inbox-period-row { margin-top: 4px; flex-wrap: wrap; gap: 8px; }
 .inbox-cite-mobile { margin-top: 6px; }
+.inbox-note-input { margin-top: 4px; width: 100%; min-height: 36px; }
 .nav-filters {
   display: flex;
   flex-wrap: wrap;
@@ -2816,6 +2817,7 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .inbox-cite-mobile .cite { min-height: 44px; padding: 8px 12px; }
   .triage-row select,
   .triage-row input:not([type="date"]) { width: 100%; min-height: 44px; }
+  .inbox-note-input { min-height: 44px; }
   .ask-bar .btn {
     width: 100%;
     min-height: 44px;
