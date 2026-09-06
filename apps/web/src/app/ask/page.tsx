@@ -109,23 +109,21 @@ export default function AskPage() {
         </p>
       )}
       {res && refused && (
-        <div className="ask-answer" data-testid="ask-refused" role="status">
+        <div className="ask-answer ask-answer--refused" data-testid="ask-refused" role="status">
           <p className="page-kicker">Need more sources</p>
           <p className="body">{res.answer}</p>
-          <p className="lede" style={{ marginTop: 10 }}>
+          <p className="lede ask-answer-foot">
             Upload more files or confirm Inbox rows to give Ask more to work with.
           </p>
         </div>
       )}
       {res && !refused && (
-        <div className="ask-answer">
+        <div className="ask-answer" data-testid="ask-answer-card">
           <p className="page-kicker">From the book</p>
           <p className="body" data-testid="ask-answer">
             {res.answer}
           </p>
-          <p className="page-kicker" style={{ marginTop: 16 }}>
-            Provenance
-          </p>
+          <p className="page-kicker ask-answer-section">Provenance</p>
           {res.citations.length === 0 ? (
             <p className="lede">Citations will appear when the answer is grounded in the book.</p>
           ) : (
@@ -151,7 +149,7 @@ export default function AskPage() {
                     ) : (
                       <span className="lede">unresolved</span>
                     )}
-                    <div className="look-title" style={{ marginTop: 8 }}>
+                    <div className="look-title ask-prov-filename">
                       {doc?.filename ?? "Source file"}
                     </div>
                     <p className="lede">

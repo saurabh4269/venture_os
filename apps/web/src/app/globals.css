@@ -1204,6 +1204,11 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .flag-detail-sub { margin-top: 10px; }
 .flag-detail-note { margin-top: 12px; }
 .flag-detail-link { margin-top: 12px; }
+.flag-detail-link .btn { justify-content: center; }
+.flag-detail .lane-obj,
+.flag-detail .lane-sub { margin-top: 0; }
+.flag-detail .analysis-kicker { margin-top: 14px; }
+.flag-detail-cites { gap: 8px; }
 .ask-company-field { text-align: left; max-width: 420px; margin: 0 auto 12px; width: 100%; }
 .ask-company-field select { width: 100%; min-height: 44px; }
 .reports-export-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -1389,7 +1394,15 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   padding: 18px 20px 20px;
   text-align: left;
 }
-.ask-answer .body { white-space: pre-wrap; font-family: var(--font-serif), Georgia, serif; font-size: 16px; line-height: 1.5; }
+.ask-answer--refused {
+  box-shadow: var(--shadow), inset 0 3px 0 var(--warn);
+}
+.ask-answer .page-kicker { margin: 0 0 8px; }
+.ask-answer-foot { margin-top: 10px; }
+.ask-answer-section { margin-top: 16px; }
+.ask-answer .body { white-space: pre-wrap; font-family: var(--font-serif), Georgia, serif; font-size: 16px; line-height: 1.5; margin: 0; }
+.ask-prov-filename { margin-top: 8px; }
+.ask-prov .cite { min-height: 36px; padding: 6px 12px; }
 .ask-prov {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1459,6 +1472,15 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .page-toolbar .toolbar-actions { position: static; width: 100%; justify-content: flex-end; }
   .look-search { max-width: none; }
   .flag-actions { grid-template-columns: 1fr; }
+  .flag-actions .btn { min-height: 44px; }
+  .flag-detail-title { font-size: 17px; }
+  .flag-detail-sub { margin-top: 12px; }
+  .metric-row { flex-wrap: wrap; gap: 4px 12px; }
+  .flag-detail-cites { flex-wrap: wrap; }
+  .flag-detail-link .btn { width: 100%; }
+  .ask-answer { padding: 16px; max-width: none; }
+  .ask-answer .body { font-size: 15px; }
+  .ask-prov .cite { min-height: 44px; }
   .ask-bar { grid-template-columns: 1fr; }
   .triage-row { grid-template-columns: 1fr; }
   h1 { font-size: 28px; }

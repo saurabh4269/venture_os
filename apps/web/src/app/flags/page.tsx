@@ -380,7 +380,7 @@ export default function FlagsPage() {
                   ) : null}
                   {selected.companyId && (
                     <p className="flag-detail-link">
-                      <Link className="lede" href={`/compare?companyIds=${selected.companyId}`}>
+                      <Link className="btn ghost sm" href={`/compare?companyIds=${selected.companyId}`}>
                         Compare
                       </Link>
                     </p>
