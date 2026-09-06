@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
 import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
-import { useCite } from "@/components/Cite";
+import { useCite, type CitePayload } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -106,11 +106,24 @@ function evidenceLine(ev: Record<string, unknown> | undefined) {
     .join(" · ");
 }
 
+function EvidenceCiteButton({ label, payload }: { label: string; payload: CitePayload }) {
+  const openCite = useCite();
+  return (
+    <button
+      type="button"
+      className="cite company-evidence-cite"
+      data-testid="company-evidence-cite"
+      onClick={() => openCite(payload)}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function CompanyPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { canWrite } = useBookSession();
-  const openCite = useCite();
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState("");
   const [lane, setLane] = useState<"objective" | "subjective">("objective");
@@ -293,6 +306,7 @@ export default function CompanyPage() {
     <Shell>
       <PageHead
         title={data.company.name}
+        testId="company-ready"
         kicker={[data.company.sector, data.company.country].filter(Boolean).join(" · ") || "Company"}
         badge={data.company.stage ? <span className="badge">{data.company.stage}</span> : undefined}
         lede={
@@ -543,14 +557,14 @@ export default function CompanyPage() {
         </Panel>
       </div>
 
-      <div className="grid-2" style={{ marginBottom: 16 }}>
+      <div className="grid-2 company-evidence-grid">
         <Panel title="Evidence trail" kicker="Provenance">
           {evidence.length === 0 ? (
-            <p className="lede" style={{ margin: 0 }}>
+            <p className="lede company-evidence-empty" data-testid="company-evidence-empty">
               Upload documents to build your evidence trail.
             </p>
           ) : (
-            <div className="table-scroll table-scroll--compact">
+            <div className="table-scroll table-scroll--compact company-evidence-table" data-testid="company-evidence-table">
             <table>
               <thead>
                 <tr>
@@ -567,25 +581,20 @@ export default function CompanyPage() {
                     <td className="lede">{e.kind}</td>
                     <td className="lede">{e.date}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="cite"
-                        onClick={() =>
-                          openCite({
-                            display: e.source,
-                            filename: e.source,
-                            sourcePath: `/api/documents/${e.documentId}/file`,
-                            locator: e.locator,
-                            excerpt: e.excerpt,
-                            periodStart: e.periodStart,
-                            periodEnd: e.periodEnd,
-                            confirmedBy: e.confirmedBy,
-                            confirmedAt: e.confirmedAt,
-                          })
-                        }
-                      >
-                        {e.cite}
-                      </button>
+                      <EvidenceCiteButton
+                        label={e.cite}
+                        payload={{
+                          display: e.source,
+                          filename: e.source,
+                          sourcePath: `/api/documents/${e.documentId}/file`,
+                          locator: e.locator,
+                          excerpt: e.excerpt,
+                          periodStart: e.periodStart,
+                          periodEnd: e.periodEnd,
+                          confirmedBy: e.confirmedBy,
+                          confirmedAt: e.confirmedAt,
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}

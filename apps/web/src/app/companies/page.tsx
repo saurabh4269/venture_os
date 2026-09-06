@@ -93,6 +93,7 @@ export default function CompaniesPage() {
           placeholder="Search companies…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          data-testid="companies-search"
         />
         <div className="toolbar-actions">
           {visible.length > 0 && (
@@ -139,7 +140,7 @@ export default function CompaniesPage() {
           {err}
         </p>
       )}
-      <div className="filter-bar">
+      <div className="filter-bar" data-testid="companies-filter-bar">
           <span className="page-kicker filter-label">
             Stage
           </span>
@@ -159,7 +160,13 @@ export default function CompaniesPage() {
           <label className="sr-only" htmlFor="own-filter">
             Ownership
           </label>
-          <select id="own-filter" value={own} onChange={(e) => setOwn(e.target.value as typeof own)} aria-label="Ownership">
+          <select
+            id="own-filter"
+            value={own}
+            onChange={(e) => setOwn(e.target.value as typeof own)}
+            aria-label="Ownership"
+            data-testid="companies-own-filter"
+          >
             <option value="all">Ownership</option>
             <option value="has">Has booked ownership</option>
             <option value="missing">Ownership —</option>
@@ -167,7 +174,13 @@ export default function CompaniesPage() {
           <label className="sr-only" htmlFor="cover-filter">
             Coverage
           </label>
-          <select id="cover-filter" value={cover} onChange={(e) => setCover(e.target.value as typeof cover)} aria-label="Coverage">
+          <select
+            id="cover-filter"
+            value={cover}
+            onChange={(e) => setCover(e.target.value as typeof cover)}
+            aria-label="Coverage"
+            data-testid="companies-cover-filter"
+          >
             <option value="all">Coverage</option>
             <option value="booked">Booked</option>
             <option value="gap">Gap</option>
@@ -177,6 +190,7 @@ export default function CompaniesPage() {
             <button
               type="button"
               className="linkish push"
+              data-testid="companies-clear-filters"
               onClick={() => {
                 setQ("");
                 setStage("");

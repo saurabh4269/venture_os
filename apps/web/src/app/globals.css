@@ -1075,6 +1075,9 @@ input[type="date"], input[type="file"], select, textarea {
   border-color: var(--forest);
 }
 .filter-bar .push { margin-left: auto; }
+.company-evidence-grid { margin-bottom: 16px; }
+.company-evidence-empty { margin: 0; }
+.company-evidence-table .company-evidence-cite { min-height: 36px; padding: 6px 12px; }
 .linkish {
   background: none;
   border: 0;
@@ -2868,6 +2871,14 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   }
   .flags-toolbar .look-search { width: 100%; min-height: 44px; }
   .filter-bar select { flex: 1 1 45%; min-width: 0; min-height: 44px; }
+  .filter-bar .filter-pill { min-height: 44px; padding: 8px 14px; }
+  .filter-bar .filter-pills-inline { flex: 1 1 100%; width: 100%; }
+  .filter-bar .push {
+    margin-left: 0;
+    min-height: 44px;
+    padding: 8px 4px;
+  }
+  .company-evidence-table .company-evidence-cite { min-height: 44px; padding: 8px 12px; }
   .company-note-dates { flex-direction: column; align-items: stretch; width: 100%; }
   .company-note-dates .field { width: 100%; }
   .company-note-dates input { width: 100%; min-height: 40px; }
