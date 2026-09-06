@@ -38,6 +38,17 @@ async function askCardWalk(page: import("@playwright/test").Page, prefix: string
   } else {
     await expect(answer).toBeVisible();
     await expect(answer.locator(".ask-answer-section")).toHaveText("Provenance");
+    const citeBtn = answer.getByTestId("ask-cite").first();
+    if (await citeBtn.isVisible().catch(() => false)) {
+      if (mobile) {
+        await expect(citeBtn).toHaveCSS("min-height", /44px/);
+      }
+      await citeBtn.click();
+      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("Citation").first()).toBeVisible();
+      await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+      await expect(page.getByRole("dialog")).toBeHidden({ timeout: 5_000 });
+    }
   }
   if (mobile) {
     const card = (await refused.isVisible()) ? refused : answer;

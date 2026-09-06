@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageHead } from "@/components/BookUI";
-import { useCite } from "@/components/Cite";
+import { useCite, type CitePayload } from "@/components/Cite";
 import { Shell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -15,8 +15,22 @@ type Res = {
 
 type Doc = { id: string; filename: string; kind: string; createdAt?: string | null; companyName?: string | null };
 
-export default function AskPage() {
+function AskCiteButton({ payload }: { payload: CitePayload }) {
   const openCite = useCite();
+  return (
+    <button
+      type="button"
+      className="cite"
+      data-testid="ask-cite"
+      onClick={() => openCite(payload)}
+      aria-label="Open citation"
+    >
+      Cite
+    </button>
+  );
+}
+
+export default function AskPage() {
   const [q, setQ] = useState("");
   const [res, setRes] = useState<Res | null>(null);
   const [busy, setBusy] = useState(false);
@@ -133,19 +147,13 @@ export default function AskPage() {
                 return (
                   <article key={`${c.documentId ?? "x"}-${i}`}>
                     {c.documentId || c.excerpt ? (
-                      <button
-                        type="button"
-                        className="cite"
-                        onClick={() =>
-                          openCite({
-                            display: doc?.filename ?? "Ask citation",
-                            sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
-                            excerpt: c.excerpt,
-                          })
-                        }
-                      >
-                        Cite
-                      </button>
+                      <AskCiteButton
+                        payload={{
+                          display: doc?.filename ?? "Ask citation",
+                          sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
+                          excerpt: c.excerpt,
+                        }}
+                      />
                     ) : (
                       <span className="lede">unresolved</span>
                     )}
