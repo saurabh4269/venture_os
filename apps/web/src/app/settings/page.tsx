@@ -42,6 +42,33 @@ type Invite = {
   acceptUrl: string;
 };
 
+function flagLabelForKey(key: string) {
+  return FLAG_CATALOG.find((f) => f.key === key)?.label ?? key.replaceAll("_", " ");
+}
+
+function summarizeFlagPolicyAudit(before: Record<string, unknown>, after: Record<string, unknown>) {
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+  const changes: { key: string; label: string; text: string }[] = [];
+  for (const key of keys) {
+    const prev = before[key];
+    const next = after[key];
+    if (prev === undefined && next === undefined) continue;
+    const label = flagLabelForKey(key);
+    if (prev === undefined) {
+      changes.push({ key, label, text: `${label}: ${String(next)}` });
+      continue;
+    }
+    if (next === undefined) {
+      changes.push({ key, label, text: `${label}: removed` });
+      continue;
+    }
+    if (prev !== next) {
+      changes.push({ key, label, text: `${label}: ${String(prev)} → ${String(next)}` });
+    }
+  }
+  return changes;
+}
+
 export default function SettingsPage() {
   const { isAdmin, canWrite } = useBookSession();
   const [data, setData] = useState<Settings | null>(null);
@@ -407,11 +434,12 @@ export default function SettingsPage() {
       </p>
       </Panel>
 
-      <Panel title="Flag policy">
+      <Panel title="Flag policy" id="flag-policy">
       <p className="lede">
         Set firm-wide thresholds for flag detectors. Org Admin can edit values; save to refresh Flags.
       </p>
       <form
+        data-testid="flag-policy-form"
         onSubmit={async (e) => {
           e.preventDefault();
           if (!isAdmin) return;
@@ -445,7 +473,7 @@ export default function SettingsPage() {
           }
         }}
       >
-        <div className="table-scroll table-scroll--wide">
+        <div className="table-scroll table-scroll--wide" data-testid="flag-policy-table">
         <table>
           <thead>
             <tr>
@@ -464,7 +492,7 @@ export default function SettingsPage() {
                 ...FLAG_THRESHOLD_BOUNDS[c.key],
               }))
             ).map((f) => (
-              <tr key={f.key}>
+              <tr key={f.key} data-testid={`flag-policy-row-${f.key}`}>
                 <td>
                   {f.label}
                   <div className="lede flag-policy-meta">
@@ -480,6 +508,8 @@ export default function SettingsPage() {
                     <>
                       <input
                         type="number"
+                        className="flag-policy-threshold"
+                        data-testid={`flag-policy-threshold-${f.key}`}
                         min={f.min ?? 0}
                         max={f.max}
                         step="any"
@@ -510,34 +540,51 @@ export default function SettingsPage() {
         )}
       </form>
       {policyMsg && (
-        <p className="lede" role="status">
+        <p
+          className={`settings-policy-msg lede${/saved/i.test(policyMsg) ? " settings-policy-msg--ok" : ""}`}
+          role="status"
+          data-testid="flag-policy-msg"
+        >
           {policyMsg}
         </p>
       )}
       {(data?.flagPolicyAudits ?? []).length > 0 && (
-        <>
+        <div data-testid="flag-policy-audit">
           <h3 className="settings-audit-title">Policy audit</h3>
-          <div className="table-scroll table-scroll--compact">
+          <div className="table-scroll table-scroll--compact settings-audit-table">
           <table>
             <thead>
               <tr>
                 <th>When</th>
                 <th>Who</th>
-                <th>After</th>
+                <th>Changes</th>
               </tr>
             </thead>
             <tbody>
-              {data!.flagPolicyAudits!.map((a) => (
-                <tr key={a.id}>
-                  <td className="lede">{new Date(a.changedAt).toLocaleString()}</td>
-                  <td>{a.changedByName ?? a.changedByEmail ?? "—"}</td>
-                  <td className="lede">{JSON.stringify(a.after)}</td>
-                </tr>
-              ))}
+              {data!.flagPolicyAudits!.map((a) => {
+                const changes = summarizeFlagPolicyAudit(a.before, a.after);
+                return (
+                  <tr key={a.id} data-testid="flag-policy-audit-row">
+                    <td className="lede settings-audit-when">{new Date(a.changedAt).toLocaleString()}</td>
+                    <td className="settings-audit-who">{a.changedByName ?? a.changedByEmail ?? "—"}</td>
+                    <td className="lede settings-audit-changes">
+                      {changes.length === 0 ? (
+                        "—"
+                      ) : (
+                        <ul className="flag-policy-audit-list">
+                          {changes.map((c) => (
+                            <li key={c.key}>{c.text}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           </div>
-        </>
+        </div>
       )}
 
       </Panel>
