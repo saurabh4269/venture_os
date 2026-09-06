@@ -1,0 +1,23 @@
+V3 Ventures onboard seed corpus — ILLUSTRATIVE ONLY
+====================================================
+
+This snapshot is for Venture OS smoke / handoff testing. It is NOT the live V3
+book and must not be used for investment decisions.
+
+Sources (public):
+- Portfolio company names: https://www.v3.ventures and the V3 Agentic OS demo
+  landing page (https://v3.heisenbug.in), which states operating figures are
+  illustrative.
+- Sectors and geographies are aligned to public positioning only.
+
+What is illustrative:
+- Monthly MIS extracts, ownership %, cost basis, marks/NAV inputs, and FX
+  samples are a realistic working set invented for workflow testing.
+- Missing fields are intentionally omitted (missing ≠ 0).
+
+Upstream note:
+- The historical demo repo corpus JSON was not publicly fetchable at seed build
+  time; this vendored file mirrors the described schema (monthly metrics,
+  documents, pending inbox, dual-currency FX triple).
+
+License: internal Venture OS fixture — do not redistribute as factual financial data.

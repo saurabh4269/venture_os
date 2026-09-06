@@ -176,6 +176,7 @@ routes.get("/api/orgs", async (c) => {
       ...o,
       role: rows.find((r) => r.organizationId === o.id)?.role,
       fixtureOnly: o.metadata?.includes("fixtureOnly"),
+      onboardSeed: o.metadata?.includes("onboardSeed"),
     })),
   });
 });

@@ -1,0 +1,975 @@
+{
+  "version": 1,
+  "attribution": "fixtures/v3-onboard/ATTRIBUTION.txt",
+  "fx": {
+    "fxRate": 0.0112,
+    "fxDate": "2026-03-31",
+    "fxSource": "RBI_REFERENCE_ILLUSTRATIVE"
+  },
+  "funds": [
+    {
+      "id": "fund_india",
+      "name": "V3 India Evergreen",
+      "vintage": 2021,
+      "currency": "INR",
+      "committedCapital": 520
+    },
+    {
+      "id": "fund_eu",
+      "name": "V3 Europe & US Evergreen",
+      "vintage": 2021,
+      "currency": "EUR",
+      "committedCapital": 180
+    }
+  ],
+  "companies": [
+    {
+      "id": "superyou",
+      "name": "SuperYou",
+      "sector": "wellness",
+      "stage": "Series B",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.09,
+      "costBasis": 48,
+      "costCurrency": "INR",
+      "investedAt": "2022-04-01",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 67.19999999999999,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_superyou",
+          "sourcePage": 2,
+          "contributionMarginPct": 28,
+          "cash": 2.1,
+          "netBurn": 0.45,
+          "headcount": 80,
+          "cac": 1200,
+          "revenueVsPlanPct": 92
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_superyou",
+          "sourcePage": 3,
+          "netRevenue": 3.33,
+          "grossMarginPct": 42,
+          "cac": 1200,
+          "repeatRatePct": 35
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for SuperYou: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_superyou",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "hosteller",
+      "name": "The Hosteller",
+      "sector": "travel",
+      "stage": "Series B",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.11,
+      "costBasis": 62,
+      "costCurrency": "INR",
+      "investedAt": "2021-09-15",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 89.89999999999999,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_hosteller",
+          "sourcePage": 2,
+          "netRevenue": 3.68,
+          "grossMarginPct": 43
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_hosteller",
+          "sourcePage": 3,
+          "netRevenue": 3.83,
+          "grossMarginPct": 43,
+          "contributionMarginPct": 28.5,
+          "cash": 2.23,
+          "netBurn": 0.5,
+          "headcount": 92
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for The Hosteller: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_hosteller",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "deconstruct",
+      "name": "Deconstruct",
+      "sector": "food",
+      "stage": "Series A",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.14,
+      "costBasis": 28,
+      "costCurrency": "INR",
+      "investedAt": "2023-01-20",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 42,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_deconstruct",
+          "sourcePage": 2,
+          "netRevenue": 4.16,
+          "grossMarginPct": 44,
+          "contributionMarginPct": 29,
+          "cash": 2.5,
+          "netBurn": 0.55,
+          "headcount": 104
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_deconstruct",
+          "sourcePage": 3,
+          "grossMarginPct": 44,
+          "contributionMarginPct": 29,
+          "netBurn": 0.55,
+          "headcount": 104,
+          "cac": 1300
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Deconstruct: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_deconstruct",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "gozero",
+      "name": "Go Zero",
+      "sector": "food",
+      "stage": "Series A",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.12,
+      "costBasis": 22,
+      "costCurrency": "INR",
+      "investedAt": "2022-11-08",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 34.099999999999994,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_gozero",
+          "sourcePage": 2,
+          "grossMarginPct": 45,
+          "contributionMarginPct": 29.5,
+          "netBurn": 0.6,
+          "headcount": 116,
+          "repeatRatePct": 38
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_gozero",
+          "sourcePage": 3,
+          "netRevenue": 4.83,
+          "contributionMarginPct": 29.5,
+          "cash": 2.62,
+          "headcount": 116,
+          "repeatRatePct": 38
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Go Zero: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_gozero",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "ugaoo",
+      "name": "Ugaoo",
+      "sector": "lifestyle",
+      "stage": "Series A",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.1,
+      "costBasis": 18,
+      "costCurrency": "INR",
+      "investedAt": "2023-06-01",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 28.799999999999997,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_ugaoo",
+          "sourcePage": 2,
+          "netRevenue": 5.12,
+          "contributionMarginPct": 30,
+          "cash": 2.9,
+          "headcount": 128,
+          "cac": 1400
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_ugaoo",
+          "sourcePage": 3,
+          "netRevenue": 5.32,
+          "grossMarginPct": 46,
+          "contributionMarginPct": 30,
+          "netBurn": 0.65,
+          "cac": 1400
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Ugaoo: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_ugaoo",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "saladdays",
+      "name": "Salad Days",
+      "sector": "food",
+      "stage": "Seed",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.08,
+      "costBasis": 9,
+      "costCurrency": "INR",
+      "investedAt": "2024-02-14",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 14.85,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_saladdays",
+          "sourcePage": 2,
+          "netRevenue": 3.2,
+          "grossMarginPct": 47,
+          "contributionMarginPct": 30.5,
+          "netBurn": 0.7
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_saladdays",
+          "sourcePage": 3,
+          "grossMarginPct": 47,
+          "cash": 3.01,
+          "netBurn": 0.7,
+          "headcount": 140
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Salad Days: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_saladdays",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "cremecastle",
+      "name": "Creme Castle",
+      "sector": "food",
+      "stage": "Series A",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.13,
+      "costBasis": 15,
+      "costCurrency": "INR",
+      "investedAt": "2023-08-22",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 25.5,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_cremecastle",
+          "sourcePage": 2,
+          "grossMarginPct": 48,
+          "cash": 3.3,
+          "netBurn": 0.75,
+          "headcount": 152,
+          "cac": 1500
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_cremecastle",
+          "sourcePage": 3,
+          "netRevenue": 3.83,
+          "grossMarginPct": 48,
+          "contributionMarginPct": 31,
+          "headcount": 152,
+          "repeatRatePct": 41
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Creme Castle: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_cremecastle",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "kukufm",
+      "name": "Kuku FM",
+      "sector": "media",
+      "stage": "Series C",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.06,
+      "costBasis": 85,
+      "costCurrency": "INR",
+      "investedAt": "2020-05-10",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 148.75,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_kukufm",
+          "sourcePage": 2,
+          "netRevenue": 4.16,
+          "grossMarginPct": 49,
+          "contributionMarginPct": 31.5,
+          "headcount": 164
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_kukufm",
+          "sourcePage": 3,
+          "netRevenue": 4.33,
+          "contributionMarginPct": 31.5,
+          "cash": 3.4,
+          "netBurn": 0.8,
+          "headcount": 164
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Kuku FM: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_kukufm",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "lightfury",
+      "name": "Lightfury Games",
+      "sector": "gaming",
+      "stage": "Series A",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.15,
+      "costBasis": 24,
+      "costCurrency": "INR",
+      "investedAt": "2023-03-30",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 43.199999999999996,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_lightfury",
+          "sourcePage": 2,
+          "netRevenue": 4.64,
+          "contributionMarginPct": 32,
+          "cash": 3.7,
+          "netBurn": 0.85,
+          "headcount": 176,
+          "cac": 1600
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_lightfury",
+          "sourcePage": 3,
+          "grossMarginPct": 50,
+          "contributionMarginPct": 32,
+          "netBurn": 0.85,
+          "cac": 1600
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Lightfury Games: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_lightfury",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "earthful",
+      "name": "Earthful",
+      "sector": "wellness",
+      "stage": "Seed",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.1,
+      "costBasis": 7,
+      "costCurrency": "INR",
+      "investedAt": "2024-05-01",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 12.95,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_earthful",
+          "sourcePage": 2,
+          "grossMarginPct": 51,
+          "contributionMarginPct": 32.5,
+          "netBurn": 0.9,
+          "repeatRatePct": 44
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_earthful",
+          "sourcePage": 3,
+          "netRevenue": 5.32,
+          "grossMarginPct": 51,
+          "contributionMarginPct": 32.5,
+          "cash": 3.78,
+          "headcount": 188,
+          "repeatRatePct": 44
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Earthful: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_earthful",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "jewelbox",
+      "name": "Jewelbox",
+      "sector": "lifestyle",
+      "stage": "Series A",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.11,
+      "costBasis": 12,
+      "costCurrency": "INR",
+      "investedAt": "2023-10-12",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 22.799999999999997,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_jewelbox",
+          "sourcePage": 2,
+          "netRevenue": 3.2,
+          "grossMarginPct": 52,
+          "contributionMarginPct": 33,
+          "cash": 4.1,
+          "headcount": 200,
+          "cac": 1700
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_jewelbox",
+          "sourcePage": 3,
+          "netRevenue": 3.33,
+          "grossMarginPct": 52,
+          "netBurn": 0.95,
+          "headcount": 200,
+          "cac": 1700
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Jewelbox: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_jewelbox",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "fraganote",
+      "name": "Fraganote",
+      "sector": "beauty",
+      "stage": "Seed",
+      "country": "IN",
+      "fundId": "fund_india",
+      "ownershipPct": 0.09,
+      "costBasis": 6,
+      "costCurrency": "INR",
+      "investedAt": "2024-07-18",
+      "unitHint": "crore",
+      "currencyHint": "INR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 11.7,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_fraganote",
+          "sourcePage": 2,
+          "netRevenue": 3.68,
+          "grossMarginPct": 53,
+          "netBurn": 1,
+          "headcount": 212
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_fraganote",
+          "sourcePage": 3,
+          "contributionMarginPct": 33.5,
+          "cash": 4.17,
+          "netBurn": 1,
+          "headcount": 212
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "MIS notes for Fraganote: revenue trend in line with plan; gross margin stable.",
+          "subjective": "Partner call: team executing on channel mix; hiring pace moderate.",
+          "sourceDocumentId": "doc_fraganote",
+          "sourcePage": 1
+        }
+      ]
+    },
+    {
+      "id": "katkin",
+      "name": "KatKin",
+      "sector": "pet",
+      "stage": "Series B",
+      "country": "GB",
+      "fundId": "fund_eu",
+      "ownershipPct": 0.07,
+      "costBasis": 14,
+      "costCurrency": "EUR",
+      "investedAt": "2021-12-01",
+      "unitHint": "million",
+      "currencyHint": "EUR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 26.740000000000002,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_katkin",
+          "sourcePage": 4,
+          "contributionMarginPct": 36.8,
+          "cash": 3.4,
+          "netBurn": 0.83,
+          "headcount": 180
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_katkin",
+          "sourcePage": 5,
+          "netRevenue": 2.97,
+          "grossMarginPct": 60,
+          "contributionMarginPct": 36.8,
+          "cash": 3.4,
+          "netBurn": 0.83,
+          "headcount": 180,
+          "cac": 30,
+          "repeatRatePct": 52,
+          "revenueVsPlanPct": 95
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "Board pack KPI summary for KatKin.",
+          "subjective": "IC discussion: brand momentum strong in core markets.",
+          "sourceDocumentId": "doc_katkin",
+          "sourcePage": 2
+        }
+      ]
+    },
+    {
+      "id": "yepoda",
+      "name": "Yepoda",
+      "sector": "beauty",
+      "stage": "Series B",
+      "country": "DE",
+      "fundId": "fund_eu",
+      "ownershipPct": 0.08,
+      "costBasis": 11,
+      "costCurrency": "EUR",
+      "investedAt": "2022-06-15",
+      "unitHint": "million",
+      "currencyHint": "EUR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 21.34,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_yepoda",
+          "sourcePage": 4,
+          "netRevenue": 3.36,
+          "grossMarginPct": 61,
+          "contributionMarginPct": 37.2,
+          "cac": 31,
+          "repeatRatePct": 53
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_yepoda",
+          "sourcePage": 5,
+          "grossMarginPct": 61,
+          "contributionMarginPct": 37.2,
+          "netBurn": 0.87,
+          "headcount": 190,
+          "cac": 31,
+          "repeatRatePct": 53
+        }
+      ]
+    },
+    {
+      "id": "holy",
+      "name": "Holy",
+      "sector": "wellness",
+      "stage": "Series A",
+      "country": "US",
+      "fundId": "fund_eu",
+      "ownershipPct": 0.1,
+      "costBasis": 9,
+      "costCurrency": "EUR",
+      "investedAt": "2023-04-20",
+      "unitHint": "million",
+      "currencyHint": "EUR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 17.73,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_holy",
+          "sourcePage": 4,
+          "netRevenue": 3.92,
+          "grossMarginPct": 62,
+          "contributionMarginPct": 37.6,
+          "cash": 3.7,
+          "netBurn": 0.91,
+          "headcount": 200,
+          "cac": 32,
+          "repeatRatePct": 54,
+          "revenueVsPlanPct": 95
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_holy",
+          "sourcePage": 5,
+          "netRevenue": 4.16,
+          "cash": 3.7,
+          "headcount": 200,
+          "cac": 32,
+          "repeatRatePct": 54
+        }
+      ],
+      "commentary": [
+        {
+          "period": "FY26 M5",
+          "objective": "Board pack KPI summary for Holy.",
+          "subjective": "IC discussion: brand momentum strong in core markets.",
+          "sourceDocumentId": "doc_holy",
+          "sourcePage": 2
+        }
+      ]
+    },
+    {
+      "id": "wild",
+      "name": "Wild",
+      "sector": "beauty",
+      "stage": "Series B",
+      "country": "GB",
+      "fundId": "fund_eu",
+      "ownershipPct": 0.06,
+      "costBasis": 16,
+      "costCurrency": "EUR",
+      "investedAt": "2022-02-28",
+      "unitHint": "million",
+      "currencyHint": "EUR",
+      "mark": {
+        "asOf": "2026-03-31",
+        "value": 32,
+        "method": "last_round"
+      },
+      "monthly": [
+        {
+          "period": "FY26 M4",
+          "sourceDocumentId": "doc_wild",
+          "sourcePage": 4,
+          "grossMarginPct": 63,
+          "contributionMarginPct": 38,
+          "netBurn": 0.95,
+          "headcount": 210,
+          "cac": 33,
+          "repeatRatePct": 55
+        },
+        {
+          "period": "FY26 M5",
+          "sourceDocumentId": "doc_wild",
+          "sourcePage": 5,
+          "netRevenue": 4.75,
+          "grossMarginPct": 63,
+          "contributionMarginPct": 38,
+          "netBurn": 0.95,
+          "repeatRatePct": 55
+        }
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc_superyou",
+      "companyId": "superyou",
+      "filename": "superyou-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_hosteller",
+      "companyId": "hosteller",
+      "filename": "hosteller-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_deconstruct",
+      "companyId": "deconstruct",
+      "filename": "deconstruct-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_gozero",
+      "companyId": "gozero",
+      "filename": "gozero-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_ugaoo",
+      "companyId": "ugaoo",
+      "filename": "ugaoo-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_saladdays",
+      "companyId": "saladdays",
+      "filename": "saladdays-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_cremecastle",
+      "companyId": "cremecastle",
+      "filename": "cremecastle-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_kukufm",
+      "companyId": "kukufm",
+      "filename": "kukufm-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_lightfury",
+      "companyId": "lightfury",
+      "filename": "lightfury-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_earthful",
+      "companyId": "earthful",
+      "filename": "earthful-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_jewelbox",
+      "companyId": "jewelbox",
+      "filename": "jewelbox-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_fraganote",
+      "companyId": "fraganote",
+      "filename": "fraganote-mis-fy26.xlsx",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31"
+    },
+    {
+      "id": "doc_katkin",
+      "companyId": "katkin",
+      "filename": "katkin-board-pack-fy26.pdf",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31",
+      "kind": "board_pack"
+    },
+    {
+      "id": "doc_yepoda",
+      "companyId": "yepoda",
+      "filename": "yepoda-board-pack-fy26.pdf",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31",
+      "kind": "board_pack"
+    },
+    {
+      "id": "doc_holy",
+      "companyId": "holy",
+      "filename": "holy-board-pack-fy26.pdf",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31",
+      "kind": "board_pack"
+    },
+    {
+      "id": "doc_wild",
+      "companyId": "wild",
+      "filename": "wild-board-pack-fy26.pdf",
+      "periodStart": "2025-07-01",
+      "periodEnd": "2025-08-31",
+      "kind": "board_pack"
+    }
+  ],
+  "pendingInbox": [
+    {
+      "companyId": "hosteller",
+      "documentId": "doc_hosteller",
+      "metricKey": "burn",
+      "valueNumeric": 0.52,
+      "unit": "crore",
+      "currency": "INR",
+      "period": "FY26 M5",
+      "locator": {
+        "sheet": "MIS",
+        "cell": "D18"
+      },
+      "confidence": 0.78
+    },
+    {
+      "companyId": "deconstruct",
+      "documentId": "doc_deconstruct",
+      "metricKey": "net_revenue",
+      "valueNumeric": 3.74,
+      "unit": "crore",
+      "currency": "INR",
+      "period": "FY26 M5",
+      "locator": {
+        "sheet": "MIS",
+        "cell": "C8"
+      },
+      "confidence": 0.81
+    },
+    {
+      "companyId": "yepoda",
+      "documentId": "doc_yepoda",
+      "metricKey": "gross_margin_pct",
+      "valueNumeric": 51.2,
+      "unit": "percent",
+      "currency": "unknown",
+      "period": "FY26 M5",
+      "locator": {
+        "page": 5,
+        "region": "KPI table"
+      },
+      "confidence": 0.72
+    }
+  ]
+}

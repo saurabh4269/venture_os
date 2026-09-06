@@ -63,6 +63,8 @@ const Env = z.object({
   SEED_DEMO: z.string().optional().default("0"),
   SEED_DEMO_EMAIL: z.string().default("analyst@fixture.local"),
   SEED_DEMO_PASSWORD: z.string().default("fixture-only-password"),
+  SEED_V3_ONBOARD: z.string().optional().default("0"),
+  SEED_V3_EMAIL: z.string().default(""),
   /**
    * Preferred connector envelope key (AES-256-GCM). Never commit a live value.
    * Fallback: CONNECTOR_SEAL_SECRET, then BETTER_AUTH_SECRET.
@@ -114,6 +116,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     assertProductionAuthSecret(source.BETTER_AUTH_SECRET);
     if (source.SEED_DEMO === "1") {
       throw new Error("SEED_DEMO is forbidden when NODE_ENV=production");
+    }
+    if (source.SEED_V3_ONBOARD === "1") {
+      throw new Error("SEED_V3_ONBOARD is forbidden when NODE_ENV=production");
     }
   }
   return Env.parse(source);
