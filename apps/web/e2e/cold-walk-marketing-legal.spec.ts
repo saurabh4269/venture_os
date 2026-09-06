@@ -9,6 +9,11 @@ async function assertMarketingChrome(page: import("@playwright/test").Page) {
     "/security",
   );
   await expect(page.getByRole("contentinfo").getByRole("link", { name: "Notes" })).toHaveAttribute("href", "/blog");
+  const footerLinkCase = await page
+    .getByRole("contentinfo")
+    .getByRole("link", { name: "How we work" })
+    .evaluate((el) => getComputedStyle(el).textTransform);
+  expect(footerLinkCase).toBe("none");
 }
 
 async function blogWalk(page: import("@playwright/test").Page, prefix: string) {

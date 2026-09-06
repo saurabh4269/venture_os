@@ -316,6 +316,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             className="rail-toggle"
+            data-testid="rail-toggle"
             onClick={toggleRail}
             aria-label={railOpen ? "Collapse navigation" : "Expand navigation"}
             aria-expanded={railOpen}

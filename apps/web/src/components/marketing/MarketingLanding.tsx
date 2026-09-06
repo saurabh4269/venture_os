@@ -48,10 +48,10 @@ function CommandFrame() {
         ))}
       </div>
       <div className="mkt-frame-rows">
-        <i style={{ width: "92%" }} />
-        <i style={{ width: "74%" }} />
-        <i style={{ width: "83%" }} />
-        <i style={{ width: "58%" }} />
+        <i className="mkt-frame-bar mkt-frame-bar-1" />
+        <i className="mkt-frame-bar mkt-frame-bar-2" />
+        <i className="mkt-frame-bar mkt-frame-bar-3" />
+        <i className="mkt-frame-bar mkt-frame-bar-4" />
       </div>
     </div>
   );

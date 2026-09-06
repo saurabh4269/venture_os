@@ -14,10 +14,12 @@ test.describe("rail and auth visual", () => {
     await page.getByTestId("signup-submit").click();
     await expect(page.getByTestId("command-ready")).toBeVisible({ timeout: 90_000 });
 
+    await expect(page.getByTestId("rail-toggle")).toHaveCSS("border-width", /1px/);
     await page.screenshot({ path: "test-results/audit-rail-collapsed.png", fullPage: false });
-    await page.locator(".rail-toggle").click();
-    await expect(page.locator(".app.app-rail-expanded")).toBeVisible();
-    await page.screenshot({ path: "test-results/audit-rail-expanded.png", fullPage: false });
+  await page.locator(".rail-toggle").click();
+  await expect(page.locator(".app.app-rail-expanded")).toBeVisible();
+  await expect(page.getByTestId("rail-toggle")).toHaveCSS("border-width", /0px|none/i);
+  await page.screenshot({ path: "test-results/audit-rail-expanded.png", fullPage: false });
 
     const submitBg = await page.locator(".topbar-add-btn").evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(submitBg).toMatch(/9,\s*9,\s*11|rgb\(9,\s*9,\s*11\)/);

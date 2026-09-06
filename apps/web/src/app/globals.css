@@ -193,6 +193,9 @@ button { cursor: pointer; }
   margin-left: 0;
   width: 36px;
   height: 36px;
+  border: 1px solid var(--rule);
+  background: var(--chip);
+  color: var(--ink);
 }
 .rail-toggle:hover { background: var(--paper-2); color: var(--ink); }
 .rail-item {
@@ -1535,11 +1538,17 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   gap: 28px;
 }
 .mkt-nav a,
-.mkt-login,
-.mkt-foot-links a {
+.mkt-login {
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.mkt-foot-links a {
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
   font-weight: 500;
   color: var(--muted-foreground);
 }
@@ -1657,6 +1666,10 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   background: var(--paper-2);
   border-radius: 2px;
 }
+.mkt-frame-bar-1 { width: 92%; }
+.mkt-frame-bar-2 { width: 74%; }
+.mkt-frame-bar-3 { width: 83%; }
+.mkt-frame-bar-4 { width: 58%; }
 .mkt-schematic {
   margin: 8px 0 0;
   font-size: 11px;

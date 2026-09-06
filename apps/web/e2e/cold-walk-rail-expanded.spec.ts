@@ -96,6 +96,7 @@ async function walkExpandedRail(page: import("@playwright/test").Page, prefix: s
   await page.goto("/command");
   await expect(page.getByTestId("command-ready")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("aside.rail")).not.toHaveClass(/rail-expanded/);
+  await expect(page.getByTestId("rail-toggle")).toHaveCSS("border-width", /1px/);
   await page.screenshot({ path: `test-results/${prefix}-rail-collapsed.png`, fullPage: false });
 
   await page.locator(".rail-toggle").click();
