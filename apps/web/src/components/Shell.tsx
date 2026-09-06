@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState, Fragment } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -109,6 +109,12 @@ const NAV = [...NAV_PRIMARY, ...NAV_SECONDARY];
 
 type NavItem = (typeof NAV_PRIMARY)[number] | (typeof NAV_SECONDARY)[number];
 
+function mobileNavTitle(path: string) {
+  const items = [...NAV, { href: "/settings", label: "Settings" }];
+  const hit = items.find((n) => path === n.href || path.startsWith(`${n.href}/`));
+  return hit?.label ?? "Venture OS";
+}
+
 function useRailExpanded() {
   const [expanded, setExpanded] = useState(false);
   const [ready, setReady] = useState(false);
@@ -152,6 +158,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [searchQ, setSearchQ] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { expanded: railExpanded, toggle: toggleRail, ready: railReady } = useRailExpanded();
+  const topbarTitle = useMemo(() => mobileNavTitle(path), [path]);
 
   const alive = useRef(true);
 
@@ -262,6 +269,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         onClick={() => setMobileNavOpen(false)}
         className={`mobile-nav-link${secondary ? " mobile-nav-secondary" : ""}${active ? " active" : ""}`}
         aria-current={active ? "page" : undefined}
+        data-testid={`mobile-nav-${n.label.toLowerCase()}`}
       >
         <n.Icon className="size-4 shrink-0" aria-hidden />
         {n.label}
@@ -450,7 +458,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </div>
             </SheetContent>
           </Sheet>
-          <span className="topbar-title md:hidden">Venture OS</span>
+          <span className="topbar-title md:hidden" data-testid="topbar-mobile-title">{topbarTitle}</span>
           </div>
           <form className="topbar-search" onSubmit={onSearch} role="search">
             <Search className="size-4" aria-hidden />

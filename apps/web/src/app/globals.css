@@ -2976,6 +2976,7 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   align-items: center;
   gap: 10px;
   width: 100%;
+  min-height: 44px;
   padding: 10px 12px;
   border: none;
   border-radius: var(--radius-sm);
