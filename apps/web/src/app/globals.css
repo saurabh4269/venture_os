@@ -2063,7 +2063,8 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   }
   .mkt-mobile { display: flex; padding-left: 20px; padding-right: 20px; }
   .mkt-header-actions { gap: 10px; }
-  .mkt-login { display: none; }
+  .mkt-login,
+  .mkt-header-actions .mkt-login-btn { display: none; }
   .mkt-header-actions .mkt-cta { display: inline-flex; }
   .mkt-hero,
   .mkt-trust-grid,
