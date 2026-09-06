@@ -1243,6 +1243,12 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 }
 .nav-mark-form select,
 .nav-mark-form input { min-height: 44px; }
+.nav-head-badges { gap: 8px; }
+.nav-lock-label { gap: 6px; }
+.nav-bridge-lede { margin-top: -8px; margin-bottom: 16px; }
+.nav-unmarked-list { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.vault-empty-lede { margin: 8px 0 12px; }
+.vault-documents-table .vault-download-chip { min-height: 36px; padding: 6px 12px; }
 .reports-draft-row input,
 .reports-draft-row select { min-height: 44px; }
 .reports-export-row .chip { min-height: 36px; padding: 6px 12px; }
@@ -2800,6 +2806,7 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   }
   .vault-empty-actions { flex-direction: column; align-items: stretch; }
   .vault-empty-actions .btn { width: 100%; justify-content: center; }
+  .vault-documents-table .vault-download-chip { min-height: 44px; padding: 8px 14px; }
   .company-upload-form { flex-direction: column; align-items: stretch; }
   .company-upload-form select,
   .company-upload-form input[type="file"],

@@ -41,7 +41,7 @@ export default function VaultPage() {
       {docs.length === 0 ? (
         <div className="empty">
           <strong>Vault is empty</strong>
-          <p className="lede" style={{ margin: "8px 0 12px" }}>
+          <p className="lede vault-empty-lede">
             Upload MIS or board packs from a company page, then confirm rows in Inbox.
           </p>
           <div className="row vault-empty-actions">
@@ -51,7 +51,7 @@ export default function VaultPage() {
         </div>
       ) : (
         <Panel flush>
-        <div className="table-scroll table-scroll--compact">
+        <div className="table-scroll table-scroll--compact vault-documents-table" data-testid="vault-documents-table">
         <table>
           <thead>
             <tr>
@@ -63,9 +63,14 @@ export default function VaultPage() {
           </thead>
           <tbody>
             {docs.map((d) => (
-              <tr key={d.id}>
+              <tr key={d.id} data-testid="vault-document-row">
                 <td>
-                  <button type="button" className="chip" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
+                  <button
+                    type="button"
+                    className="chip vault-download-chip"
+                    data-testid="vault-download"
+                    onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}
+                  >
                     {d.filename}
                   </button>
                 </td>

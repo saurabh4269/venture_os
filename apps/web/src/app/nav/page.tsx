@@ -187,7 +187,7 @@ export default function NavPage() {
         title="NAV"
         testId="nav-ready"
         kicker={
-          <span className="row" style={{ gap: 8 }}>
+          <span className="row nav-head-badges">
             <span className="badge">Institutional book</span>
             <span className={`badge${unofficial ? " status-unofficial" : ""}`}>
               Status: {unofficial ? "unofficial" : "locked"}
@@ -220,7 +220,7 @@ export default function NavPage() {
                 }
               }}
             >
-              <span className="row" style={{ gap: 6 }}>
+              <span className="row nav-lock-label">
                 <IconLock />
                 {lockBusy ? "Locking…" : "Lock marks"}
               </span>
@@ -336,16 +336,19 @@ export default function NavPage() {
                 {unmarked.length === 0
                   ? "Every position on this as-of has a mark — or there are no positions yet."
                   : "Add a booked mark for this company first."}{" "}
-                {unmarked.map((u) => (
-                  <button
-                    key={`${u.companyName}-${u.positionId ?? ""}`}
-                    type="button"
-                    className="chip"
-                    onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
-                  >
-                    {u.companyName}
-                  </button>
-                ))}
+                <span className="nav-unmarked-list" data-testid="nav-unmarked-list">
+                  {unmarked.map((u) => (
+                    <button
+                      key={`${u.companyName}-${u.positionId ?? ""}`}
+                      type="button"
+                      className="chip"
+                      data-testid="nav-unmarked-chip"
+                      onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
+                    >
+                      {u.companyName}
+                    </button>
+                  ))}
+                </span>
               </p>
             </div>
             <div className={`notice${unprovenanced.length ? " warn" : ""}`}>
@@ -386,7 +389,7 @@ export default function NavPage() {
               {data.irr == null && <div className="meta">Needs investedAt on every sourced mark</div>}
             </div>
           </div>
-          <p className="lede" style={{ marginTop: -8, marginBottom: 16 }}>
+          <p className="lede nav-bridge-lede">
             Bridge Δ {data.bridge.deltaNav == null ? "—" : inr(data.bridge.deltaNav)} vs {data.priorAsOf}.
           </p>
         </>
@@ -437,7 +440,7 @@ export default function NavPage() {
             </>
           )}
           <Panel title="Company marks" flush>
-          <div className="table-scroll">
+          <div className="table-scroll" data-testid="nav-marks-table">
           <table>
             <thead>
               <tr>
@@ -503,7 +506,7 @@ export default function NavPage() {
             <p className="lede">This as-of is locked. Unlock with a reason before changing marks.</p>
           )}
           {canWrite && data.period?.status !== "locked" && (
-            <form onSubmit={addMark} className="nav-mark-form">
+            <form onSubmit={addMark} className="nav-mark-form" data-testid="nav-mark-form">
               <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required>
                 <option value="">Position</option>
                 {data.positions.map((p) => (
@@ -572,7 +575,7 @@ export default function NavPage() {
                 <input type="checkbox" checked={clearMark} onChange={(e) => setClearMark(e.target.checked)} /> Confirm
                 clear (null mark)
               </label>
-              <button className="btn sm">Add mark</button>
+              <button type="submit" className="btn sm" data-testid="nav-add-mark">Add mark</button>
             </form>
           )}
           {canWrite && (
