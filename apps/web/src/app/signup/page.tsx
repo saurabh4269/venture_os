@@ -137,8 +137,8 @@ function SignupForm() {
         <label className="field" htmlFor="password">
           <span className="field-hint">
             Password
-            <span className="lede">
-              {MIN_PASSWORD_LENGTH}–{MAX_PASSWORD_LENGTH} characters
+            <span className="auth-pw-hint">
+              {MIN_PASSWORD_LENGTH} to {MAX_PASSWORD_LENGTH} characters
             </span>
           </span>
           <input

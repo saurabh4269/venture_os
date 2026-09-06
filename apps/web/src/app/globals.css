@@ -525,7 +525,7 @@ button { cursor: pointer; }
   color: var(--ink);
 }
 .command-start { margin-top: 20px; text-align: center; }
-.command-start .lede { margin: 0 auto 16px; max-width: 32rem; }
+.command-start .lede { margin: 0 auto 16px; max-width: 32rem; line-height: 1.55; }
 .command-start-actions {
   display: flex;
   gap: 8px;
@@ -914,6 +914,11 @@ input[type="date"], input[type="file"], select, textarea {
   align-items: baseline;
 }
 .field-hint .lede { font-size: 12px; }
+.auth-pw-hint {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
 .auth-mark {
   font-family: var(--font-serif), Georgia, serif;
   font-size: 13px;
@@ -2590,6 +2595,18 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .auth-title { font-size: 20px; }
   .auth-login-link { margin-bottom: 8px; }
   .auth-lede { max-width: none; }
+  .auth-login-link,
+  .auth-signup-link {
+    margin-top: 12px;
+    padding: 4px 0 8px;
+  }
+  .auth-login-link a,
+  .auth-signup-link a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 4px;
+  }
 }
 
 /* Hide third-party preview chrome on marketing + auth */
@@ -2898,7 +2915,18 @@ iframe[src*="vercel/live-feedback"] { display: none !important; }
   .topbar-leading { flex: 1; min-width: 0; gap: 8px; }
   .topbar-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .topbar-actions { margin-left: 4px; gap: 8px; flex-shrink: 0; }
-  .topbar-actions .btn { font-size: 13px; padding: 0 12px; min-height: 44px; }
+  .topbar-actions .btn,
+  .topbar-actions .btn.sm {
+    font-size: 13px;
+    padding: 0 12px;
+    min-height: 44px;
+  }
+  .topbar-leading [data-testid="mobile-nav-open"] {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+  }
   .mobile-nav-link { min-height: 44px; }
   .upload-actions { flex-direction: column; align-items: stretch; }
   .upload-actions .btn { width: 100%; justify-content: center; min-height: 44px; }
