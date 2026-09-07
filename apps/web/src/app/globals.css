@@ -460,6 +460,92 @@ tr.parse-stalled td { background: color-mix(in srgb, var(--danger) 6%, transpare
 }
 .cards-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .cards-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cards-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.kpi a.kpi-link {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+.kpi a.kpi-link:hover .v { color: var(--forest); }
+
+.verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--chip);
+  box-shadow: var(--shadow-whisper);
+}
+.verdict.is-attention {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--rule));
+  box-shadow: var(--shadow), inset 3px 0 0 var(--warn);
+}
+.verdict.is-gap {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--rule));
+  box-shadow: var(--shadow), inset 3px 0 0 var(--danger);
+}
+.verdict.is-ok {
+  box-shadow: var(--shadow), inset 3px 0 0 var(--forest);
+}
+.verdict-copy {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  max-width: 52ch;
+}
+.verdict-copy .lede {
+  margin: 4px 0 0;
+  font-weight: 400;
+}
+.verdict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.command-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.headline-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 16px;
+}
+
+.table-hover tbody tr.row-gap {
+  background: color-mix(in srgb, var(--danger-soft) 55%, transparent);
+}
+.table-hover tbody tr.row-flag {
+  background: color-mix(in srgb, var(--warn-soft) 50%, transparent);
+}
+.table-hover tbody tr.row-gap:hover,
+.table-hover tbody tr.row-flag:hover {
+  background: color-mix(in srgb, var(--forest-soft) 45%, transparent);
+}
+.cell-tint {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+.cell-tint.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.cell-tint.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
 .card, .panel, .kpi {
   border: 1px solid var(--rule);
   background: var(--chip);
@@ -505,18 +591,6 @@ tr.parse-stalled td { background: color-mix(in srgb, var(--danger) 6%, transpare
 .panel-body { padding: 12px 16px 16px; }
 .panel-body.flush { padding: 0; }
 .panel-body.flush table { margin: 0; }
-.command-split {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.headline-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: -4px 0 16px;
-}
 .look-list { display: flex; flex-direction: column; gap: 6px; }
 .look-item {
   display: grid;
@@ -1231,7 +1305,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 }
 
 @media (max-width: 1279px) {
-  .cards-4 { grid-template-columns: 1fr 1fr; }
+  .cards-4, .cards-6 { grid-template-columns: 1fr 1fr; }
   .app { grid-template-columns: 1fr; }
   .rail {
     width: auto;
@@ -1268,7 +1342,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .triage-row .hide-sm, th.hide-sm, td.hide-sm { display: none; }
 }
 @media (max-width: 960px) {
-  .cards, .cards-3, .cards-4 { grid-template-columns: 1fr 1fr; }
+  .cards, .cards-3, .cards-4, .cards-6 { grid-template-columns: 1fr 1fr; }
   .grid-2, .notice-split, .ask-prov { grid-template-columns: 1fr; }
   .main { padding: 20px 16px 40px; }
 }
@@ -1277,7 +1351,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .mkt-section, .mkt-trust, .mkt-final { padding-left: 20px; padding-right: 20px; }
   .mkt-header-inner { padding-left: 20px; padding-right: 20px; }
   .mkt-stage-name { font-size: 22px; }
-  .cards, .cards-3, .cards-4 { grid-template-columns: 1fr; }
+  .cards, .cards-3, .cards-4, .cards-6 { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; }
   .page-toolbar { justify-content: flex-start; flex-wrap: wrap; }
   .page-toolbar .toolbar-actions { position: static; width: 100%; justify-content: flex-end; }

@@ -65,12 +65,6 @@ function bookCloseLine(d = new Date()) {
   return `${weekday} · ${rest} · Book as of close`;
 }
 
-function daysSince(iso: string | null) {
-  if (!iso) return null;
-  const n = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  return Number.isFinite(n) ? n : null;
-}
-
 function coverageGap(row: Pulse["coverage"][number]) {
   return !row.lastMis;
 }
@@ -104,6 +98,21 @@ function coverageSource(row: Pulse["coverage"][number], pendingConfirm: boolean)
   if (pendingConfirm) return "Confirm queue";
   if (row.lastMis) return "Booked MIS";
   return "—";
+}
+
+function runwayMonths(display: string) {
+  const m = display.match(/([\d.]+)\s*mo/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function runwayTint(display: string) {
+  const mo = runwayMonths(display);
+  if (mo == null) return null;
+  if (mo < 3) return "danger" as const;
+  if (mo < 6) return "warn" as const;
+  return null;
 }
 
 export default function CommandPage() {
@@ -237,59 +246,124 @@ export default function CommandPage() {
       )}
       {data && (
         <>
-          <div className="cards cards-4">
+          {(() => {
+            const attention = data.pulse.inboxPending + data.pulse.openFlags + gaps;
+            const verdictKind =
+              data.pulse.companies === 0 ? "gap" : attention > 0 ? (gaps > 0 || data.pulse.openFlags > 0 ? "gap" : "attention") : "ok";
+            const verdictTitle =
+              data.pulse.companies === 0
+                ? "Empty book — nothing for a human yet."
+                : attention === 0
+                  ? "Book is current."
+                  : "Needs a human.";
+            const verdictDetail =
+              data.pulse.companies === 0
+                ? "Add a company and confirm the first MIS."
+                : attention === 0
+                  ? "No confirm queue and no open flags."
+                  : `${data.pulse.inboxPending} to confirm · ${data.pulse.openFlags} open flags · ${gaps} coverage gaps.`;
+            const navNote = !data.pulse.nav.nav.complete
+              ? `NAV incomplete — ${data.pulse.nav.nav.missing} unmarked.`
+              : null;
+            return (
+              <div className={`verdict is-${verdictKind}`} role="status">
+                <div className="verdict-copy">
+                  {verdictTitle}
+                  <p className="lede">
+                    {verdictDetail}
+                    {navNote ? ` ${navNote}` : ""}
+                  </p>
+                </div>
+                <div className="verdict-actions">
+                  {data.pulse.inboxPending > 0 ? (
+                    <Link className="btn sm" href="/confirm">
+                      Confirm ({data.pulse.inboxPending})
+                    </Link>
+                  ) : null}
+                  {data.pulse.openFlags > 0 ? (
+                    <Link className="btn ghost sm" href="/flags">
+                      Flags ({data.pulse.openFlags})
+                    </Link>
+                  ) : null}
+                  {data.pulse.companies === 0 && canWrite ? (
+                    <Link className="btn sm" href="/companies/new">
+                      Add company
+                    </Link>
+                  ) : null}
+                  {!data.pulse.nav.nav.complete ? (
+                    <Link className="btn ghost sm" href="/nav">
+                      NAV
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="cards cards-6">
             <div className="kpi">
               <div className="k">Companies</div>
               <div className="v">
                 <AnimatedNumber value={data.pulse.companies} />
               </div>
             </div>
+            <div className={`kpi${data.pulse.inboxPending > 0 ? " accent-warn" : ""}`}>
+              <Link className="kpi-link" href="/confirm">
+                <div className="k">To confirm</div>
+                <div className="v">
+                  <AnimatedNumber value={data.pulse.inboxPending} />
+                </div>
+              </Link>
+            </div>
             <div className={`kpi${data.pulse.openFlags > 0 ? " accent-warn" : ""}`}>
-              <div className="k">Open flags</div>
-              <div className="v">
-                <AnimatedNumber value={data.pulse.openFlags} />
-              </div>
-              {data.pulse.openFlags > 0 ? <div className="meta">Requires review</div> : null}
+              <Link className="kpi-link" href="/flags">
+                <div className="k">Open flags</div>
+                <div className="v">
+                  <AnimatedNumber value={data.pulse.openFlags} />
+                </div>
+                {data.pulse.openFlags > 0 ? <div className="meta">Requires review</div> : null}
+              </Link>
             </div>
             <div className={`kpi${gaps > 0 ? " accent-danger" : ""}`}>
               <div className="k">Coverage gaps</div>
               <div className="v">
                 <AnimatedNumber value={gaps} />
               </div>
-              <div className="meta">{gaps > 0 ? "No booked MIS" : "Names with no booked MIS period"}</div>
+              <div className="meta">{gaps > 0 ? "No booked MIS" : "All names have a period"}</div>
+            </div>
+            <div className={`kpi${!data.pulse.nav.nav.complete ? " accent-warn" : " accent-forest"}`}>
+              <Link className="kpi-link" href="/nav">
+                <div className="k">NAV</div>
+                <div className="v">
+                  {data.pulse.nav.nav.total == null ? EM : data.pulse.nav.nav.total.toLocaleString("en-IN")}
+                </div>
+                <div className="meta">
+                  {!data.pulse.nav.nav.complete ? `Incomplete · ${data.pulse.nav.nav.missing} unmarked` : "As booked"}
+                </div>
+              </Link>
             </div>
             <div className="kpi">
-              <div className="k">Uncited figures</div>
-              <div className="v">{uncited == null ? EM : <AnimatedNumber value={uncited} />}</div>
-              <div className="meta">Cite-or-refuse · shown values without provenance</div>
+              <div className="k">MOIC</div>
+              <div className="v">{data.pulse.moic == null ? EM : `${data.pulse.moic.toFixed(2)}x`}</div>
+              <div className="meta">
+                IRR {data.pulse.irr == null ? EM : `${(data.pulse.irr * 100).toFixed(1)}%`}
+                {uncited != null && uncited > 0 ? ` · ${uncited} uncited` : ""}
+              </div>
             </div>
-          </div>
-
-          <p className="lede" style={{ margin: "-8px 0 14px" }}>
-            {data.pulse.companies === 0
-              ? "Empty book — nothing for a human yet."
-              : data.pulse.inboxPending + data.pulse.openFlags + gaps === 0
-                ? "Current — no inbox and no open flags."
-                : `${data.pulse.inboxPending} to confirm · ${data.pulse.openFlags} open flags · ${gaps} coverage gaps.`}
-            {!data.pulse.nav.nav.complete
-              ? ` NAV incomplete — ${data.pulse.nav.nav.missing} values missing.`
-              : ""}
-          </p>
-          <div className="headline-strip">
-            <span className="chip unfact">
-              NAV {data.pulse.nav.nav.total == null ? EM : data.pulse.nav.nav.total.toLocaleString("en-IN")}
-              {!data.pulse.nav.nav.complete ? ` · incomplete · ${data.pulse.nav.nav.missing} unmarked` : ""}
-            </span>
-            <span className="chip unfact">MOIC {data.pulse.moic == null ? EM : `${data.pulse.moic.toFixed(2)}x`}</span>
-            <span className="chip unfact">
-              IRR {data.pulse.irr == null ? EM : `${(data.pulse.irr * 100).toFixed(1)}%`}
-            </span>
-            <span className="chip unfact">Inbox {data.pulse.inboxPending}</span>
-            <span className="chip unfact">Funds {data.pulse.funds}</span>
           </div>
 
           <div className="command-split">
-            <Panel title="Needs a look">
+            <Panel
+              title="Needs a look"
+              kicker={look.length ? `${look.length} items` : undefined}
+              actions={
+                look.length > 0 ? (
+                  <Link className="btn ghost sm" href="/confirm">
+                    Open Confirm
+                  </Link>
+                ) : null
+              }
+            >
               {look.length === 0 ? (
                 <div className="empty" style={{ boxShadow: "none" }}>
                   {data.pulse.companies === 0
@@ -325,50 +399,6 @@ export default function CommandPage() {
                 </div>
               )}
             </Panel>
-            <Panel title="Coverage" flush>
-              {data.coverage.length === 0 ? (
-                <div className="panel-body">
-                  <div className="empty" style={{ boxShadow: "none" }}>
-                    No coverage rows.
-                  </div>
-                </div>
-              ) : (
-                <table className="table-hover">
-                  <thead>
-                    <tr>
-                      <th>Company</th>
-                      <th>Last MIS</th>
-                      <th>Source</th>
-                      <th>Stage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.coverage.map((r) => {
-                      const age = daysSince(r.lastMis);
-                      const pending = pendingConfirmNames.has(r.company.name);
-                      const st = pulseStatus(r, pending);
-                      return (
-                        <tr key={r.company.id}>
-                          <td>
-                            <div className="company-cell">
-                              <CompanyMark name={r.company.name} />
-                              <Link className="company-link" href={`/companies/${r.company.id}`}>
-                                {r.company.name}
-                              </Link>
-                            </div>
-                          </td>
-                          <td className="num">{age == null ? EM : `${age}d`}</td>
-                          <td>{coverageSource(r, pending)}</td>
-                          <td>
-                            <span className={`status-chip ${st.kind}`}>{st.label}</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </Panel>
           </div>
 
           {data.pulse.companies === 0 && (
@@ -387,7 +417,7 @@ export default function CommandPage() {
 
           {(data.fundOperating?.length ?? 0) > 0 && (
             <Panel title="Fund operating rollup" flush>
-              <table>
+              <table className="table-hover">
                 <thead>
                   <tr>
                     <th>Fund</th>
@@ -419,6 +449,7 @@ export default function CommandPage() {
           {data.coverage.length > 0 && (
             <Panel
               title="Portfolio pulse"
+              kicker="Booked evidence only"
               actions={
                 <div className="row">
                   <label className="sr-only" htmlFor="pulse-filter">
@@ -426,10 +457,10 @@ export default function CommandPage() {
                   </label>
                   <input
                     id="pulse-filter"
-                    placeholder="Filter"
+                    placeholder="Filter companies"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    style={{ width: 140 }}
+                    style={{ width: 160 }}
                   />
                   <button className="btn ghost sm" type="button" onClick={exportPulse} disabled={pulseRows.length === 0}>
                     Export
@@ -439,29 +470,30 @@ export default function CommandPage() {
               flush
             >
               <div className="table-scroll">
-                <table>
+                <table className="table-hover">
                   <thead>
                     <tr>
                       <th>Company</th>
                       <th>Stage</th>
                       <th>Own.</th>
-                      <th>Last round</th>
                       <th>Last MIS</th>
                       <th>Revenue</th>
-                      <th>Trend</th>
                       <th>Cash</th>
                       <th>Burn</th>
                       <th>Runway</th>
-                      <th>IRR</th>
                       <th>Flags</th>
                       <th>Coverage</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pulseRows.map((r) => {
-                      const st = pulseStatus(r, pendingConfirmNames.has(r.company.name));
+                      const pending = pendingConfirmNames.has(r.company.name);
+                      const st = pulseStatus(r, pending);
+                      const tint = runwayTint(r.runway.display);
+                      const rowClass =
+                        st.kind === "gap" ? "row-gap" : r.openFlags > 0 || st.kind === "review" ? "row-flag" : undefined;
                       return (
-                        <tr key={r.company.id}>
+                        <tr key={r.company.id} className={rowClass}>
                           <td>
                             <div className="company-cell">
                               <CompanyMark name={r.company.name} />
@@ -472,7 +504,6 @@ export default function CommandPage() {
                           </td>
                           <td>{r.company.stage ? <span className="badge">{r.company.stage}</span> : EM}</td>
                           <td className="num">{formatOwnership(r.ownershipPct)}</td>
-                          <td>{r.lastRoundLabel ?? EM}{r.lastRoundAt ? ` · ${r.lastRoundAt}` : ""}</td>
                           <td className="num">{r.lastMis ?? EM}</td>
                           <td>
                             <Fact
@@ -480,9 +511,6 @@ export default function CommandPage() {
                               note={r.netRevenue.fxNote}
                               sourcePath={sourcePathFor(data.sourceRefs, r.netRevenue.sourceRefId)}
                             />
-                          </td>
-                          <td>
-                            <Fact {...r.revenueTrend} sourcePath={sourcePathFor(data.sourceRefs, r.revenueTrend.sourceRefId)} />
                           </td>
                           <td>
                             <Fact
@@ -499,12 +527,21 @@ export default function CommandPage() {
                             />
                           </td>
                           <td>
-                            <Fact {...r.runway} sourcePath={sourcePathFor(data.sourceRefs, r.runway.sourceRefId)} />
+                            {tint ? (
+                              <span className={`cell-tint ${tint}`}>
+                                <Fact {...r.runway} sourcePath={sourcePathFor(data.sourceRefs, r.runway.sourceRefId)} />
+                              </span>
+                            ) : (
+                              <Fact {...r.runway} sourcePath={sourcePathFor(data.sourceRefs, r.runway.sourceRefId)} />
+                            )}
                           </td>
-                          <td>
-                            <Fact {...r.irr} sourcePath={sourcePathFor(data.sourceRefs, r.irr.sourceRefId)} />
+                          <td className="num">
+                            {r.openFlags ? (
+                              <span className={`flag-n${r.openFlags >= 2 ? " high" : ""}`}>{r.openFlags}</span>
+                            ) : (
+                              EM
+                            )}
                           </td>
-                          <td className="num">{r.openFlags}</td>
                           <td>
                             <span className={`status-chip ${st.kind}`}>{st.label}</span>
                           </td>

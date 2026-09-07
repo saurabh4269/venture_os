@@ -207,8 +207,9 @@ export default function CompaniesPage() {
                 {visible.map((c) => {
                   const cov = covById.get(c.id);
                   const kind = coverageKind(cov);
+                  const rowClass = kind === "gap" ? "row-gap" : kind === "review" || (cov?.openFlags ?? 0) > 0 ? "row-flag" : undefined;
                   return (
-                    <tr key={c.id} data-testid="companies-row">
+                    <tr key={c.id} data-testid="companies-row" className={rowClass}>
                       <td>
                         <div className="company-cell">
                           <CompanyMark name={c.name} />
