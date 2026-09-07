@@ -90,6 +90,7 @@ export default function FlagsPage() {
 
   function load() {
     void mutate();
+    void swrMutate("/api/command");
   }
 
   useEffect(() => {
