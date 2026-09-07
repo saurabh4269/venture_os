@@ -97,6 +97,17 @@ function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
 }
 
+function runwayAccent(display?: string) {
+  if (!display) return "";
+  const m = display.match(/([\d.]+)\s*mo/i);
+  if (!m) return "";
+  const n = Number(m[1]);
+  if (!Number.isFinite(n)) return "";
+  if (n < 3) return " accent-danger";
+  if (n < 6) return " accent-warn";
+  return "";
+}
+
 function citeFor(data: Data, refId?: string | null) {
   const ref = data.sourceRefs.find((r) => r.id === refId);
   const doc = ref ? data.documents.find((d) => d.id === ref.documentId) : undefined;
@@ -373,36 +384,57 @@ export default function CompanyPage() {
 
       {tab === "overview" && (
         <>
-          <Panel title="Objective metrics" kicker="Book" className="lane-obj-panel" actions={<span className="lane-chip obj">Objective</span>}>
-            <div className="metric-row">
-              <span className="muted">Cash</span>
-              <span>
+          <div className="cards cards-4 company-kpi-strip" aria-label="Objective metrics">
+            <div className="kpi accent-forest">
+              <div className="k">Cash</div>
+              <div className="v company-kpi-v">
                 {data.kpi ? (
-                  <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} cite={citeFor(data, data.kpi.cash.sourceRefId)} />
+                  <Fact
+                    {...data.kpi.cash}
+                    sourcePath={pathFor(data.kpi.cash.sourceRefId)}
+                    note={data.kpi.cash.fxNote}
+                    cite={citeFor(data, data.kpi.cash.sourceRefId)}
+                  />
                 ) : (
                   <span className="chip unfact">—</span>
                 )}
-              </span>
+              </div>
+              <div className="meta">Booked · objective</div>
             </div>
-            <div className="metric-row">
-              <span className="muted">Burn (monthly)</span>
-              <span>
+            <div className="kpi">
+              <div className="k">Burn</div>
+              <div className="v company-kpi-v">
                 {data.kpi ? (
-                  <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} cite={citeFor(data, data.kpi.burn.sourceRefId)} />
+                  <Fact
+                    {...data.kpi.burn}
+                    sourcePath={pathFor(data.kpi.burn.sourceRefId)}
+                    note={data.kpi.burn.fxNote}
+                    cite={citeFor(data, data.kpi.burn.sourceRefId)}
+                  />
                 ) : (
                   <span className="chip unfact">—</span>
                 )}
-              </span>
+              </div>
+              <div className="meta">Monthly</div>
             </div>
-            <div className="metric-row">
-              <span className="muted">Runway (3-mo burn)</span>
-              <span>
-                {data.kpi ? <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} cite={citeFor(data, data.kpi.runway.sourceRefId)} /> : <span className="chip unfact">—</span>}
-              </span>
+            <div className={`kpi${runwayAccent(data.kpi?.runway.display)}`}>
+              <div className="k">Runway</div>
+              <div className="v company-kpi-v">
+                {data.kpi ? (
+                  <Fact
+                    {...data.kpi.runway}
+                    sourcePath={pathFor(data.kpi.runway.sourceRefId)}
+                    cite={citeFor(data, data.kpi.runway.sourceRefId)}
+                  />
+                ) : (
+                  <span className="chip unfact">—</span>
+                )}
+              </div>
+              <div className="meta">3-mo burn</div>
             </div>
-            <div className="metric-row">
-              <span className="muted">Net revenue</span>
-              <span>
+            <div className="kpi">
+              <div className="k">Net revenue</div>
+              <div className="v company-kpi-v">
                 {revenueDual ? (
                   <Fact
                     display={revenueDual.display}
@@ -414,9 +446,18 @@ export default function CompanyPage() {
                 ) : (
                   <span className="chip unfact">—</span>
                 )}
-              </span>
+              </div>
+              <div className="meta">
+                {data.flags.length > 0 ? (
+                  <button type="button" className="linkish" onClick={() => setTab("flags")}>
+                    {data.flags.length} open flag{data.flags.length === 1 ? "" : "s"}
+                  </button>
+                ) : (
+                  "Latest booked"
+                )}
+              </div>
             </div>
-          </Panel>
+          </div>
 
           <Panel title="Positions">
             {!data.positions?.length ? (

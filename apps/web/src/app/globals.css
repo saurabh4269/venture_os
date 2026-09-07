@@ -461,12 +461,26 @@ tr.parse-stalled td { background: color-mix(in srgb, var(--danger) 6%, transpare
 .cards-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .cards-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cards-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.kpi a.kpi-link {
+.cards-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.kpi a.kpi-link,
+a.kpi.kpi-link {
   color: inherit;
   text-decoration: none;
   display: block;
 }
-.kpi a.kpi-link:hover .v { color: var(--forest); }
+.kpi a.kpi-link:hover .v,
+a.kpi.kpi-link:hover .v { color: var(--forest); }
+button.kpi.kpi-btn {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+.company-kpi-strip .company-kpi-v {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.company-kpi-strip .fact { font-size: inherit; }
 
 .verdict {
   display: flex;
@@ -1305,7 +1319,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 }
 
 @media (max-width: 1279px) {
-  .cards-4, .cards-6 { grid-template-columns: 1fr 1fr; }
+  .cards-4, .cards-5, .cards-6 { grid-template-columns: 1fr 1fr; }
   .app { grid-template-columns: 1fr; }
   .rail {
     width: auto;
@@ -1342,7 +1356,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .triage-row .hide-sm, th.hide-sm, td.hide-sm { display: none; }
 }
 @media (max-width: 960px) {
-  .cards, .cards-3, .cards-4, .cards-6 { grid-template-columns: 1fr 1fr; }
+  .cards, .cards-3, .cards-4, .cards-5, .cards-6 { grid-template-columns: 1fr 1fr; }
   .grid-2, .notice-split, .ask-prov { grid-template-columns: 1fr; }
   .main { padding: 20px 16px 40px; }
 }
@@ -1351,7 +1365,7 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .mkt-section, .mkt-trust, .mkt-final { padding-left: 20px; padding-right: 20px; }
   .mkt-header-inner { padding-left: 20px; padding-right: 20px; }
   .mkt-stage-name { font-size: 22px; }
-  .cards, .cards-3, .cards-4, .cards-6 { grid-template-columns: 1fr; }
+  .cards, .cards-3, .cards-4, .cards-5, .cards-6 { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; }
   .page-toolbar { justify-content: flex-start; flex-wrap: wrap; }
   .page-toolbar .toolbar-actions { position: static; width: 100%; justify-content: flex-end; }

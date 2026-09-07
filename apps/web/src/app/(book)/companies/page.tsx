@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
-import { useBookSession } from "@/components/Shell";
+import { CompanyMark, EM, FilterChips, formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { Fact, useBookSession } from "@/components/Shell";
+import { sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
 import { bookErrorMessage } from "@/lib/wake";
 
@@ -14,6 +15,9 @@ type Coverage = {
   lastMis: string | null;
   ownershipPct: number | null;
   openFlags: number;
+  cash?: { display: string; isFact: boolean; fxNote?: string | null; sourceRefId?: string | null };
+  burn?: { display: string; isFact: boolean; fxNote?: string | null; sourceRefId?: string | null };
+  runway?: { display: string; isFact: boolean; sourceRefId?: string | null };
 };
 
 function coverageKind(row: Coverage | undefined) {
@@ -48,9 +52,13 @@ function exportVisible(
 export default function CompaniesPage() {
   const { canWrite } = useBookSession();
   const { data: cosData, error: cosErr } = useSWR<{ companies: Company[] }>("/api/companies", bookFetcher);
-  const { data: cmdData } = useSWR<{ coverage: Coverage[] }>("/api/command", bookFetcher);
+  const { data: cmdData } = useSWR<{
+    coverage: Coverage[];
+    sourceRefs?: { id: string; documentId: string }[];
+  }>("/api/command", bookFetcher);
   const rows = cosData?.companies ?? [];
   const coverage = cmdData?.coverage ?? [];
+  const sourceRefs = cmdData?.sourceRefs ?? [];
   const err = cosErr ? bookErrorMessage(cosErr instanceof Error ? cosErr.message : String(cosErr)) : "";
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("");
@@ -59,6 +67,21 @@ export default function CompaniesPage() {
 
   const stages = useMemo(() => [...new Set(rows.map((c) => c.stage).filter(Boolean))] as string[], [rows]);
   const covById = useMemo(() => new Map(coverage.map((c) => [c.company.id, c])), [coverage]);
+  const stats = useMemo(() => {
+    let booked = 0;
+    let gap = 0;
+    let review = 0;
+    let flags = 0;
+    for (const c of rows) {
+      const cov = covById.get(c.id);
+      const kind = coverageKind(cov);
+      if (kind === "booked") booked += 1;
+      else if (kind === "gap") gap += 1;
+      else review += 1;
+      flags += cov?.openFlags ?? 0;
+    }
+    return { booked, gap, review, flags, names: rows.length };
+  }, [rows, covById]);
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((c) => {
@@ -76,7 +99,8 @@ export default function CompaniesPage() {
   const filtered = Boolean(q.trim() || stage || own !== "all" || cover !== "all");
 
   return (
-    <><div className="page-toolbar">
+    <>
+      <div className="page-toolbar">
         <label className="sr-only" htmlFor="co-search">
           Search companies
         </label>
@@ -103,7 +127,7 @@ export default function CompaniesPage() {
                       sector: c.sector,
                       ownership: formatOwnership(cov?.ownershipPct),
                       lastMis: cov?.lastMis ?? EM,
-                      flags: cov?.openFlags ? String(cov.openFlags) : EM,
+                      flags: String(cov?.openFlags ?? 0),
                       cover: kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review",
                     };
                   }),
@@ -118,6 +142,7 @@ export default function CompaniesPage() {
       <PageHead
         title="Companies"
         testId="companies-ready"
+        kicker="Portfolio performance"
         lede={bookCloseLine()}
         actions={
           canWrite ? (
@@ -132,55 +157,96 @@ export default function CompaniesPage() {
           {err}
         </p>
       )}
-      <div className="filter-bar">
-          <span className="page-kicker" style={{ margin: 0 }}>
-            Stage
-          </span>
-          <div className="tabs filter-pills" style={{ margin: 0 }} aria-label="Stage">
-            {stages.length === 0 ? <span className="lede">—</span> : null}
-            {stages.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`filter-pill${stage === s ? " on" : ""}`}
-                onClick={() => setStage(stage === s ? "" : s)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          <label className="sr-only" htmlFor="own-filter">
-            Ownership
-          </label>
-          <select id="own-filter" value={own} onChange={(e) => setOwn(e.target.value as typeof own)} aria-label="Ownership">
-            <option value="all">Ownership</option>
-            <option value="has">Has booked ownership</option>
-            <option value="missing">Ownership —</option>
-          </select>
-          <label className="sr-only" htmlFor="cover-filter">
-            Coverage
-          </label>
-          <select id="cover-filter" value={cover} onChange={(e) => setCover(e.target.value as typeof cover)} aria-label="Coverage">
-            <option value="all">Coverage</option>
-            <option value="booked">Booked</option>
-            <option value="gap">Gap</option>
-            <option value="review">Review</option>
-          </select>
-          {filtered && (
-            <button
-              type="button"
-              className="linkish push"
-              onClick={() => {
-                setQ("");
-                setStage("");
-                setOwn("all");
-                setCover("all");
-              }}
-            >
-              Clear filters
-            </button>
-          )}
+      {rows.length > 0 ? (
+        <div className="cards cards-5" aria-label="Portfolio coverage summary">
+          <button type="button" className={`kpi kpi-btn${cover === "all" ? " accent-forest" : ""}`} onClick={() => setCover("all")}>
+            <div className="k">Names</div>
+            <div className="v">{stats.names}</div>
+          </button>
+          <button
+            type="button"
+            className={`kpi kpi-btn${cover === "booked" ? " accent-forest" : ""}`}
+            onClick={() => setCover(cover === "booked" ? "all" : "booked")}
+          >
+            <div className="k">Booked</div>
+            <div className="v">{stats.booked}</div>
+            <div className="meta">MIS period on book</div>
+          </button>
+          <button
+            type="button"
+            className={`kpi kpi-btn${cover === "gap" || stats.gap > 0 ? " accent-danger" : ""}`}
+            onClick={() => setCover(cover === "gap" ? "all" : "gap")}
+          >
+            <div className="k">Gaps</div>
+            <div className="v">{stats.gap}</div>
+            <div className="meta">No booked MIS</div>
+          </button>
+          <button
+            type="button"
+            className={`kpi kpi-btn${cover === "review" || stats.review > 0 ? " accent-warn" : ""}`}
+            onClick={() => setCover(cover === "review" ? "all" : "review")}
+          >
+            <div className="k">Review</div>
+            <div className="v">{stats.review}</div>
+            <div className="meta">Confirm or open flags</div>
+          </button>
+          <Link className={`kpi kpi-link${stats.flags > 0 ? " accent-warn" : ""}`} href="/flags">
+            <div className="k">Open flags</div>
+            <div className="v">{stats.flags}</div>
+          </Link>
         </div>
+      ) : null}
+      <div className="filter-bar">
+        <FilterChips
+          label="Coverage"
+          value={cover}
+          onChange={(id) => setCover(id as typeof cover)}
+          options={[
+            { id: "all", label: "All", count: stats.names },
+            { id: "booked", label: "Booked", count: stats.booked },
+            { id: "gap", label: "Gap", count: stats.gap },
+            { id: "review", label: "Review", count: stats.review },
+          ]}
+        />
+        <span className="page-kicker" style={{ margin: 0 }}>
+          Stage
+        </span>
+        <div className="tabs filter-pills" style={{ margin: 0 }} aria-label="Stage">
+          {stages.length === 0 ? <span className="lede">—</span> : null}
+          {stages.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`filter-pill${stage === s ? " on" : ""}`}
+              onClick={() => setStage(stage === s ? "" : s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <label className="sr-only" htmlFor="own-filter">
+          Ownership
+        </label>
+        <select id="own-filter" value={own} onChange={(e) => setOwn(e.target.value as typeof own)} aria-label="Ownership">
+          <option value="all">Ownership</option>
+          <option value="has">Has booked ownership</option>
+          <option value="missing">Ownership —</option>
+        </select>
+        {filtered && (
+          <button
+            type="button"
+            className="linkish push"
+            onClick={() => {
+              setQ("");
+              setStage("");
+              setOwn("all");
+              setCover("all");
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
       {rows.length === 0 ? (
         <div className="empty">
           <strong>Empty book</strong>
@@ -190,7 +256,7 @@ export default function CompaniesPage() {
       ) : visible.length === 0 ? (
         <div className="empty">No companies match these filters.</div>
       ) : (
-        <Panel flush>
+        <Panel title="Performance" kicker={`${visible.length} shown`} flush>
           <div className="table-scroll">
             <table className="table-hover">
               <thead>
@@ -199,6 +265,9 @@ export default function CompaniesPage() {
                   <th>Stage</th>
                   <th>Ownership</th>
                   <th>Last MIS</th>
+                  <th>Cash</th>
+                  <th>Burn</th>
+                  <th>Runway</th>
                   <th>Flags</th>
                   <th>Coverage</th>
                 </tr>
@@ -207,7 +276,8 @@ export default function CompaniesPage() {
                 {visible.map((c) => {
                   const cov = covById.get(c.id);
                   const kind = coverageKind(cov);
-                  const rowClass = kind === "gap" ? "row-gap" : kind === "review" || (cov?.openFlags ?? 0) > 0 ? "row-flag" : undefined;
+                  const rowClass =
+                    kind === "gap" ? "row-gap" : kind === "review" || (cov?.openFlags ?? 0) > 0 ? "row-flag" : undefined;
                   return (
                     <tr key={c.id} data-testid="companies-row" className={rowClass}>
                       <td>
@@ -222,6 +292,23 @@ export default function CompaniesPage() {
                       <td className="num">{formatOwnership(cov?.ownershipPct)}</td>
                       <td className="lede">{cov?.lastMis ?? EM}</td>
                       <td>
+                        {cov?.cash ? (
+                          <Fact {...cov.cash} sourcePath={sourcePathFor(sourceRefs, cov.cash.sourceRefId)} note={cov.cash.fxNote} />
+                        ) : (
+                          EM
+                        )}
+                      </td>
+                      <td>
+                        {cov?.burn ? (
+                          <Fact {...cov.burn} sourcePath={sourcePathFor(sourceRefs, cov.burn.sourceRefId)} note={cov.burn.fxNote} />
+                        ) : (
+                          EM
+                        )}
+                      </td>
+                      <td>
+                        {cov?.runway ? <Fact {...cov.runway} sourcePath={sourcePathFor(sourceRefs, cov.runway.sourceRefId)} /> : EM}
+                      </td>
+                      <td>
                         {cov?.openFlags ? (
                           <span className={`flag-n${cov.openFlags >= 2 ? " high" : ""}`}>{cov.openFlags}</span>
                         ) : (
@@ -229,7 +316,9 @@ export default function CompaniesPage() {
                         )}
                       </td>
                       <td>
-                        <span className={`status-chip ${kind}`}>{kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}</span>
+                        <span className={`status-chip ${kind}`}>
+                          {kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -239,8 +328,7 @@ export default function CompaniesPage() {
           </div>
           <p className="table-foot">
             Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
-            {filtered ? " matching current filters" : ""}. Last MIS and coverage are booked evidence — never a note or a
-            score.
+            {filtered ? " matching current filters" : ""}. Cash, burn, and runway are booked facts — never a score.
           </p>
         </Panel>
       )}
