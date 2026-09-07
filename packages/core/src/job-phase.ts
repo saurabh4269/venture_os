@@ -1,5 +1,4 @@
 /**
-/**
  * Job / parse phase badges.
  * Derived display only — never invents success.
  */
