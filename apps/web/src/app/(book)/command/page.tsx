@@ -5,6 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { FLAG_CATALOG } from "@venture-os/core";
 import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import {
+  CashByCompanyChart,
+  CoverageMixChart,
+  FundRollupBars,
+  PortfolioSeriesChart,
+} from "@/components/BookCharts";
 import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
 import { FadeIn } from "@/components/motion/FadeIn";
@@ -32,6 +38,19 @@ type Pulse = {
     revenueSum: number | null;
     coverage: { cash: number; burn: number; revenue: number; of: number };
   }[];
+  charts?: {
+    coverageMix: { booked: number; gap: number; review: number };
+    cashByCompany: { companyId: string; name: string; cash: number; periodEnd: string }[];
+    portfolioSeries: {
+      periodEnd: string;
+      cashSum: number | null;
+      revenueSum: number | null;
+      burnSum: number | null;
+      cashN: number;
+      revenueN: number;
+      burnN: number;
+    }[];
+  };
   needsALook: {
     flags: { id: string; flagKey: string; severity: string; companyId: string; companyName: string }[];
     inbox: { id: string; companyName: string; kind: string }[];
@@ -401,6 +420,20 @@ export default function CommandPage() {
             </Panel>
           </div>
 
+          {data.charts && data.pulse.companies > 0 ? (
+            <div className="chart-grid">
+              <Panel title="Coverage mix" kicker="Booked · gap · review">
+                <CoverageMixChart {...data.charts.coverageMix} />
+              </Panel>
+              <Panel title="Cash by company" kicker="Latest booked period">
+                <CashByCompanyChart rows={data.charts.cashByCompany} />
+              </Panel>
+              <Panel title="Portfolio trend" kicker="Sum of booked values" className="chart-span-2">
+                <PortfolioSeriesChart rows={data.charts.portfolioSeries} />
+              </Panel>
+            </div>
+          ) : null}
+
           {data.pulse.companies === 0 && (
             <div className="empty">
               <strong>The book is empty</strong>
@@ -417,32 +450,39 @@ export default function CommandPage() {
 
           {(data.fundOperating?.length ?? 0) > 0 && (
             <Panel title="Fund operating rollup" flush>
-              <table className="table-hover">
-                <thead>
-                  <tr>
-                    <th>Fund</th>
-                    <th>Names</th>
-                    <th>Cash Σ</th>
-                    <th>Burn Σ</th>
-                    <th>Revenue Σ</th>
-                    <th>Coverage</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.fundOperating!.map((f) => (
-                    <tr key={f.fundId}>
-                      <td>{f.fundName}</td>
-                      <td className="num">{f.companies}</td>
-                      <td className="num">{f.cashSum == null ? EM : f.cashSum.toLocaleString("en-IN")}</td>
-                      <td className="num">{f.burnSum == null ? EM : f.burnSum.toLocaleString("en-IN")}</td>
-                      <td className="num">{f.revenueSum == null ? EM : f.revenueSum.toLocaleString("en-IN")}</td>
-                      <td className="num">
-                        {f.coverage.cash}/{f.coverage.of} cash · {f.coverage.burn}/{f.coverage.of} burn
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="chart-grid chart-grid-fund">
+                <div className="panel-body">
+                  <FundRollupBars rows={data.fundOperating!} />
+                </div>
+                <div className="table-scroll">
+                  <table className="table-hover">
+                    <thead>
+                      <tr>
+                        <th>Fund</th>
+                        <th>Names</th>
+                        <th>Cash Σ</th>
+                        <th>Burn Σ</th>
+                        <th>Revenue Σ</th>
+                        <th>Coverage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.fundOperating!.map((f) => (
+                        <tr key={f.fundId}>
+                          <td>{f.fundName}</td>
+                          <td className="num">{f.companies}</td>
+                          <td className="num">{f.cashSum == null ? EM : f.cashSum.toLocaleString("en-IN")}</td>
+                          <td className="num">{f.burnSum == null ? EM : f.burnSum.toLocaleString("en-IN")}</td>
+                          <td className="num">{f.revenueSum == null ? EM : f.revenueSum.toLocaleString("en-IN")}</td>
+                          <td className="num">
+                            {f.coverage.cash}/{f.coverage.of} cash · {f.coverage.burn}/{f.coverage.of} burn
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </Panel>
           )}
 

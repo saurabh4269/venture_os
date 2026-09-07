@@ -476,6 +476,36 @@ button.kpi.kpi-btn {
   cursor: pointer;
   width: 100%;
 }
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.chart-grid .chart-span-2 { grid-column: 1 / -1; }
+.chart-grid-fund {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  margin: 0;
+}
+.chart-frame {
+  width: 100%;
+  min-height: 200px;
+}
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 16px;
+}
+.chart-foot {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
 .company-kpi-strip .company-kpi-v {
   font-size: 22px;
   line-height: 1.2;
@@ -1350,7 +1380,8 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 }
 @media (max-width: 1100px) {
   .cards { grid-template-columns: 1fr 1fr; }
-  .command-split, .flags-split { grid-template-columns: 1fr; }
+  .command-split, .flags-split, .chart-grid, .chart-grid-fund { grid-template-columns: 1fr; }
+  .chart-grid .chart-span-2 { grid-column: auto; }
   .flag-detail { position: static; }
   .triage-row { grid-template-columns: 88px 1fr auto; }
   .triage-row .hide-sm, th.hide-sm, td.hide-sm { display: none; }

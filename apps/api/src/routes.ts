@@ -1079,6 +1079,64 @@ routes.get("/api/command", async (c) => {
       };
     });
 
+    /** Booked-only chart payloads — never zero-fill missing companies/periods. */
+    let booked = 0;
+    let gap = 0;
+    let review = 0;
+    for (const row of coverage) {
+      if (row.openFlags > 0) review += 1;
+      else if (!row.lastMis) gap += 1;
+      else booked += 1;
+    }
+    const cashBars = coverage
+      .map((row) => {
+        const cm = metrics.filter((m) => m.companyId === row.company.id);
+        const cash = seriesFor(cm, "cash")[0];
+        return cash?.valueNumeric != null
+          ? {
+              companyId: row.company.id,
+              name: row.company.name,
+              cash: cash.valueNumeric,
+              periodEnd: String(cash.periodEnd).slice(0, 10),
+            }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null)
+      .sort((a, b) => b.cash - a.cash)
+      .slice(0, 12);
+
+    const objMetrics = objectiveBook(metrics);
+    const periodSet = new Set<string>();
+    for (const m of objMetrics) {
+      if (m.metricKey === "cash" || m.metricKey === "net_revenue" || m.metricKey === "burn") {
+        periodSet.add(String(m.periodEnd).slice(0, 10));
+      }
+    }
+    const periodsAsc = [...periodSet].sort();
+    const portfolioSeries = periodsAsc.map((periodEnd) => {
+      const cashVals: number[] = [];
+      const revVals: number[] = [];
+      const burnVals: number[] = [];
+      for (const co of cos) {
+        const cm = objMetrics.filter((m) => m.companyId === co.id);
+        const cash = seriesFor(cm, "cash").find((x) => String(x.periodEnd).slice(0, 10) === periodEnd);
+        const rev = seriesFor(cm, "net_revenue").find((x) => String(x.periodEnd).slice(0, 10) === periodEnd);
+        const burn = seriesFor(cm, "burn").find((x) => String(x.periodEnd).slice(0, 10) === periodEnd);
+        if (cash?.valueNumeric != null) cashVals.push(cash.valueNumeric);
+        if (rev?.valueNumeric != null) revVals.push(rev.valueNumeric);
+        if (burn?.valueNumeric != null) burnVals.push(burn.valueNumeric);
+      }
+      return {
+        periodEnd,
+        cashSum: cashVals.length ? cashVals.reduce((a, b) => a + b, 0) : null,
+        revenueSum: revVals.length ? revVals.reduce((a, b) => a + b, 0) : null,
+        burnSum: burnVals.length ? burnVals.reduce((a, b) => a + b, 0) : null,
+        cashN: cashVals.length,
+        revenueN: revVals.length,
+        burnN: burnVals.length,
+      };
+    });
+
     return {
       pulse: {
         companies: cos.length,
@@ -1106,6 +1164,11 @@ routes.get("/api/command", async (c) => {
         })),
       },
       coverage,
+      charts: {
+        coverageMix: { booked, gap, review },
+        cashByCompany: cashBars,
+        portfolioSeries,
+      },
       sourceRefs: refs,
     };
   });

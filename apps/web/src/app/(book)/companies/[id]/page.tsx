@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
 import { formatOwnership, PageHead, PageTabs, Panel } from "@/components/BookUI";
+import { CompanyMetricHistoryChart } from "@/components/BookCharts";
 import { useCite } from "@/components/Cite";
 import { Fact, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
@@ -302,6 +303,27 @@ export default function CompanyPage() {
         fxSource: revenue.fxSource,
       })
     : null;
+
+  const historyPoints = (() => {
+    const periods = [
+      ...new Set(
+        bookRows
+          .filter((m) => m.lane === "objective" && ["cash", "burn", "net_revenue"].includes(m.metricKey))
+          .map((m) => m.periodEnd.slice(0, 10)),
+      ),
+    ].sort();
+    return periods.map((periodEnd) => {
+      const at = (key: string) =>
+        bookRows.find((m) => m.metricKey === key && m.periodEnd.slice(0, 10) === periodEnd && m.lane === "objective")
+          ?.valueNumeric ?? null;
+      return {
+        periodEnd,
+        cash: at("cash"),
+        burn: at("burn"),
+        revenue: at("net_revenue"),
+      };
+    });
+  })();
   const evidence = data.sourceRefs.map((ref) => {
     const doc = data.documents.find((d) => d.id === ref.documentId);
     const loc = [ref.locator?.sheet, ref.locator?.cell].filter(Boolean).join(" ");
@@ -458,6 +480,10 @@ export default function CompanyPage() {
               </div>
             </div>
           </div>
+
+          <Panel title="Booked trend" kicker="Cash · burn · revenue by period">
+            <CompanyMetricHistoryChart points={historyPoints} />
+          </Panel>
 
           <Panel title="Positions">
             {!data.positions?.length ? (
