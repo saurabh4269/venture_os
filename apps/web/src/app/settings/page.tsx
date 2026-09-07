@@ -8,6 +8,7 @@ import { PageHead, Panel, SettingsSubnav, type SettingsTab } from "@/components/
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
+import { MONTH_NAMES, monthName } from "@/lib/format";
 import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 import { bookErrorMessage } from "@/lib/wake";
 
@@ -177,7 +178,7 @@ function SettingsInner() {
       <Panel title="Firm year">
       {data?.settings && !isAdmin && (
         <p className="lede">
-          FY month {data.settings.fyStartMonth}. Base {data.settings.baseCurrency}. Display{" "}
+          FY starts in {monthName(data.settings.fyStartMonth)}. Base {data.settings.baseCurrency}. Display{" "}
           {data.settings.displayCurrency}.
         </p>
       )}
@@ -207,7 +208,13 @@ function SettingsInner() {
         >
           <label className="field">
             FY start month
-            <input name="fyStartMonth" type="number" min={1} max={12} defaultValue={data.settings.fyStartMonth} />
+            <select name="fyStartMonth" defaultValue={String(data.settings.fyStartMonth)} aria-label="FY start month">
+              {MONTH_NAMES.map((label, i) => (
+                <option key={label} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             Base
@@ -455,7 +462,7 @@ function SettingsInner() {
       )}
 
       {tab === "flags" && (
-      <Panel title="Flag policy">
+      <Panel title="Flag policy" id="flag-policy">
       <form
         onSubmit={async (e) => {
           e.preventDefault();

@@ -167,7 +167,7 @@ function SignupForm() {
               name="organization"
               value={org}
               onChange={(e) => setOrg(e.target.value)}
-              placeholder="e.g. V3 Ventures"
+              placeholder="e.g. North Bridge Capital"
               autoComplete="organization"
               data-testid="signup-org"
               required

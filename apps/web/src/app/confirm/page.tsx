@@ -30,7 +30,7 @@ type Item = {
 };
 
 const STATUSES = ["pending", "confirmed", "edited", "rejected"] as const;
-type KindFilter = "all" | "flags" | "docs" | "mentions";
+type KindFilter = "all" | "flags" | "docs";
 
 function severityOf(item: Item): "urgent" | "warning" | "info" {
   if (item.kind === "unit_ambiguity" || item.proposed.unit === "unknown") return "urgent";
@@ -144,9 +144,7 @@ export default function InboxPage() {
         ? items.filter((i) => i.kind === "unit_ambiguity" || i.proposed.unit === "unknown")
         : kindFilter === "docs"
           ? items.filter((i) => i.kind !== "unit_ambiguity" && i.proposed.unit !== "unknown")
-          : kindFilter === "mentions"
-            ? []
-            : items;
+          : items;
     const rank = { urgent: 0, warning: 1, info: 2 };
     return [...rows].sort((a, b) => rank[severityOf(a)] - rank[severityOf(b)]);
   }, [items, kindFilter]);
@@ -173,7 +171,6 @@ export default function InboxPage() {
             ["all", "All", String(items.length)] as const,
             ["flags", "Flags", String(flagsCount)] as const,
             ["docs", "Docs", String(docsCount)] as const,
-            ["mentions", "Mentions", "—"] as const,
           ]
         ).map(([k, label, count]) => (
           <button
@@ -211,7 +208,6 @@ export default function InboxPage() {
             <div className="page-kicker">Summary</div>
             <div className="page-kicker hide-sm">Evidence</div>
             <div className="page-kicker hide-sm">Time</div>
-            <div className="page-kicker hide-sm">Owner</div>
             <div className="page-kicker">Actions</div>
           </div>
           {visible.map((i) => {
@@ -337,7 +333,6 @@ export default function InboxPage() {
                   )}
                 </div>
                 <div className="hide-sm num">{relTime(i.createdAt)}</div>
-                <div className="hide-sm lede">—</div>
                 <div className="row">
                   {status === "pending" && canWrite && (
                     <>

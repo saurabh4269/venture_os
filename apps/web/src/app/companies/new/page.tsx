@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PageHead } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { MONTH_NAMES } from "@/lib/format";
 
 export default function NewCompanyPage() {
   const { canWrite } = useBookSession();
@@ -163,8 +164,14 @@ export default function NewCompanyPage() {
             <input value={country} onChange={(e) => setCountry(e.target.value)} />
           </label>
           <label className="field">
-            FY start month (4 = April)
-            <input type="number" min={1} max={12} value={fy} onChange={(e) => setFy(Number(e.target.value))} />
+            FY start month
+            <select value={fy} onChange={(e) => setFy(Number(e.target.value))} aria-label="FY start month">
+              {MONTH_NAMES.map((label, i) => (
+                <option key={label} value={i + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="field">
             Unit hint
@@ -185,22 +192,27 @@ export default function NewCompanyPage() {
               ))}
             </select>
           </label>
-          <label className="field">
-            OneDrive folder id (optional)
-            <input value={onedriveFolderId} onChange={(e) => setOnedriveFolderId(e.target.value)} />
-          </label>
-          <label className="field">
-            OneDrive folder path (optional)
-            <input value={onedriveFolderPath} onChange={(e) => setOnedriveFolderPath(e.target.value)} placeholder="/MIS" />
-          </label>
-          <label className="field">
-            Affinity company id (optional)
-            <input value={affinityCompanyId} onChange={(e) => setAffinityCompanyId(e.target.value)} />
-          </label>
-          <label className="field">
-            Granola note id (optional)
-            <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
-          </label>
+          <details className="onboard-advanced">
+            <summary>Optional source mapping</summary>
+            <div className="onboard-advanced-grid">
+              <label className="field">
+                OneDrive folder id
+                <input value={onedriveFolderId} onChange={(e) => setOnedriveFolderId(e.target.value)} />
+              </label>
+              <label className="field">
+                OneDrive folder path
+                <input value={onedriveFolderPath} onChange={(e) => setOnedriveFolderPath(e.target.value)} placeholder="/MIS" />
+              </label>
+              <label className="field">
+                Affinity company id
+                <input value={affinityCompanyId} onChange={(e) => setAffinityCompanyId(e.target.value)} />
+              </label>
+              <label className="field">
+                Granola note id
+                <input value={granolaLink} onChange={(e) => setGranolaLink(e.target.value)} placeholder="not_…" />
+              </label>
+            </div>
+          </details>
           <div>
             <button className="btn" type="submit" disabled={busy} data-testid="create-company">
               {busy ? "Creating…" : "Create company"}

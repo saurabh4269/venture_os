@@ -129,16 +129,13 @@ export function MarketingLanding() {
               <p>Connector keys are encrypted at rest. Status stays not connected until a health check.</p>
             </div>
           </div>
-          <p className="mkt-trust-partner">
-            Design partner <span>V3 Ventures</span>
-          </p>
         </section>
 
         <section className="mkt-section" id="product">
           <p className="mkt-kicker">Product</p>
           <h2>Uncompromising Clarity</h2>
           <p className="lede mkt-lede">
-            Command, Inbox, Flags, NAV, Compare, Ask, and Reports read only from confirmed facts. The parser
+            Command, Confirm, Flags, NAV, Compare, Ask, and Reports read only from confirmed facts. The parser
             proposes. A human confirms. Nothing auto-posts.
           </p>
           <div className="mkt-clarity" data-testid="mkt-clarity">
@@ -256,11 +253,11 @@ export function MarketingLanding() {
         </section>
 
         <section className="mkt-section mkt-partner" id="partners">
-          <p className="mkt-kicker">Case studies</p>
-          <h2>Built with design partner V3 Ventures.</h2>
+          <p className="mkt-kicker">Empty book</p>
+          <h2>A new organisation starts empty.</h2>
           <p className="lede mkt-lede">
-            V3 is the design partner for the firm book. We do not publish other customer logos, and we do not show
-            their portfolio as a demo. A new organisation starts empty.
+            We do not publish customer logos or invent portfolio figures for marketing. Command shows dashes until
+            your firm confirms its first pack.
           </p>
         </section>
 
@@ -269,7 +266,7 @@ export function MarketingLanding() {
           <h2>Talk to us. No public price list.</h2>
           <p className="lede mkt-lede">
             Venture OS is with design partners first. We will not invent a seat price here. Get started and we
-            will discuss whether the book fits your firm.
+            will discuss whether the book fits your firm — with an empty book until you confirm facts.
           </p>
           <div className="mkt-hero-ctas">
             <Link href="/signup" className="btn">
@@ -281,9 +278,6 @@ export function MarketingLanding() {
           </div>
         </section>
 
-        <p className="mkt-partner-line">
-          In partnership with <strong>V3 Ventures</strong>
-        </p>
         <section className="mkt-final">
           <div className="mkt-final-panel" data-testid="mkt-final-panel">
             <h2>Ready for institutional clarity?</h2>

@@ -89,10 +89,17 @@ function uncitedCount(coverage: Pulse["coverage"]) {
   return seen === 0 ? null : uncited;
 }
 
-function pulseStatus(row: Pulse["coverage"][number]) {
+function pulseStatus(row: Pulse["coverage"][number], pendingConfirm: boolean) {
+  if (pendingConfirm) return { label: "Confirm", kind: "review" as const };
   if (row.openFlags > 0) return { label: "Review", kind: "review" as const };
   if (coverageGap(row)) return { label: "Gap", kind: "gap" as const };
   return { label: "Booked", kind: "booked" as const };
+}
+
+function coverageSource(row: Pulse["coverage"][number], pendingConfirm: boolean) {
+  if (pendingConfirm) return "Confirm queue";
+  if (row.lastMis) return "Booked MIS";
+  return "—";
 }
 
 export default function CommandPage() {
@@ -122,16 +129,27 @@ export default function CommandPage() {
   const uncited = data ? uncitedCount(data.coverage) : null;
   const look = useMemo(() => {
     if (!data) return [];
+    const inboxByCompany = new Map<string, { count: number; kinds: string[] }>();
+    for (const i of data.needsALook.inbox) {
+      const cur = inboxByCompany.get(i.companyName) ?? { count: 0, kinds: [] };
+      cur.count += 1;
+      if (cur.kinds.length < 3) cur.kinds.push(i.kind.replaceAll("_", " "));
+      inboxByCompany.set(i.companyName, cur);
+    }
+    const inboxRows = [...inboxByCompany.entries()].map(([company, { count, kinds }]) => ({
+      id: `inbox-${company}`,
+      href: "/confirm",
+      company,
+      copy:
+        count > 1
+          ? `${count} rows ready to confirm${kinds.length ? ` · ${kinds.join(", ")}` : ""}.`
+          : `${kinds[0] ?? "row"} pending confirm.`,
+      severity: "med" as const,
+      lane: null as "obj" | null,
+      citeHref: "/confirm",
+    }));
     return [
-      ...data.needsALook.inbox.map((i) => ({
-        id: `inbox-${i.id}`,
-        href: "/confirm",
-        company: i.companyName,
-        copy: `${i.kind.replaceAll("_", " ")} pending`,
-        severity: "med" as const,
-        lane: null as "obj" | null,
-        citeHref: "/confirm",
-      })),
+      ...inboxRows,
       ...data.needsALook.flags.map((f) => ({
         id: `flag-${f.id}`,
         href: "/flags",
@@ -144,6 +162,11 @@ export default function CommandPage() {
     ];
   }, [data]);
 
+  const pendingConfirmNames = useMemo(() => {
+    if (!data) return new Set<string>();
+    return new Set(data.needsALook.inbox.map((i) => i.companyName));
+  }, [data]);
+
   const pulseRows = useMemo(() => {
     if (!data) return [];
     const q = filter.trim().toLowerCase();
@@ -152,16 +175,18 @@ export default function CommandPage() {
 
   function exportPulse() {
     if (!data) return;
-    const header = ["Company", "Stage", "Ownership", "Last MIS", "Cash", "Burn", "Runway", "Flags", "Coverage"];
+    const header = ["Company", "Stage", "Ownership", "Last MIS", "Source", "Cash", "Burn", "Runway", "Flags", "Coverage"];
     const lines = [
       header.join(","),
       ...pulseRows.map((r) => {
-        const st = pulseStatus(r);
+        const pending = pendingConfirmNames.has(r.company.name);
+        const st = pulseStatus(r, pending);
         return [
           `"${r.company.name}"`,
           r.company.stage ?? EM,
           formatOwnership(r.ownershipPct),
           r.lastMis ?? EM,
+          `"${coverageSource(r, pending)}"`,
           `"${r.cash.display}"`,
           `"${r.burn.display}"`,
           `"${r.runway.display}"`,
@@ -261,8 +286,8 @@ export default function CommandPage() {
               {look.length === 0 ? (
                 <div className="empty" style={{ boxShadow: "none" }}>
                   {data.pulse.companies === 0
-                    ? "Empty book — nothing yet needs a look."
-                    : "No pending inbox rows or open flags."}
+                    ? "No companies yet. Add one when you are ready."
+                    : "You are up to date. Check Confirm after new uploads."}
                 </div>
               ) : (
                 <div className="look-list">
@@ -303,12 +328,15 @@ export default function CommandPage() {
                     <tr>
                       <th>Company</th>
                       <th>Last MIS</th>
-                      <th>Missing</th>
+                      <th>Source</th>
+                      <th>Stage</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.coverage.map((r) => {
                       const age = daysSince(r.lastMis);
+                      const pending = pendingConfirmNames.has(r.company.name);
+                      const st = pulseStatus(r, pending);
                       return (
                         <tr key={r.company.id}>
                           <td>
@@ -320,7 +348,10 @@ export default function CommandPage() {
                             </div>
                           </td>
                           <td className="num">{age == null ? EM : `${age}d`}</td>
-                          <td className={r.lastMis ? undefined : "miss"}>{r.lastMis ? EM : "MIS"}</td>
+                          <td>{coverageSource(r, pending)}</td>
+                          <td>
+                            <span className={`status-chip ${st.kind}`}>{st.label}</span>
+                          </td>
                         </tr>
                       );
                     })}
@@ -418,7 +449,7 @@ export default function CommandPage() {
                   </thead>
                   <tbody>
                     {pulseRows.map((r) => {
-                      const st = pulseStatus(r);
+                      const st = pulseStatus(r, pendingConfirmNames.has(r.company.name));
                       return (
                         <tr key={r.company.id}>
                           <td>

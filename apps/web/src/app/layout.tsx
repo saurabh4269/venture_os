@@ -16,7 +16,7 @@ const serif = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: "Venture OS",
-  description: "The book for VC investment teams. Design partner: V3 Ventures.",
+  description: "The book for VC investment teams. Cite or refuse; missing is —.",
   applicationName: "Venture OS",
   appleWebApp: {
     capable: true,
