@@ -240,12 +240,9 @@ function ConnectorCards() {
             <span className="badge">Read only</span>
           )
         }
-        lede="Keys are AES-encrypted at rest. Plaintext never shown after save. Status stays not connected until a health check succeeds — we never invent a last-sync time."
+        lede={undefined}
       />
       <SettingsSubnav current="connectors" />
-      <p className="lede" style={{ margin: "-4px 0 16px" }}>
-        Paste steps: <code>docs/connectors/ADDING_KEYS.md</code>. Map folder / CRM ids on each company.
-      </p>
       {oauthNote && (
         <p className={search.get("error") ? "sev-high" : "lede"} role="status">
           {search.get("error") ? `OAuth error: ${search.get("error")}` : `OneDrive ${search.get("onedrive")}.`}

@@ -34,7 +34,7 @@ export async function onboardCompany(page: Page, stamp: string) {
 
 /** Inbox list is fetched after extract; poll/reload until confirm or reject is in the DOM. */
 export async function waitForInboxActions(page: Page, action: "inbox-confirm" | "inbox-reject" = "inbox-confirm") {
-  await page.goto("/inbox");
+  await page.goto("/confirm");
   await expect(page.getByTestId("shell-ready")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("inbox-ready")).toBeVisible({ timeout: 30_000 });
   await expect

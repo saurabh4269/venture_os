@@ -62,7 +62,6 @@ export default function ReportsPage() {
       <PageHead
         title="Reports"
         testId="reports-ready"
-        lede="Drafted from the book. One-pagers use a fixed field order (revenue, GM, cash, burn, runway, flags). The monthly pack keeps objective and subjective in separate columns. Exports are real files. Narrative cannot invent numbers. EUR columns refuse without a complete FX triple."
       />
       {err && (
         <p className="sev-high" role="alert">

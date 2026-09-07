@@ -180,7 +180,6 @@ export default function FlagsPage() {
       <PageHead
         title="Flags"
         testId="flags-ready"
-        lede="Evidence queue · open items require a cite. Catalog detectors only — missing inputs do not fire a flag."
       />
       {err && (
         <p className="sev-high" role="alert">

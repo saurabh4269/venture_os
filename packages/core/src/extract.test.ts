@@ -25,4 +25,29 @@ describe("extract", () => {
     const out = extractFromRows([["Revenue (INR Cr / lakh mixed)", "12"]], "MIS");
     expect(out.some((p) => p.kind === "unit_ambiguity")).toBe(true);
   });
+
+  it("appends header context into excerpts", () => {
+    const out = extractFromRows(
+      [
+        ["Metric", "FY26 M5 INR Cr"],
+        ["Cash", "4.2"],
+      ],
+      "MIS",
+    );
+    expect(out[0]?.excerpt).toContain("·");
+    expect(out[0]?.excerpt).toMatch(/FY26/);
+  });
+
+  it("fuzzy-suggests near-miss labels at capped confidence (propose only)", () => {
+    const out = extractFromRows(
+      [
+        ["Metric", "INR Cr"],
+        ["Kash balance", "9.1"],
+      ],
+      "MIS",
+    );
+    const cash = out.find((p) => p.metricKey === "cash");
+    expect(cash).toBeTruthy();
+    expect(cash!.confidence).toBeLessThanOrEqual(0.55);
+  });
 });

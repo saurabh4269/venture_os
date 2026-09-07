@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, doublePrecision, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 /** Better Auth tables — field names match the Drizzle adapter / CLI generate output. */
 
@@ -118,4 +118,8 @@ export const orgSettings = pgTable("org_settings", {
   displayCurrency: text("display_currency").notNull().default("EUR"),
   /** Firm flag thresholds keyed by catalog key. Missing key → catalog default. */
   flagPolicy: jsonb("flag_policy").notNull().default({}),
+  /** null = human confirm only. Typical production: 0.9 */
+  autoConfirmMinConfidence: doublePrecision("auto_confirm_min_confidence"),
+  monthlyPackEnabled: boolean("monthly_pack_enabled").notNull().default(false),
+  monthlyPackDay: integer("monthly_pack_day").notNull().default(1),
 });

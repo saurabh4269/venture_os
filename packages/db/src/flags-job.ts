@@ -1,7 +1,17 @@
-import { detectAll, latestByPeriod, parseFlagPolicyJson, seriesFor } from "@venture-os/core";
+import { detectAll, latestByPeriod, parseFlagPolicyJson, seriesFor, type TextSignal } from "@venture-os/core";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { withOrg } from "./client.js";
-import { companies, flagEvents, marks, metricValues, orgSettings, positions } from "./schema.js";
+import {
+  commentary,
+  companies,
+  documents,
+  flagEvents,
+  marks,
+  metricValues,
+  orgSettings,
+  positions,
+  sourceRefs,
+} from "./schema.js";
 
 export async function runFlagJob(orgId: string, companyId?: string) {
   return withOrg(orgId, async (tx) => {
@@ -24,6 +34,7 @@ export async function runFlagJob(orgId: string, companyId?: string) {
       const revS = seriesFor(metrics, "net_revenue");
       const planS = seriesFor(metrics, "plan_revenue");
       const hcS = seriesFor(metrics, "headcount");
+      const concS = seriesFor(metrics, "top_customer_pct");
 
       const lastMis = latestByPeriod(metrics.filter((m) => m.lane === "objective"))[0];
       const pos = await tx.select().from(positions).where(eq(positions.companyId, co.id));
@@ -44,6 +55,41 @@ export async function runFlagJob(orgId: string, companyId?: string) {
               .reduce((a, b) => a + b, 0) /
             burnS.slice(0, 3).filter((b) => b.valueNumeric != null).length;
 
+      const notes = await tx
+        .select()
+        .from(commentary)
+        .where(and(eq(commentary.companyId, co.id), eq(commentary.lane, "subjective")))
+        .orderBy(desc(commentary.createdAt))
+        .limit(20);
+      const docs = await tx
+        .select()
+        .from(documents)
+        .where(and(eq(documents.companyId, co.id), eq(documents.kind, "transcript")))
+        .orderBy(desc(documents.createdAt))
+        .limit(10);
+      const docIds = docs.map((d) => d.id);
+      const refs = docIds.length
+        ? await tx.select().from(sourceRefs).where(inArray(sourceRefs.documentId, docIds))
+        : [];
+
+      const textSignals: TextSignal[] = [
+        ...notes.map((n) => ({
+          excerpt: n.body,
+          documentId: null,
+          sourceRefId: n.sourceRefId,
+        })),
+        ...refs
+          .filter((r) => r.excerpt)
+          .map((r) => ({
+            excerpt: r.excerpt!,
+            documentId: r.documentId,
+            sourceRefId: r.id,
+          })),
+      ];
+
+      const ownershipPct = pos[0]?.ownershipPct ?? null;
+      const priorOwnershipPct = pos[0]?.priorOwnershipPct ?? null;
+
       const hits = detectAll({
         cash: cashS[0]?.valueNumeric ?? null,
         burn: burnS[0]?.valueNumeric ?? null,
@@ -59,6 +105,11 @@ export async function runFlagJob(orgId: string, companyId?: string) {
         lastMisPeriodEnd: lastMis?.periodEnd ?? null,
         lastMarkAsOf: lastMark,
         priorCash: cashS[1]?.valueNumeric ?? null,
+        topCustomerPct: concS[0]?.valueNumeric ?? null,
+        priorTopCustomerPct: concS[1]?.valueNumeric ?? null,
+        ownershipPct,
+        priorOwnershipPct,
+        textSignals,
         companyCreatedAt: co.createdAt,
         policy,
       });
@@ -102,6 +153,7 @@ export async function runFlagJob(orgId: string, companyId?: string) {
           revenue_down: ["net_revenue"],
           headcount_drop: ["headcount"],
           cash_unreported: ["cash"],
+          customer_concentration: ["top_customer_pct"],
         };
         const byKey: Record<string, typeof cashS> = {
           cash: cashS,
@@ -110,18 +162,21 @@ export async function runFlagJob(orgId: string, companyId?: string) {
           plan_revenue: planS,
           gross_margin_pct: gmS,
           headcount: hcS,
+          top_customer_pct: concS,
         };
-        const refs = (metricKeys[hit.flagKey] ?? [])
+        const refsFromMetrics = (metricKeys[hit.flagKey] ?? [])
           .flatMap((k) => byKey[k]?.slice(0, 1) ?? [])
           .map((m) => m.sourceRefId)
           .filter(Boolean);
+        const textRef =
+          typeof hit.evidence.sourceRefId === "string" ? [hit.evidence.sourceRefId] : [];
         await tx.insert(flagEvents).values({
           orgId,
           companyId: co.id,
           flagKey: hit.flagKey,
           severity: hit.severity,
           evidence: hit.evidence,
-          sourceRefIds: refs,
+          sourceRefIds: [...refsFromMetrics, ...textRef],
           status: "open",
         });
         n += 1;

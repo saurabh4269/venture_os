@@ -65,15 +65,10 @@ export default function AskPage() {
   return (
     <Shell>
       <div className="ask-hero">
-        <PageHead
-          title="Ask"
-          testId="ask-ready"
-          kicker="Institutional research"
-          lede="From the book only. If it is not in the corpus, the system refuses. Open a cite to verify file and excerpt — we will not invent a locator."
-        />
+        <PageHead title="Ask" testId="ask-ready" />
         <form onSubmit={send}>
           <label className="field" style={{ textAlign: "left" }}>
-            Company (optional)
+            <span className="sr-only">Company</span>
             <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
               <option value="">All companies</option>
               {cos.map((c) => (
@@ -93,11 +88,11 @@ export default function AskPage() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               rows={2}
-              placeholder="What was last confirmed cash?"
+              placeholder="Last confirmed cash?"
               required
               minLength={3}
             />
-            <button className="btn" disabled={busy} data-testid="ask-submit" aria-label={busy ? "Searching the book" : "Ask"}>
+            <button className="btn" disabled={busy} data-testid="ask-submit" aria-label={busy ? "Searching" : "Ask"}>
               {busy ? "…" : "Ask"}
             </button>
           </div>
@@ -110,25 +105,15 @@ export default function AskPage() {
       )}
       {res && refused && (
         <div className="ask-answer" data-testid="ask-refused" role="status">
-          <p className="page-kicker">Insufficient evidence</p>
           <p className="body">{res.answer}</p>
-          <p className="lede" style={{ marginTop: 10 }}>
-            Related figures stay —. We will not guess.
-          </p>
         </div>
       )}
       {res && !refused && (
         <div className="ask-answer">
-          <p className="page-kicker">From the book</p>
           <p className="body" data-testid="ask-answer">
             {res.answer}
           </p>
-          <p className="page-kicker" style={{ marginTop: 16 }}>
-            Provenance
-          </p>
-          {res.citations.length === 0 ? (
-            <p className="lede">None — refusal or empty evidence.</p>
-          ) : (
+          {res.citations.length === 0 ? null : (
             <div className="ask-prov">
               {res.citations.map((c, i) => {
                 const doc = c.documentId ? docs.find((d) => d.id === c.documentId) : undefined;
@@ -141,6 +126,7 @@ export default function AskPage() {
                         onClick={() =>
                           openCite({
                             display: doc?.filename ?? "Ask citation",
+                            documentId: c.documentId ?? undefined,
                             sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
                             excerpt: c.excerpt,
                           })

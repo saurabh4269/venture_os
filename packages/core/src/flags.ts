@@ -171,6 +171,86 @@ export function detectHeadcountDrop(current: Num, prior: Num, threshold = 0.1): 
   };
 }
 
+/**
+ * Customer concentration shift. Requires reported top_customer_pct for two periods.
+ * Catalog default 0 → treat as 5pp absolute shift (missing ≠ 0).
+ */
+export function detectCustomerConcentration(
+  current: Num,
+  prior: Num,
+  threshold = 0,
+): FlagHit | null {
+  if (!isPresent(current) || !isPresent(prior)) return null;
+  const shift = Math.abs(current - prior);
+  const minShift = threshold > 0 ? threshold : 0.05;
+  if (shift < minShift) return null;
+  return {
+    flagKey: "customer_concentration",
+    severity: shift >= 0.15 || current >= 0.5 ? "high" : "med",
+    evidence: { current, prior, shift, threshold: minShift },
+  };
+}
+
+/**
+ * Ownership / governance change. Requires prior + current ownership from CRM sync or book.
+ * Catalog default 0 → 1pp absolute change.
+ */
+export function detectOwnershipChange(current: Num, prior: Num, threshold = 0): FlagHit | null {
+  if (!isPresent(current) || !isPresent(prior)) return null;
+  const shift = Math.abs(current - prior);
+  const minShift = threshold > 0 ? threshold : 0.01;
+  if (shift < minShift) return null;
+  return {
+    flagKey: "ownership_change",
+    severity: shift >= 0.05 ? "high" : "med",
+    evidence: { current, prior, shift, threshold: minShift },
+  };
+}
+
+const KEY_PERSON_RE =
+  /\b(ceo|cfo|cto|coo|founder|co-?founder|key\s+person|managing\s+director)\b.{0,40}\b(resign|resigns|resigned|depart|departs|departed|left|leaving|stepped\s+down|exit|exits|exited)\b/i;
+
+const CALL_CONCERN_RE =
+  /\b(concern|worried|worry|red\s+flag|at\s+risk|troubled|distress|liquidity\s+crunch|runway\s+concern|miss(ed)?\s+payroll|going\s+concern)\b/i;
+
+export type TextSignal = {
+  excerpt: string;
+  documentId?: string | null;
+  sourceRefId?: string | null;
+};
+
+/** Key person departure — only with transcript / subjective evidence. Never from MIS-only. */
+export function detectKeyPerson(signals: TextSignal[] | null | undefined): FlagHit | null {
+  if (!signals?.length) return null;
+  const hit = signals.find((s) => s.excerpt && KEY_PERSON_RE.test(s.excerpt));
+  if (!hit) return null;
+  return {
+    flagKey: "key_person",
+    severity: "high",
+    evidence: {
+      excerpt: hit.excerpt.slice(0, 280),
+      documentId: hit.documentId ?? null,
+      sourceRefId: hit.sourceRefId ?? null,
+    },
+  };
+}
+
+/** Concern raised on a call — evidence-gated from transcript / subjective commentary. */
+export function detectCallConcern(signals: TextSignal[] | null | undefined): FlagHit | null {
+  if (!signals?.length) return null;
+  const hit = signals.find((s) => s.excerpt && CALL_CONCERN_RE.test(s.excerpt));
+  if (!hit) return null;
+  return {
+    flagKey: "call_concern",
+    severity: "med",
+    evidence: {
+      excerpt: hit.excerpt.slice(0, 280),
+      documentId: hit.documentId ?? null,
+      sourceRefId: hit.sourceRefId ?? null,
+    },
+  };
+}
+
 /** Org overrides keyed by catalog key. Missing key → catalog default. Invalid numbers ignored. */
 export type FlagThresholds = Partial<Record<FlagKey, number>>;
 
@@ -252,6 +332,11 @@ export function detectAll(input: {
   lastMisPeriodEnd: string | null;
   lastMarkAsOf: string | null;
   priorCash: Num;
+  topCustomerPct?: Num;
+  priorTopCustomerPct?: Num;
+  ownershipPct?: Num;
+  priorOwnershipPct?: Num;
+  textSignals?: TextSignal[] | null;
   asOf?: Date;
   companyCreatedAt?: Date | string | null;
   policy?: FlagThresholds | null;
@@ -266,6 +351,14 @@ export function detectAll(input: {
     detectRevenueDown(input.revenue, input.priorRevenue, t.revenue_down),
     detectSpendWithoutRevenue(input.burn, input.priorBurn, input.revenue, input.priorRevenue, t.spend_without_revenue),
     detectHeadcountDrop(input.headcount, input.priorHeadcount, t.headcount_drop),
+    detectCustomerConcentration(
+      input.topCustomerPct ?? null,
+      input.priorTopCustomerPct ?? null,
+      t.customer_concentration,
+    ),
+    detectOwnershipChange(input.ownershipPct ?? null, input.priorOwnershipPct ?? null, t.ownership_change),
+    detectKeyPerson(input.textSignals),
+    detectCallConcern(input.textSignals),
     detectMisLate(input.lastMisPeriodEnd, asOf, t.mis_late, { companyCreatedAt: input.companyCreatedAt }),
     detectMarkStale(input.lastMarkAsOf, asOf, t.mark_stale),
     detectCashUnreported(input.priorCash, input.cash),

@@ -303,7 +303,15 @@ async function syncAffinity(
     if (mapped.ownershipPct == null) continue;
     const pos = await tx.select().from(positions).where(eq(positions.companyId, match.id));
     if (!pos.length) continue;
-    await tx.update(positions).set({ ownershipPct: mapped.ownershipPct }).where(eq(positions.id, pos[0]!.id));
+    const prior = pos[0]!.ownershipPct;
+    const next = mapped.ownershipPct;
+    // Preserve prior only when we have a reported previous value that differs (missing ≠ 0).
+    const priorOwnershipPct =
+      prior != null && next != null && Math.abs(prior - next) > 1e-9 ? prior : pos[0]!.priorOwnershipPct;
+    await tx
+      .update(positions)
+      .set({ ownershipPct: next, priorOwnershipPct })
+      .where(eq(positions.id, pos[0]!.id));
     updated += 1;
   }
   await upsertCursor(tx, orgId, "affinity", null, listed.cursor ?? null);

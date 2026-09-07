@@ -1,17 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { FLAG_CATALOG, FLAG_THRESHOLD_BOUNDS } from "@venture-os/core";
-import { PageHead, Panel, SettingsSubnav } from "@/components/BookUI";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { FLAG_CATALOG, FLAG_THRESHOLD_BOUNDS, METRIC_CATALOG } from "@venture-os/core";
+import { PageHead, Panel, SettingsSubnav, type SettingsTab } from "@/components/BookUI";
 import { Shell, useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
 import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 import { bookErrorMessage } from "@/lib/wake";
 
+function asTab(raw: string | null): SettingsTab {
+  if (raw === "formula" || raw === "flags" || raw === "firm" || raw === "funds" || raw === "people") return raw;
+  return "formula";
+}
+
 type Settings = {
-  settings: { fyStartMonth: number; baseCurrency: string; displayCurrency: string } | null;
+  settings: {
+    fyStartMonth: number;
+    baseCurrency: string;
+    displayCurrency: string;
+    autoConfirmMinConfidence?: number | null;
+    monthlyPackEnabled?: boolean;
+    monthlyPackDay?: number;
+  } | null;
   connectors: { kind: string; status: string; lastError?: string | null; lastSyncAt?: string }[];
   flagPolicy?: {
     key: string;
@@ -43,6 +56,16 @@ type Invite = {
 };
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<Shell><p className="lede">Loading…</p></Shell>}>
+      <SettingsInner />
+    </Suspense>
+  );
+}
+
+function SettingsInner() {
+  const search = useSearchParams();
+  const tab = asTab(search.get("tab"));
   const { isAdmin, canWrite } = useBookSession();
   const [data, setData] = useState<Settings | null>(null);
   const [funds, setFunds] = useState<
@@ -117,9 +140,7 @@ export default function SettingsPage() {
         method: "POST",
         body: JSON.stringify(invite),
       });
-      setInviteMsg(
-        `Invite created. Email delivery is not connected — copy the link and send it to ${invite.email}.`,
-      );
+      setInviteMsg(`Invite ready for ${invite.email}. Copy the link.`);
       setCopied(res.acceptUrl);
       setInvite({ email: "", role: "analyst" });
       load();
@@ -143,19 +164,21 @@ export default function SettingsPage() {
 
   return (
     <Shell>
-      <PageHead
-        kicker="Organisation"
-        title="Settings"
-        lede="FY defaults to April–March. Dual display is INR crore + EUR when an FX triple exists. Paste connector keys on Settings → Connectors; vault upload remains the fallback until a health check succeeds."
-      />
-      <SettingsSubnav current="firm" />
+      <PageHead title="Settings" />
+      <SettingsSubnav current={tab} />
+      {loadErr && (
+        <p className="sev-high" role="alert">
+          {loadErr}
+        </p>
+      )}
       <div className="settings-stack">
 
+      {tab === "firm" && (
       <Panel title="Firm year">
       {data?.settings && !isAdmin && (
         <p className="lede">
-          FY starts month {data.settings.fyStartMonth}. Base {data.settings.baseCurrency} · display{" "}
-          {data.settings.displayCurrency}. Org Admin can change this.
+          FY month {data.settings.fyStartMonth}. Base {data.settings.baseCurrency}. Display{" "}
+          {data.settings.displayCurrency}.
         </p>
       )}
       {data?.settings && isAdmin && (
@@ -170,6 +193,13 @@ export default function SettingsPage() {
                 fyStartMonth: Number(fd.get("fyStartMonth")),
                 baseCurrency: String(fd.get("baseCurrency")),
                 displayCurrency: String(fd.get("displayCurrency")),
+                autoConfirmMinConfidence: (() => {
+                  const raw = String(fd.get("autoConfirmMinConfidence") || "").trim();
+                  if (!raw) return null;
+                  return Number(raw);
+                })(),
+                monthlyPackEnabled: fd.get("monthlyPackEnabled") === "on",
+                monthlyPackDay: Number(fd.get("monthlyPackDay") || 1),
               }),
             });
             load();
@@ -187,19 +217,71 @@ export default function SettingsPage() {
             Display
             <input name="displayCurrency" defaultValue={data.settings.displayCurrency} />
           </label>
+          <label className="field">
+            Auto-confirm ≥
+            <input
+              name="autoConfirmMinConfidence"
+              type="number"
+              min={0.5}
+              max={1}
+              step={0.01}
+              placeholder="off"
+              defaultValue={data.settings.autoConfirmMinConfidence ?? ""}
+            />
+          </label>
+          <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <input
+              name="monthlyPackEnabled"
+              type="checkbox"
+              defaultChecked={!!data.settings.monthlyPackEnabled}
+            />
+            Monthly pack
+          </label>
+          <label className="field">
+            Pack day (UTC)
+            <input
+              name="monthlyPackDay"
+              type="number"
+              min={1}
+              max={28}
+              defaultValue={data.settings.monthlyPackDay ?? 1}
+            />
+          </label>
           <button className="btn sm" type="submit">
-            Save FY
+            Save
           </button>
         </form>
       )}
       </Panel>
-      <Panel title="Mapping">
-      <p className="lede">
-        Firm-wide metric aliases are not configured yet. Company OneDrive / Affinity / Granola ids are optional
-        fields on each company — paste vendor values only. Unit and currency hints live on the company profile.
-      </p>
-      </Panel>
+      )}
 
+      {tab === "formula" && (
+      <Panel title="Formula book" flush>
+        <table>
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Label</th>
+              <th>Family</th>
+              <th>Default unit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {METRIC_CATALOG.map((m) => (
+              <tr key={m.key}>
+                <td>{m.key}</td>
+                <td>{m.label}</td>
+                <td>{m.unitFamily}</td>
+                <td>{m.defaultUnit}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Panel>
+      )}
+
+      {tab === "people" && (
+      <>
       <Panel title="People" flush>
       <div id="people" />
       {members.length === 0 ? (
@@ -264,10 +346,6 @@ export default function SettingsPage() {
       </Panel>
 
       <Panel title="Invite">
-      <p className="lede">
-        Locked roles: Org Admin, Partner, Analyst, Viewer. Viewer cannot write or confirm. There is no email
-        sender yet — copy the accept link.
-      </p>
       {isAdmin ? (
       <form onSubmit={inviteMember} className="row">
         <label className="sr-only" htmlFor="invite-email">
@@ -301,7 +379,7 @@ export default function SettingsPage() {
         </button>
       </form>
       ) : (
-        <p className="lede">Only Org Admin can create invites.</p>
+        <p className="lede">Org Admin only</p>
       )}
       {inviteErr && (
         <p className="sev-high" role="alert">
@@ -341,14 +419,12 @@ export default function SettingsPage() {
         </table>
       )}
       </Panel>
+      </>
+      )}
 
+      {tab === "firm" && (
       <Panel title="Connectors" flush>
       <div className="panel-body">
-      <p className="lede" id="connector-honest">
-        Paste keys on <Link href="/settings/connectors">Settings → Connectors</Link>. Sync starts after a successful
-        test. Last-sync is shown only after a real sync. Upload remains the fallback:{" "}
-        <Link href="/vault">Vault</Link>. Domain auto-join and SMTP are not connected.
-      </p>
       <table>
         <thead>
           <tr>
@@ -371,31 +447,15 @@ export default function SettingsPage() {
       </table>
       <p>
         <Link className="btn sm" href="/settings/connectors">
-          Open connector settings
+          Connectors
         </Link>
       </p>
       </div>
       </Panel>
-
-      {loadErr && (
-        <p className="sev-high" role="alert">
-          {loadErr}
-        </p>
       )}
 
-      <Panel title="Session">
-      <p className="lede">
-        Cookies are HttpOnly + SameSite=Lax. A session lasts 7 days and refreshes after 24 hours of use. Sign-out is
-        idempotent. SSO, password reset by email, and idle rotation for viewers are not connected.
-      </p>
-      </Panel>
-
+      {tab === "flags" && (
       <Panel title="Flag policy">
-      <p className="lede">
-        Firm thresholds persist for this organisation. Flags reads these values, not only catalog defaults. Missing
-        keys keep the catalog default — missing is not zero. Org Admin can edit. Out-of-range values are refused.
-        Recompute Flags after a save.
-      </p>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -414,7 +474,7 @@ export default function SettingsPage() {
           }
           if (Object.keys(local).length) {
             setPolicyFields(local);
-            setPolicyMsg("Fix the highlighted thresholds.");
+            setPolicyMsg("Fix thresholds");
             return;
           }
           try {
@@ -422,7 +482,7 @@ export default function SettingsPage() {
               method: "POST",
               body: JSON.stringify({ thresholds }),
             });
-            setPolicyMsg("Thresholds saved. Recompute Flags to apply.");
+            setPolicyMsg("Saved");
             load();
           } catch (ex) {
             const raw = ex instanceof Error ? ex.message : "Could not save policy";
@@ -434,9 +494,9 @@ export default function SettingsPage() {
           <thead>
             <tr>
               <th>Flag</th>
-              <th>Catalog default</th>
+              <th>Default</th>
               <th>Bounds</th>
-              <th>This firm</th>
+              <th>Firm</th>
             </tr>
           </thead>
           <tbody>
@@ -452,7 +512,7 @@ export default function SettingsPage() {
                 <td>{f.label}</td>
                 <td>{f.defaultThreshold}</td>
                 <td className="lede">
-                  {f.min ?? 0}–{f.max ?? "—"} {f.unit ?? ""}
+                  {f.min ?? 0}-{f.max ?? "—"} {f.unit ?? ""}
                 </td>
                 <td>
                   {isAdmin ? (
@@ -483,7 +543,7 @@ export default function SettingsPage() {
         </table>
         {isAdmin && (
           <button className="btn sm" type="submit" style={{ marginTop: 10 }} data-testid="save-flag-policy">
-            Save flag policy
+            Save
           </button>
         )}
       </form>
@@ -494,7 +554,7 @@ export default function SettingsPage() {
       )}
       {(data?.flagPolicyAudits ?? []).length > 0 && (
         <>
-          <h3>Policy audit</h3>
+          <h3>Audit</h3>
           <table>
             <thead>
               <tr>
@@ -517,11 +577,12 @@ export default function SettingsPage() {
       )}
 
       </Panel>
+      )}
+
+      {tab === "funds" && (
       <Panel title="Funds">
       {funds.length === 0 ? (
-        <div className="empty">
-          No funds yet. Add a fund here, then attach positions when you onboard a company. NAV is empty without both.
-        </div>
+        <div className="empty">No funds</div>
       ) : (
         <table>
           <thead>
@@ -590,6 +651,7 @@ export default function SettingsPage() {
       </form>
       )}
       </Panel>
+      )}
       </div>
     </Shell>
   );

@@ -1,13 +1,22 @@
 "use client";
 
 import { createContext, useContext, useEffect, useId, useState, type ReactNode } from "react";
+import { canHighlightSource } from "@venture-os/core";
 import { downloadAuthed } from "@/lib/api";
+import { SourceViewer } from "@/components/SourceViewer";
 
 export type CitePayload = {
   display?: string;
   sourcePath?: string;
+  documentId?: string;
   filename?: string;
-  locator?: { sheet?: string; cell?: string; page?: number } | null;
+  locator?: {
+    sheet?: string;
+    cell?: string;
+    page?: number;
+    excerpt?: string;
+    bbox?: [number, number, number, number];
+  } | null;
   excerpt?: string | null;
   periodStart?: string | null;
   periodEnd?: string | null;
@@ -25,6 +34,12 @@ function locatorLine(loc?: CitePayload["locator"]) {
   if (!loc) return null;
   const parts = [loc.sheet, loc.cell, loc.page != null ? `p.${loc.page}` : null].filter(Boolean);
   return parts.length ? parts.join(" ") : null;
+}
+
+function documentIdFromPath(path?: string): string | undefined {
+  if (!path) return undefined;
+  const m = path.match(/\/api\/documents\/([^/]+)/);
+  return m?.[1];
 }
 
 export function CiteProvider({ children }: { children: ReactNode }) {
@@ -45,6 +60,8 @@ export function CiteProvider({ children }: { children: ReactNode }) {
     cite?.periodStart || cite?.periodEnd
       ? [cite.periodStart, cite.periodEnd].filter(Boolean).join(" – ")
       : null;
+  const documentId = cite?.documentId ?? documentIdFromPath(cite?.sourcePath);
+  const gate = canHighlightSource(cite?.locator ?? null);
 
   return (
     <CiteContext.Provider value={setCite}>
@@ -52,7 +69,7 @@ export function CiteProvider({ children }: { children: ReactNode }) {
       {cite && (
         <div className="cite-layer" role="presentation">
           <button type="button" className="cite-scrim" aria-label="Close citation" onClick={() => setCite(null)} />
-          <aside className="cite-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+          <aside className="cite-drawer cite-drawer-wide" role="dialog" aria-modal="true" aria-labelledby={titleId}>
             <header className="cite-drawer-head">
               <div>
                 <p className="page-kicker">Citation</p>
@@ -72,8 +89,12 @@ export function CiteProvider({ children }: { children: ReactNode }) {
                 <dd>{loc ?? "—"}</dd>
               </div>
               <div>
+                <dt>Jump</dt>
+                <dd>{gate.ok ? `Ready (${gate.kind})` : `Unavailable · ${gate.reason.replaceAll("_", " ")}`}</dd>
+              </div>
+              <div>
                 <dt>Excerpt</dt>
-                <dd>{cite.excerpt?.trim() || "—"}</dd>
+                <dd>{cite.excerpt?.trim() || cite.locator?.excerpt?.trim() || "—"}</dd>
               </div>
               <div>
                 <dt>Period</dt>
@@ -83,16 +104,25 @@ export function CiteProvider({ children }: { children: ReactNode }) {
                 <dt>Confirmed</dt>
                 <dd>
                   {cite.confirmedAt || cite.confirmedBy
-                    ? [cite.confirmedAt ? new Date(cite.confirmedAt).toLocaleString() : null, cite.confirmedBy ? cite.confirmedBy.slice(0, 8) : null]
+                    ? [
+                        cite.confirmedAt ? new Date(cite.confirmedAt).toLocaleString() : null,
+                        cite.confirmedBy ? cite.confirmedBy.slice(0, 8) : null,
+                      ]
                         .filter(Boolean)
                         .join(" · ")
                     : "—"}
                 </dd>
               </div>
             </dl>
-            <p className="lede" style={{ margin: "12px 0 0" }}>
-              Footnote from the book. Missing fields stay — ; we will not invent a locator.
-            </p>
+
+            {documentId ? (
+              <SourceViewer documentId={documentId} locator={cite.locator} />
+            ) : (
+              <p className="lede" style={{ marginTop: 12 }}>
+                No document id on this citation — download only.
+              </p>
+            )}
+
             {cite.sourcePath ? (
               <button
                 type="button"
@@ -100,7 +130,7 @@ export function CiteProvider({ children }: { children: ReactNode }) {
                 style={{ marginTop: 14 }}
                 onClick={() => downloadAuthed(cite.sourcePath!, cite.filename)}
               >
-                Open source file
+                Download source file
               </button>
             ) : (
               <p className="lede" style={{ marginTop: 14 }}>

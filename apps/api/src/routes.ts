@@ -35,6 +35,12 @@ import {
   validateFlagPolicyThresholds,
   xirr,
   isConnectorKind,
+  buildObjectiveCommentaryPrompt,
+  canHighlightSource,
+  deriveParsePhase,
+  parsePhaseLabel,
+  buildSubjectiveCommentaryPrompt,
+  parseCommentaryDraftJson,
 } from "@venture-os/core";
 import { buildNavPackSnapshot, hashNavPackSnapshot } from "@venture-os/core/server";
 import { createLlmProvider, MissingLlmKeyError } from "@venture-os/llm";
@@ -59,6 +65,7 @@ import {
   ReportKindSchema,
   UnlockNavPeriodSchema,
   UpdateCompanySchema,
+  UpdateOrgSettingsSchema,
   type Currency,
 } from "@venture-os/schema";
 import {
@@ -84,7 +91,11 @@ import {
   positions,
   reports,
   runFlagJob,
+  opsEvents,
+  recordOpsEvent,
   runParseJob,
+  buildSheetPreview,
+  loadPdfPages,
   sha256,
   sourceRefs,
   toPublicView,
@@ -457,6 +468,11 @@ routes.post("/api/companies", async (c) => {
         website: body.website || null,
         unitHint: body.unitHint,
         currencyHint: body.currencyHint,
+        revenueDefinition: body.revenueDefinition ?? "unspecified",
+        lastRoundLabel: body.lastRoundLabel || null,
+        lastRoundAt: body.lastRoundAt || null,
+        postMoney: body.postMoney ?? null,
+        postMoneyCurrency: body.postMoneyCurrency ?? null,
       })
       .returning();
     let fundId = body.fundId;
@@ -592,6 +608,13 @@ routes.patch("/api/companies/:id", async (c) => {
         affinityCompanyId:
           body.affinityCompanyId === undefined ? existing.affinityCompanyId : body.affinityCompanyId || null,
         granolaLink: body.granolaLink === undefined ? existing.granolaLink : body.granolaLink || null,
+        revenueDefinition: body.revenueDefinition ?? existing.revenueDefinition,
+        lastRoundLabel:
+          body.lastRoundLabel === undefined ? existing.lastRoundLabel : body.lastRoundLabel || null,
+        lastRoundAt: body.lastRoundAt === undefined ? existing.lastRoundAt : body.lastRoundAt || null,
+        postMoney: body.postMoney === undefined ? existing.postMoney : body.postMoney,
+        postMoneyCurrency:
+          body.postMoneyCurrency === undefined ? existing.postMoneyCurrency : body.postMoneyCurrency ?? null,
       })
       .where(eq(companies.id, id))
       .returning();
@@ -611,7 +634,7 @@ routes.post("/api/companies/:id/documents", async (c) => {
   if (!buf.length) throw new HttpError(400, "empty_file");
   if (buf.length > 25 * 1024 * 1024) throw new HttpError(400, "file_too_large");
   const name = file.name.toLowerCase();
-  if (![".xlsx", ".xls", ".csv", ".pdf"].some((ext) => name.endsWith(ext))) {
+  if (![".xlsx", ".xls", ".csv", ".pdf", ".docx"].some((ext) => name.endsWith(ext))) {
     throw new HttpError(400, "unsupported_type");
   }
   const kind = String(form["kind"] ?? "mis");
@@ -653,11 +676,21 @@ routes.get("/api/documents", async (c) => {
         const bt = b.startedAt?.getTime() ?? 0;
         return bt - at;
       })[0];
+      const phase = deriveParsePhase({
+        status: job?.status ?? "queued",
+        startedAt: job?.startedAt ?? null,
+        finishedAt: job?.finishedAt ?? null,
+        error: job?.error ?? null,
+      });
       return {
         ...d,
         companyName: cos.find((x) => x.id === d.companyId)?.name ?? null,
         parseStatus: job?.status ?? "queued",
         parseError: job?.error ?? null,
+        parsePhase: phase,
+        parsePhaseLabel: parsePhaseLabel(phase),
+        parseStartedAt: job?.startedAt ?? null,
+        parseFinishedAt: job?.finishedAt ?? null,
       };
     });
   });
@@ -692,6 +725,55 @@ routes.get("/api/documents/:id/file", async (c) => {
       "content-type": doc.mime,
       "content-disposition": `inline; filename="${doc.filename}"`,
     },
+  });
+});
+
+routes.get("/api/documents/:id/preview/sheet", async (c) => {
+  const s = requireOrg(c);
+  const id = c.req.param("id");
+  const sheet = c.req.query("sheet") || "";
+  const cell = c.req.query("cell") || "";
+  const doc = await withOrg(s.orgId, async (tx) => {
+    const [row] = await tx.select().from(documents).where(eq(documents.id, id));
+    return row;
+  });
+  if (!doc) throw new HttpError(404, "not_found");
+  const lower = doc.filename.toLowerCase();
+  if (!lower.endsWith(".xlsx") && !lower.endsWith(".xls") && !doc.mime.includes("spreadsheet")) {
+    throw new HttpError(400, "not_spreadsheet");
+  }
+  const gate = canHighlightSource({ sheet: sheet || null, cell: cell || null });
+  if (!gate.ok && cell) throw new HttpError(400, gate.reason);
+  const buf = await createObjectStore().get(doc.storageKey);
+  const preview = await buildSheetPreview(buf, { sheet: sheet || null, cell: cell || null });
+  if (!preview) throw new HttpError(404, "sheet_unavailable");
+  return c.json({ documentId: id, filename: doc.filename, preview, canHighlight: gate.ok });
+});
+
+routes.get("/api/documents/:id/preview/page", async (c) => {
+  const s = requireOrg(c);
+  const id = c.req.param("id");
+  const page = Math.max(1, Number(c.req.query("page") || 1));
+  const doc = await withOrg(s.orgId, async (tx) => {
+    const [row] = await tx.select().from(documents).where(eq(documents.id, id));
+    return row;
+  });
+  if (!doc) throw new HttpError(404, "not_found");
+  const lower = doc.filename.toLowerCase();
+  if (!lower.endsWith(".pdf") && !doc.mime.includes("pdf")) {
+    throw new HttpError(400, "not_pdf");
+  }
+  const buf = await createObjectStore().get(doc.storageKey);
+  const pages = await loadPdfPages(buf);
+  const hit = pages.find((p) => p.page === page) ?? pages[0];
+  if (!hit) throw new HttpError(404, "page_unavailable");
+  return c.json({
+    documentId: id,
+    filename: doc.filename,
+    page: hit.page,
+    pageCount: pages.length,
+    text: hit.text.slice(0, 8_000),
+    canHighlight: true,
   });
 });
 
@@ -823,6 +905,7 @@ routes.post("/api/inbox/:id/confirm", async (c) => {
         reviewedAt: new Date(),
       })
       .where(eq(inboxItems.id, id));
+    await recordOpsEvent(tx, s.orgId, "confirm_human", { meta: { inboxItemId: id, kind: item.kind } });
     return { ok: true };
   });
   if (result.ok) await enqueueFlags(s.orgId);
@@ -897,6 +980,42 @@ routes.get("/api/command", async (c) => {
         lastMarkAsOf: mark?.asOf ?? null,
         lastMarkSource: mark?.sourceRefId ?? null,
         openFlags: flags.filter((f) => f.companyId === co.id).length,
+        lastRoundLabel: co.lastRoundLabel ?? null,
+        lastRoundAt: co.lastRoundAt ?? null,
+        postMoney: co.postMoney ?? null,
+        irr: factOrDash({
+          value: datedPositionIrr({
+            investedAt: p?.investedAt ?? null,
+            cost: p?.costBasis ?? null,
+            mark: mark?.value ?? null,
+            markAsOf: mark?.asOf ?? null,
+          }),
+          sourceRefId: mark?.sourceRefId ?? null,
+        }),
+        revenueTrend: (() => {
+          const revS = seriesFor(cm, "net_revenue");
+          const trend =
+            revS[0]?.valueNumeric != null && revS[1]?.valueNumeric != null && revS[1].valueNumeric !== 0
+              ? (revS[0].valueNumeric - revS[1].valueNumeric) / Math.abs(revS[1].valueNumeric)
+              : null;
+          return factOrDash({
+            value: trend,
+            sourceRefId: revS[0]?.sourceRefId && revS[1]?.sourceRefId ? revS[0].sourceRefId : null,
+          });
+        })(),
+        netRevenue: (() => {
+          const revS = seriesFor(cm, "net_revenue");
+          return formatDualDisplay({
+            value: revS[0]?.valueNumeric ?? null,
+            sourceRefId: revS[0]?.sourceRefId,
+            unit: revS[0]?.unit as never,
+            currency: revS[0]?.currency as never,
+            valueEur: revS[0]?.valueEur ?? null,
+            fxRate: revS[0]?.fxRate ?? null,
+            fxDate: revS[0]?.fxDate ?? null,
+            fxSource: revS[0]?.fxSource ?? null,
+          });
+        })(),
       };
     });
 
@@ -911,10 +1030,54 @@ routes.get("/api/command", async (c) => {
         mark: mark?.value ?? null,
         markAsOf: mark?.asOf ?? null,
         sourceRefId: mark?.sourceRefId ?? null,
+        investedAt: p.investedAt ?? null,
+        fundId: p.fundId,
       };
     });
     const asOf = new Date().toISOString().slice(0, 10);
     const rollup = rollupNav(asOf, navRows);
+    const datedIrrs = navRows
+      .map((r) =>
+        datedPositionIrr({
+          investedAt: r.investedAt,
+          cost: r.cost,
+          mark: r.mark,
+          markAsOf: r.markAsOf,
+        }),
+      )
+      .filter((v): v is number => v != null);
+    const portfolioIrr =
+      datedIrrs.length === navRows.length && datedIrrs.length > 0
+        ? datedIrrs.reduce((a, b) => a + b, 0) / datedIrrs.length
+        : null;
+
+    const fundOperating = fundRows.map((f) => {
+      const fPos = pos.filter((x) => x.fundId === f.id);
+      const companyIds = [...new Set(fPos.map((x) => x.companyId))];
+      const pick = (key: string) =>
+        companyIds.map((cid) => seriesFor(metrics.filter((m) => m.companyId === cid), key)[0]?.valueNumeric ?? null);
+      const sumPresent = (vals: (number | null)[]) => {
+        const present = vals.filter((v): v is number => v != null);
+        return present.length ? present.reduce((a, b) => a + b, 0) : null;
+      };
+      const cashVals = pick("cash");
+      const burnVals = pick("burn");
+      const revVals = pick("net_revenue");
+      return {
+        fundId: f.id,
+        fundName: f.name,
+        companies: companyIds.length,
+        cashSum: sumPresent(cashVals),
+        burnSum: sumPresent(burnVals),
+        revenueSum: sumPresent(revVals),
+        coverage: {
+          cash: cashVals.filter((v) => v != null).length,
+          burn: burnVals.filter((v) => v != null).length,
+          revenue: revVals.filter((v) => v != null).length,
+          of: companyIds.length,
+        },
+      };
+    });
 
     return {
       pulse: {
@@ -924,7 +1087,9 @@ routes.get("/api/command", async (c) => {
         funds: fundRows.length,
         nav: rollup,
         moic: rollup.moic,
+        irr: portfolioIrr,
       },
+      fundOperating,
       needsALook: {
         flags: flags.slice(0, 20).map((f) => ({
           id: f.id,
@@ -1486,16 +1651,17 @@ routes.post("/api/ask", async (c) => {
       refused: true,
       citations: [],
     };
-    await withOrg(s.orgId, (tx) =>
-      tx.insert(askQueries).values({
+    await withOrg(s.orgId, async (tx) => {
+      await tx.insert(askQueries).values({
         orgId: s.orgId,
         question: body.question,
         answer: refused.answer,
         refused: true,
         citations: [],
         createdBy: s.user.id,
-      }),
-    );
+      });
+      await recordOpsEvent(tx, s.orgId, "ask_refused", { meta: { reason: "insufficient_evidence" } });
+    });
     return c.json(refused);
   }
 
@@ -1565,16 +1731,17 @@ routes.post("/api/ask", async (c) => {
   }
 
   const payload = { answer, refused: false, citations: cites };
-  await withOrg(s.orgId, (tx) =>
-    tx.insert(askQueries).values({
+  await withOrg(s.orgId, async (tx) => {
+    await tx.insert(askQueries).values({
       orgId: s.orgId,
       question: body.question,
       answer,
       refused: false,
       citations: cites,
       createdBy: s.user.id,
-    }),
-  );
+    });
+    await recordOpsEvent(tx, s.orgId, "ask_cited", { value: cites.length, meta: { citationCount: cites.length } });
+  });
   return c.json(payload);
 });
 
@@ -1816,28 +1983,181 @@ routes.post("/api/settings/flag-policy", async (c) => {
 
 routes.post("/api/settings", async (c) => {
   const s = requireAdmin(c);
-  const body = await c.req.json<{ fyStartMonth?: number; baseCurrency?: string; displayCurrency?: string }>();
+  const body = UpdateOrgSettingsSchema.parse(await c.req.json());
   const row = await withOrg(s.orgId, async (tx) => {
+    const [existing] = await tx.select().from(orgSettings);
+    const next = {
+      fyStartMonth: body.fyStartMonth ?? existing?.fyStartMonth ?? 4,
+      baseCurrency: body.baseCurrency ?? existing?.baseCurrency ?? "INR",
+      displayCurrency: body.displayCurrency ?? existing?.displayCurrency ?? "EUR",
+      autoConfirmMinConfidence:
+        body.autoConfirmMinConfidence === undefined
+          ? existing?.autoConfirmMinConfidence ?? null
+          : body.autoConfirmMinConfidence,
+      monthlyPackEnabled:
+        body.monthlyPackEnabled === undefined
+          ? existing?.monthlyPackEnabled ?? false
+          : body.monthlyPackEnabled,
+      monthlyPackDay: body.monthlyPackDay ?? existing?.monthlyPackDay ?? 1,
+    };
     await tx
       .insert(orgSettings)
-      .values({
-        orgId: s.orgId,
-        fyStartMonth: body.fyStartMonth ?? 4,
-        baseCurrency: body.baseCurrency ?? "INR",
-        displayCurrency: body.displayCurrency ?? "EUR",
-      })
+      .values({ orgId: s.orgId, ...next })
       .onConflictDoUpdate({
         target: orgSettings.orgId,
-        set: {
-          fyStartMonth: body.fyStartMonth ?? 4,
-          baseCurrency: body.baseCurrency ?? "INR",
-          displayCurrency: body.displayCurrency ?? "EUR",
-        },
+        set: next,
       });
     const [settings] = await tx.select().from(orgSettings);
     return settings;
   });
   return c.json({ settings: row });
+});
+
+routes.get("/api/ops", async (c) => {
+  const s = requireAdmin(c);
+  const data = await withOrg(s.orgId, async (tx) => {
+    const rows = await tx.select().from(opsEvents).orderBy(desc(opsEvents.createdAt)).limit(500);
+    const counts: Record<string, number> = {};
+    for (const r of rows) {
+      counts[r.eventKey] = (counts[r.eventKey] ?? 0) + 1;
+    }
+    const auto = counts.confirm_auto ?? 0;
+    const human = counts.confirm_human ?? 0;
+    const asksCited = counts.ask_cited ?? 0;
+    const asksRefused = counts.ask_refused ?? 0;
+    const asks = asksCited + asksRefused;
+    return {
+      events: rows.slice(0, 100),
+      counts,
+      rates: {
+        autoConfirmShare: auto + human > 0 ? auto / (auto + human) : null,
+        askCitationRate: asks > 0 ? asksCited / asks : null,
+      },
+    };
+  });
+  return c.json(data);
+});
+
+routes.post("/api/commentary/draft", async (c) => {
+  const s = requireWrite(c);
+  const body = await c.req.json<{
+    companyId: string;
+    lane: "objective" | "subjective";
+    periodStart?: string;
+    periodEnd?: string;
+    documentId?: string;
+  }>();
+  if (!body.companyId || (body.lane !== "objective" && body.lane !== "subjective")) {
+    throw new HttpError(400, "invalid_draft_request");
+  }
+  if (!process.env.OPENAI_API_KEY) throw new HttpError(400, "llm_key_required");
+
+  const drafted = await withOrg(s.orgId, async (tx) => {
+    const [co] = await tx.select().from(companies).where(eq(companies.id, body.companyId));
+    if (!co) throw new HttpError(404, "company_not_found");
+
+    let prompt: { system: string; user: string };
+    let sourceKind: "mis" | "transcript" | "human" = "human";
+    let periodStart = body.periodStart ?? "";
+    let periodEnd = body.periodEnd ?? "";
+    let sourceRefId: string | null = null;
+    let documentId: string | null = body.documentId ?? null;
+
+    if (body.lane === "objective") {
+      sourceKind = "mis";
+      const metrics = await tx
+        .select()
+        .from(metricValues)
+        .where(eq(metricValues.companyId, body.companyId))
+        .orderBy(desc(metricValues.periodEnd));
+      const latest = latestByMetricPeriod(metrics).slice(0, 12);
+      if (!latest.length) throw new HttpError(400, "no_confirmed_metrics");
+      periodEnd = periodEnd || latest[0]!.periodEnd;
+      periodStart = periodStart || latest[0]!.periodStart;
+      prompt = buildObjectiveCommentaryPrompt({
+        companyName: co.name,
+        facts: latest.map((m) => ({
+          metricKey: m.metricKey,
+          label: metricByKey(m.metricKey)?.label ?? m.metricKey,
+          value: m.valueNumeric,
+          periodEnd: m.periodEnd,
+          unit: m.unit,
+        })),
+      });
+    } else {
+      sourceKind = "transcript";
+      const docs = documentId
+        ? await tx.select().from(documents).where(eq(documents.id, documentId))
+        : await tx
+            .select()
+            .from(documents)
+            .where(and(eq(documents.companyId, body.companyId), eq(documents.kind, "transcript")))
+            .orderBy(desc(documents.createdAt))
+            .limit(1);
+      const doc = docs[0];
+      if (!doc) throw new HttpError(400, "transcript_required");
+      documentId = doc.id;
+      const refs = await tx.select().from(sourceRefs).where(eq(sourceRefs.documentId, doc.id)).limit(1);
+      const excerpt = refs[0]?.excerpt ?? doc.filename;
+      sourceRefId = refs[0]?.id ?? null;
+      if (!periodStart || !periodEnd) {
+        const today = new Date().toISOString().slice(0, 10);
+        periodStart = periodStart || today;
+        periodEnd = periodEnd || today;
+      }
+      prompt = buildSubjectiveCommentaryPrompt({
+        companyName: co.name,
+        transcriptExcerpt: excerpt,
+      });
+    }
+
+    const llm = createLlmProvider();
+    let rawText = "";
+    try {
+      const res = await llm.complete({
+        messages: [
+          { role: "system", content: prompt.system },
+          { role: "user", content: prompt.user },
+        ],
+        temperature: 0.2,
+        maxTokens: 500,
+      });
+      rawText = res.text;
+    } catch (err) {
+      if (err instanceof MissingLlmKeyError) throw new HttpError(400, "llm_key_required");
+      throw err;
+    }
+    const parsed = parseCommentaryDraftJson(rawText, body.lane, sourceKind);
+    if (!parsed.ok) throw new HttpError(400, parsed.code);
+
+    const [inbox] = await tx
+      .insert(inboxItems)
+      .values({
+        orgId: s.orgId,
+        companyId: body.companyId,
+        documentId,
+        sourceRefId,
+        kind: "commentary",
+        status: "pending",
+        proposed: {
+          kind: "commentary",
+          lane: body.lane,
+          body: parsed.body,
+          periodStart,
+          periodEnd,
+          excerpt: parsed.body.slice(0, 240),
+        },
+        confidence: 0.4,
+        locator: { excerpt: parsed.body.slice(0, 240) },
+        proposedBy: "llm_draft",
+      })
+      .returning();
+    await recordOpsEvent(tx, s.orgId, "commentary_draft_proposed", {
+      meta: { companyId: body.companyId, lane: body.lane, inboxItemId: inbox?.id },
+    });
+    return { inboxItem: inbox, body: parsed.body, periodStart, periodEnd, lane: body.lane };
+  });
+  return c.json(drafted);
 });
 
 routes.post("/api/commentary", async (c) => {

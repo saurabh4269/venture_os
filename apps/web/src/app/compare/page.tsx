@@ -163,10 +163,7 @@ export default function ComparePage() {
 
   return (
     <Shell>
-      <PageHead
-        title="Compare"
-        lede="Confirmed objective book only. No imputation, no peer-average fill. Empty cell is —. Canonical INR Cr shows when the unit converts; otherwise —. EUR only with a complete FX triple. Stage and sector filter peers; they do not invent a peer set."
-      />
+      <PageHead title="Compare" />
       {err && (
         <p className="sev-high" role="alert">
           {err}

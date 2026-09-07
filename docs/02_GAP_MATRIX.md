@@ -22,20 +22,20 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 5 | Affinity API (ownership, CRM) | **missing** | **partial** | Infra ready (bearer key, `GET /v2/companies`, verified field map). Ownership only via configured number field id. Live API pending secrets |
 | 6 | Granola API (transcripts) | **missing** | **partial** | Infra ready (`grn_` key, notes → transcript docs + subjective inbox). Live API pending secrets |
 | 7 | Upload fallback form | **partial** (paste text) | **done** | Same parse pipeline OneDrive will reuse |
-| 8 | True PDF/XLSX/DOCX parse | **missing** | **partial** | XLSX/CSV + PDF text; no DOCX; no layout OCR |
-| 9 | Standardization engine | **mock** | **partial** | Alias catalog + HITL confirm; LLM assist propose-only later |
+| 8 | True PDF/XLSX/DOCX parse | **missing** | **partial** | XLSX/CSV + DOCX + table-aware PDF (pdfjs layout + plain tables); LLM cite-or-refuse assist; no bbox OCR yet |
+| 9 | Standardization engine | **mock** | **partial** | Alias catalog + HITL; optional LLM extract assist → inbox only; high-confidence auto-confirm via org setting |
 | 10 | Units (lakh/crore/USD) explicit | **missing** | **done** | Ambiguous → inbox `unit_ambiguity` |
 | 11 | FY Apr–Mar + calendar mix | **missing** / **partial** seed | **done** | Company `fyStartMonth` override |
 | 12 | Restatements (keep both, mark current) | **missing** | **done** | `version` + `restatement_of_id` |
 | 13 | missing ≠ 0 | **partial** (Ask declines) | **done** | Core math + UI `—` |
 | 14 | Dual currency INR Cr + EUR + FX audit | **mock** (illustrative FX) | **done** | Converted EUR only with complete FX triple; else refuse |
 | 15 | Attributable corrections survive re-parse | **missing** | **done** | Ledger + extract merge; golden test in `packages/core` |
-| 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Cookie-auth `Fact` chips on Command/company/compare/NAV/flags (Pass 12); no bbox OCR |
+| 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Fact chips + Confirm shows sheet/cell/page locators; no bbox OCR highlight yet |
 | 17 | Live dashboard | **mock** | **done** | Command reads the book; Needs-a-look list; 3-mo runway; 0 flags is 0 |
 | 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay `—` |
 | 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + bridge + period lock + frozen official pack snapshot (Pass 23/37). Multi-approver / LP sign-off later |
-| 20 | Objective commentary from MIS | **missing** | **partial** | Separate lane; human + inbox confirm |
-| 21 | Subjective commentary from calls | **missing** | **partial** | Lane rejects MIS-only source; Granola sync writes transcript + subjective inbox only when connected |
+| 20 | Objective commentary from MIS | **missing** | **partial** | Lane + human confirm; LLM propose objective draft → Confirm (never auto-writes book) |
+| 21 | Subjective commentary from calls | **missing** | **partial** | Lane gate; Granola → transcript inbox; LLM propose call draft → Confirm when key set |
 | 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Monthly pack lanes + worker artifact (Pass 25); curated one-pager; cookie-auth download |
 | 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; refuse without overlap; `refuseUnsourcedDigits` + golden harness (Pass 26) |
 | 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + evidence; firm `flag_policy` jsonb (Pass 24); mute/snooze; restatement-safe reads |

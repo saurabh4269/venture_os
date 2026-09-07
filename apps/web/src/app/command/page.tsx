@@ -17,7 +17,17 @@ type Pulse = {
     funds: number;
     nav: { nav: { total: number | null; complete: boolean; missing: number }; unmarked: { companyName: string }[] };
     moic: number | null;
+    irr: number | null;
   };
+  fundOperating?: {
+    fundId: string;
+    fundName: string;
+    companies: number;
+    cashSum: number | null;
+    burnSum: number | null;
+    revenueSum: number | null;
+    coverage: { cash: number; burn: number; revenue: number; of: number };
+  }[];
   needsALook: {
     flags: { id: string; flagKey: string; severity: string; companyId: string; companyName: string }[];
     inbox: { id: string; companyName: string; kind: string }[];
@@ -32,6 +42,11 @@ type Pulse = {
     lastMark: number | null;
     lastMarkSource: string | null;
     openFlags: number;
+    lastRoundLabel: string | null;
+    lastRoundAt: string | null;
+    irr: { display: string; isFact: boolean; sourceRefId?: string | null };
+    revenueTrend: { display: string; isFact: boolean; sourceRefId?: string | null };
+    netRevenue: { display: string; isFact: boolean; fxNote?: string | null; sourceRefId?: string | null };
   }[];
   sourceRefs: { id: string; documentId: string }[];
 };
@@ -110,12 +125,12 @@ export default function CommandPage() {
     return [
       ...data.needsALook.inbox.map((i) => ({
         id: `inbox-${i.id}`,
-        href: "/inbox",
+        href: "/confirm",
         company: i.companyName,
-        copy: `Inbox ${i.kind.replaceAll("_", " ")} — confirm before it posts.`,
+        copy: `${i.kind.replaceAll("_", " ")} pending`,
         severity: "med" as const,
         lane: null as "obj" | null,
-        citeHref: "/inbox",
+        citeHref: "/confirm",
       })),
       ...data.needsALook.flags.map((f) => ({
         id: `flag-${f.id}`,
@@ -168,11 +183,9 @@ export default function CommandPage() {
         title="Command"
         testId="command-ready"
         kicker={bookCloseLine()}
-        lede="Is the book current, and what needs a human? Pulse from booked facts only. Missing is —, never 0. Cite opens the footnote — file, locator, excerpt, period, confirmed by."
         actions={
           <>
             <span className="lede">
-              Last refresh{" "}
               {refreshedAt
                 ? refreshedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
                 : EM}
@@ -180,7 +193,7 @@ export default function CommandPage() {
             <button className="btn ghost sm" type="button" onClick={load} disabled={busy}>
               <span className="row" style={{ gap: 6 }}>
                 <IconRefresh />
-                {busy ? "Refreshing…" : "Refresh book"}
+                {busy ? "…" : "Refresh"}
               </span>
             </button>
           </>
@@ -236,6 +249,9 @@ export default function CommandPage() {
               {!data.pulse.nav.nav.complete ? ` · incomplete · ${data.pulse.nav.nav.missing} unmarked` : ""}
             </span>
             <span className="chip unfact">MOIC {data.pulse.moic == null ? EM : `${data.pulse.moic.toFixed(2)}x`}</span>
+            <span className="chip unfact">
+              IRR {data.pulse.irr == null ? EM : `${(data.pulse.irr * 100).toFixed(1)}%`}
+            </span>
             <span className="chip unfact">Inbox {data.pulse.inboxPending}</span>
             <span className="chip unfact">Funds {data.pulse.funds}</span>
           </div>
@@ -328,6 +344,37 @@ export default function CommandPage() {
             </div>
           )}
 
+          {(data.fundOperating?.length ?? 0) > 0 && (
+            <Panel title="Fund operating rollup" flush>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fund</th>
+                    <th>Names</th>
+                    <th>Cash Σ</th>
+                    <th>Burn Σ</th>
+                    <th>Revenue Σ</th>
+                    <th>Coverage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.fundOperating!.map((f) => (
+                    <tr key={f.fundId}>
+                      <td>{f.fundName}</td>
+                      <td className="num">{f.companies}</td>
+                      <td className="num">{f.cashSum == null ? EM : f.cashSum.toLocaleString("en-IN")}</td>
+                      <td className="num">{f.burnSum == null ? EM : f.burnSum.toLocaleString("en-IN")}</td>
+                      <td className="num">{f.revenueSum == null ? EM : f.revenueSum.toLocaleString("en-IN")}</td>
+                      <td className="num">
+                        {f.coverage.cash}/{f.coverage.of} cash · {f.coverage.burn}/{f.coverage.of} burn
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Panel>
+          )}
+
           {data.coverage.length > 0 && (
             <Panel
               title="Portfolio pulse"
@@ -357,10 +404,14 @@ export default function CommandPage() {
                       <th>Company</th>
                       <th>Stage</th>
                       <th>Own.</th>
+                      <th>Last round</th>
                       <th>Last MIS</th>
+                      <th>Revenue</th>
+                      <th>Trend</th>
                       <th>Cash</th>
                       <th>Burn</th>
                       <th>Runway</th>
+                      <th>IRR</th>
                       <th>Flags</th>
                       <th>Coverage</th>
                     </tr>
@@ -380,7 +431,18 @@ export default function CommandPage() {
                           </td>
                           <td>{r.company.stage ? <span className="badge">{r.company.stage}</span> : EM}</td>
                           <td className="num">{formatOwnership(r.ownershipPct)}</td>
+                          <td>{r.lastRoundLabel ?? EM}{r.lastRoundAt ? ` · ${r.lastRoundAt}` : ""}</td>
                           <td className="num">{r.lastMis ?? EM}</td>
+                          <td>
+                            <Fact
+                              {...r.netRevenue}
+                              note={r.netRevenue.fxNote}
+                              sourcePath={sourcePathFor(data.sourceRefs, r.netRevenue.sourceRefId)}
+                            />
+                          </td>
+                          <td>
+                            <Fact {...r.revenueTrend} sourcePath={sourcePathFor(data.sourceRefs, r.revenueTrend.sourceRefId)} />
+                          </td>
                           <td>
                             <Fact
                               {...r.cash}
@@ -397,6 +459,9 @@ export default function CommandPage() {
                           </td>
                           <td>
                             <Fact {...r.runway} sourcePath={sourcePathFor(data.sourceRefs, r.runway.sourceRefId)} />
+                          </td>
+                          <td>
+                            <Fact {...r.irr} sourcePath={sourcePathFor(data.sourceRefs, r.irr.sourceRefId)} />
                           </td>
                           <td className="num">{r.openFlags}</td>
                           <td>

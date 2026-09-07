@@ -5,6 +5,7 @@ export type Role = z.infer<typeof RoleSchema>;
 
 export const MetricKeySchema = z.enum([
   "net_revenue",
+  "gross_revenue",
   "gmv",
   "gross_margin_pct",
   "contribution_margin_pct",
@@ -16,12 +17,27 @@ export const MetricKeySchema = z.enum([
   "cogs",
   "headcount",
   "customers",
+  "orders",
   "aov",
   "cac",
+  "payback_months",
+  "churn_pct",
   "repeat_rate_pct",
+  "top_customer_pct",
   "plan_revenue",
 ]);
 export type MetricKey = z.infer<typeof MetricKeySchema>;
+
+/** How the company defines headline revenue in MIS. Never inferred from magnitude. */
+export const RevenueDefinitionSchema = z.enum([
+  "net",
+  "gross",
+  "gmv",
+  "gst_inclusive",
+  "gst_exclusive",
+  "unspecified",
+]);
+export type RevenueDefinition = z.infer<typeof RevenueDefinitionSchema>;
 
 export const UnitSchema = z.enum([
   "lakh",
@@ -136,6 +152,11 @@ export const CreateCompanySchema = z.object({
   unitHint: z.string().max(40).optional(),
   currencyHint: CurrencySchema.optional(),
   fundId: z.string().uuid().optional(),
+  revenueDefinition: RevenueDefinitionSchema.optional(),
+  lastRoundLabel: z.string().max(80).optional(),
+  lastRoundAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+  postMoney: z.number().finite().optional().nullable(),
+  postMoneyCurrency: CurrencySchema.optional(),
 });
 
 export const UpdateCompanySchema = CreateCompanySchema.omit({ fundId: true }).partial().extend({
@@ -144,6 +165,24 @@ export const UpdateCompanySchema = CreateCompanySchema.omit({ fundId: true }).pa
   onedriveFolderPath: z.string().max(500).optional().or(z.literal("")),
   affinityCompanyId: z.string().max(40).optional().or(z.literal("")),
   granolaLink: z.string().max(400).optional().or(z.literal("")),
+  revenueDefinition: RevenueDefinitionSchema.optional(),
+  lastRoundLabel: z.string().max(80).optional().or(z.literal("")),
+  lastRoundAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+  postMoney: z.number().finite().optional().nullable(),
+  postMoneyCurrency: CurrencySchema.optional(),
+});
+
+/** Firm ingest / cadence prefs. Missing auto-confirm threshold → human confirm only. */
+export const UpdateOrgSettingsSchema = z.object({
+  fyStartMonth: z.number().int().min(1).max(12).optional(),
+  baseCurrency: CurrencySchema.optional(),
+  displayCurrency: CurrencySchema.optional(),
+  flagPolicy: z.record(z.string(), z.number()).optional(),
+  /** null / omit disables auto-confirm. Typical production: 0.9 */
+  autoConfirmMinConfidence: z.number().min(0.5).max(1).nullable().optional(),
+  monthlyPackEnabled: z.boolean().optional(),
+  /** Day of month (UTC) to draft the prior-month pack. 1–28. */
+  monthlyPackDay: z.number().int().min(1).max(28).optional(),
 });
 
 export const ConnectorKindSchema = z.enum(["onedrive", "affinity", "granola"]);

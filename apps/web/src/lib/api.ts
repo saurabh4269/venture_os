@@ -73,6 +73,14 @@ export function sourcePathFor(
   return ref ? `/api/documents/${ref.documentId}/file` : undefined;
 }
 
+export function documentIdFor(
+  refs: { id: string; documentId: string }[] | undefined,
+  refId?: string | null,
+): string | undefined {
+  if (!refId || !refs?.length) return undefined;
+  return refs.find((r) => r.id === refId)?.documentId;
+}
+
 /** Cookie-auth download. Bare <a href> to the API drops the session. */
 export async function downloadAuthed(path: string, filename?: string) {
   const res = await fetch(`${API}${path}`, { credentials: "include", cache: "no-store" });

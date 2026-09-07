@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
-import { formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { formatOwnership, PageHead, PageTabs, Panel } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { Fact, Shell, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
@@ -25,6 +25,11 @@ type Data = {
     onedriveFolderPath?: string | null;
     affinityCompanyId?: string | null;
     granolaLink?: string | null;
+    revenueDefinition?: string | null;
+    lastRoundLabel?: string | null;
+    lastRoundAt?: string | null;
+    postMoney?: number | null;
+    postMoneyCurrency?: string | null;
   };
   metrics: {
     id: string;
@@ -79,6 +84,15 @@ type Data = {
   };
 };
 
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "book", label: "Book" },
+  { id: "commentary", label: "Commentary" },
+  { id: "flags", label: "Flags" },
+  { id: "sources", label: "Sources" },
+  { id: "links", label: "Links" },
+] as const;
+
 function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
 }
@@ -113,6 +127,7 @@ export default function CompanyPage() {
   const openCite = useCite();
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState("");
+  const [tab, setTab] = useState("overview");
   const [lane, setLane] = useState<"objective" | "subjective">("objective");
   const [currentOnly, setCurrentOnly] = useState(true);
   const [body, setBody] = useState("");
@@ -182,6 +197,15 @@ export default function CompanyPage() {
         onedriveFolderPath: String(fd.get("onedriveFolderPath") || "") || undefined,
         affinityCompanyId: String(fd.get("affinityCompanyId") || "") || undefined,
         granolaLink: String(fd.get("granolaLink") || "") || undefined,
+        revenueDefinition: String(fd.get("revenueDefinition") || "") || undefined,
+        lastRoundLabel: String(fd.get("lastRoundLabel") || "") || undefined,
+        lastRoundAt: String(fd.get("lastRoundAt") || "") || undefined,
+        postMoney: (() => {
+          const raw = String(fd.get("postMoney") || "").trim();
+          if (!raw) return null;
+          return Number(raw);
+        })(),
+        postMoneyCurrency: String(fd.get("postMoneyCurrency") || "") || undefined,
       }),
     });
     setEditing(false);
@@ -196,6 +220,25 @@ export default function CompanyPage() {
         body: JSON.stringify({ kind: "one_pager", companyId: id }),
       });
       router.push("/reports");
+    } catch (e) {
+      setDraftMsg(e instanceof Error ? e.message : "Draft failed");
+    }
+  }
+
+  async function draftCommentary(targetLane: "objective" | "subjective") {
+    setDraftMsg("");
+    try {
+      await api("/api/commentary/draft", {
+        method: "POST",
+        body: JSON.stringify({
+          companyId: id,
+          lane: targetLane,
+          periodStart: periodStart || last?.periodStart,
+          periodEnd: periodEnd || last?.periodEnd,
+        }),
+      });
+      setDraftMsg(`${targetLane} draft queued in Confirm — review before book write.`);
+      router.push("/confirm");
     } catch (e) {
       setDraftMsg(e instanceof Error ? e.message : "Draft failed");
     }
@@ -232,15 +275,11 @@ export default function CompanyPage() {
   if (!data) {
     return (
       <Shell>
-        <p className="lede">Loading the book…</p>
+        <p className="lede">Loading…</p>
       </Shell>
     );
   }
 
-  const own = data.positions?.map((p) => p.ownershipPct).find((n) => n != null) ?? null;
-  const latestSubjective = [...data.commentary]
-    .filter((n) => n.lane === "subjective")
-    .sort((a, b) => String(b.createdAt ?? b.periodEnd).localeCompare(String(a.createdAt ?? a.periodEnd)))[0];
   const revenue = bookRows.find((m) => m.metricKey === "net_revenue");
   const revenueDual = revenue
     ? formatDualDisplay({
@@ -295,40 +334,14 @@ export default function CompanyPage() {
         title={data.company.name}
         kicker={[data.company.sector, data.company.country].filter(Boolean).join(" · ") || "Company"}
         badge={data.company.stage ? <span className="badge">{data.company.stage}</span> : undefined}
-        lede={
-          <>
-            {data.company.legalName ? `${data.company.legalName} · ` : ""}
-            {own == null ? (
-              <>
-                Ownership <span className="chip unfact">—</span>
-              </>
-            ) : (
-              <>{formatOwnership(own)} ownership</>
-            )}
-            {" · "}
-            FY start month {data.company.fyStartMonth ?? 4} (
-            {data.company.fyStartMonth === 4 || data.company.fyStartMonth == null ? "Apr–Mar" : "custom"})
-            {data.company.unitHint ? ` · unit hint ${data.company.unitHint}` : ""}
-            {data.company.currencyHint ? ` · ${data.company.currencyHint}` : ""}
-            {data.company.affinityCompanyId ? " · Affinity id on file — vendor deep link is not connected" : ""}
-          </>
-        }
         actions={
           <div className="row">
             <Link className="btn ghost sm" href="/compare">
               Compare
             </Link>
-            <Link className="btn ghost sm" href={`/ask?companyId=${id}`}>
-              Ask
-            </Link>
-            {canWrite && (
-              <a className="btn sm" href="#add-note">
-                Add note
-              </a>
-            )}
             {canWrite && (
               <>
-                <button type="button" className="chip" onClick={() => setEditing((v) => !v)}>
+                <button type="button" className="chip" onClick={() => { setTab("links"); setEditing((v) => !v); }}>
                   {editing ? "Close editor" : "Edit profile"}
                 </button>
                 <button type="button" className="chip" onClick={draftOnePager}>
@@ -339,471 +352,506 @@ export default function CompanyPage() {
           </div>
         }
       />
-      <div className="flag-pills">
-        {data.flags.map((f) => (
-          <Link key={f.id} href="/flags" className={`sev-pill ${f.severity === "high" ? "urgent" : f.severity === "med" ? "warning" : "info"}`}>
-            {flagLabel(f.flagKey)}
-          </Link>
-        ))}
-      </div>
+      {data.flags.length > 0 && (
+        <div className="flag-pills">
+          {data.flags.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`sev-pill ${f.severity === "high" ? "urgent" : f.severity === "med" ? "warning" : "info"}`}
+              onClick={() => setTab("flags")}
+            >
+              {flagLabel(f.flagKey)}
+            </button>
+          ))}
+        </div>
+      )}
       {draftMsg && (
         <p className="sev-high" role="alert">
           {draftMsg}
         </p>
       )}
 
-      {editing && canWrite && (
-        <form onSubmit={saveProfile} className="grid-2" style={{ maxWidth: 720, marginBottom: 16 }}>
-          <label className="field">
-            Name
-            <input name="name" defaultValue={data.company.name} required />
-          </label>
-          <label className="field">
-            Legal name
-            <input name="legalName" defaultValue={data.company.legalName ?? ""} />
-          </label>
-          <label className="field">
-            Sector
-            <input name="sector" defaultValue={data.company.sector ?? ""} />
-          </label>
-          <label className="field">
-            Stage
-            <input name="stage" defaultValue={data.company.stage ?? ""} />
-          </label>
-          <label className="field">
-            FY start month
-            <input name="fyStartMonth" type="number" min={1} max={12} defaultValue={data.company.fyStartMonth ?? 4} />
-          </label>
-          <label className="field">
-            Unit hint
-            <input name="unitHint" defaultValue={data.company.unitHint ?? ""} placeholder="crore" />
-          </label>
-          <label className="field">
-            Currency hint
-            <input name="currencyHint" defaultValue={data.company.currencyHint ?? ""} placeholder="INR" />
-          </label>
-          <label className="field">
-            OneDrive folder id
-            <input name="onedriveFolderId" defaultValue={data.company.onedriveFolderId ?? ""} />
-          </label>
-          <label className="field">
-            OneDrive folder path
-            <input name="onedriveFolderPath" defaultValue={data.company.onedriveFolderPath ?? ""} placeholder="/MIS" />
-          </label>
-          <label className="field">
-            Affinity company id
-            <input name="affinityCompanyId" defaultValue={data.company.affinityCompanyId ?? ""} placeholder="numeric" />
-          </label>
-          <label className="field">
-            Granola note id
-            <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} placeholder="not_…" />
-          </label>
-          <button className="btn sm" type="submit">
-            Save profile
-          </button>
-        </form>
-      )}
+      <PageTabs tabs={[...TABS]} current={tab} onChange={setTab} />
 
-      {canWrite && (
-        <form
-          className="grid-2"
-          style={{ maxWidth: 720, marginBottom: 16 }}
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setMapMsg("");
-            const fd = new FormData(e.currentTarget);
-            try {
-              await api(`/api/companies/${id}/connector-mapping`, {
-                method: "PATCH",
-                body: JSON.stringify({
-                  onedriveFolderId: String(fd.get("onedriveFolderId") || ""),
-                  onedriveFolderPath: String(fd.get("onedriveFolderPath") || ""),
-                  affinityCompanyId: String(fd.get("affinityCompanyId") || ""),
-                  granolaLink: String(fd.get("granolaLink") || ""),
-                }),
-              });
-              setMapMsg("Connector mapping saved.");
-              load();
-            } catch (ex) {
-              setMapMsg(ex instanceof Error ? ex.message : "Could not save mapping");
-            }
-          }}
-        >
-          <h2 style={{ gridColumn: "1 / -1" }}>Connector mapping</h2>
-          <p className="lede" style={{ gridColumn: "1 / -1" }}>
-            Optional. Paste vendor ids only — we will not invent folder or CRM fields. Pull from OneDrive uses the
-            same parse pipeline as upload.
-          </p>
-          <label className="field">
-            OneDrive folder id
-            <input name="onedriveFolderId" defaultValue={data.company.onedriveFolderId ?? ""} data-testid="map-onedrive-id" />
-          </label>
-          <label className="field">
-            OneDrive folder path
-            <input name="onedriveFolderPath" defaultValue={data.company.onedriveFolderPath ?? ""} data-testid="map-onedrive-path" />
-          </label>
-          <label className="field">
-            Affinity company id
-            <input name="affinityCompanyId" defaultValue={data.company.affinityCompanyId ?? ""} data-testid="map-affinity-id" />
-          </label>
-          <label className="field">
-            Granola note id
-            <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} data-testid="map-granola-link" />
-          </label>
-          <div className="row">
-            <button className="btn sm" type="submit">
-              Save mapping
-            </button>
-            <button
-              className="btn ghost sm"
-              type="button"
-              onClick={async () => {
-                setPullMsg("");
-                try {
-                  await api("/api/connectors/onedrive/sync", {
-                    method: "POST",
-                    body: JSON.stringify({ companyId: id }),
-                  });
-                  setPullMsg("OneDrive sync queued. Confirm extracts in Inbox if files were new.");
-                  load();
-                } catch (ex) {
-                  setPullMsg(ex instanceof Error ? ex.message : "Pull failed");
-                }
-              }}
-            >
-              Pull from OneDrive
-            </button>
-          </div>
-          {mapMsg && <p className="lede">{mapMsg}</p>}
-          {pullMsg && <p className="lede">{pullMsg}</p>}
-        </form>
-      )}
-
-      <div className="grid-2" style={{ marginBottom: 16 }}>
-        <Panel title="Objective metrics" kicker="Book" className="lane-obj-panel" actions={<span className="lane-chip obj">Objective</span>}>
-          <div className="metric-row">
-            <span className="muted">Cash</span>
-            <span>
-              {data.kpi ? (
-                <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} cite={citeFor(data, data.kpi.cash.sourceRefId)} />
-              ) : (
-                <span className="chip unfact">—</span>
-              )}
-            </span>
-          </div>
-          <div className="metric-row">
-            <span className="muted">Burn (monthly)</span>
-            <span>
-              {data.kpi ? (
-                <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} cite={citeFor(data, data.kpi.burn.sourceRefId)} />
-              ) : (
-                <span className="chip unfact">—</span>
-              )}
-            </span>
-          </div>
-          <div className="metric-row">
-            <span className="muted">Runway (3-mo burn)</span>
-            <span>
-              {data.kpi ? <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} cite={citeFor(data, data.kpi.runway.sourceRefId)} /> : <span className="chip unfact">—</span>}
-            </span>
-          </div>
-          <div className="metric-row">
-            <span className="muted">Net revenue</span>
-            <span>
-              {revenueDual ? (
-                <Fact
-                  display={revenueDual.display}
-                  isFact={revenueDual.isFact}
-                  sourcePath={pathFor(revenue?.sourceRefId)}
-                  note={revenueDual.fxNote}
-                  cite={citeFor(data, revenue?.sourceRefId)}
-                />
-              ) : (
-                <span className="chip unfact">—</span>
-              )}
-            </span>
-          </div>
-        </Panel>
-        <Panel title="Partner view" kicker="Subjective" className="lane-sub-panel" actions={<span className="lane-chip sub">Judgement</span>}>
-          {latestSubjective ? (
-            <div className="lane-sub" style={{ margin: 0 }}>
-              <p style={{ margin: "0 0 8px" }}>{latestSubjective.body}</p>
-              <p className="lede" style={{ margin: 0 }}>
-                Author {latestSubjective.createdBy ? `${latestSubjective.createdBy.slice(0, 8)}…` : "—"} ·{" "}
-                {latestSubjective.createdAt
-                  ? new Date(latestSubjective.createdAt).toLocaleDateString()
-                  : latestSubjective.periodEnd}
-              </p>
+      {tab === "overview" && (
+        <>
+          <Panel title="Objective metrics" kicker="Book" className="lane-obj-panel" actions={<span className="lane-chip obj">Objective</span>}>
+            <div className="metric-row">
+              <span className="muted">Cash</span>
+              <span>
+                {data.kpi ? (
+                  <Fact {...data.kpi.cash} sourcePath={pathFor(data.kpi.cash.sourceRefId)} note={data.kpi.cash.fxNote} cite={citeFor(data, data.kpi.cash.sourceRefId)} />
+                ) : (
+                  <span className="chip unfact">—</span>
+                )}
+              </span>
             </div>
-          ) : (
-            <p className="lede" style={{ margin: 0 }}>
-              No partner commentary on this company. MIS packs never fill this lane.
-            </p>
-          )}
-        </Panel>
-      </div>
+            <div className="metric-row">
+              <span className="muted">Burn (monthly)</span>
+              <span>
+                {data.kpi ? (
+                  <Fact {...data.kpi.burn} sourcePath={pathFor(data.kpi.burn.sourceRefId)} note={data.kpi.burn.fxNote} cite={citeFor(data, data.kpi.burn.sourceRefId)} />
+                ) : (
+                  <span className="chip unfact">—</span>
+                )}
+              </span>
+            </div>
+            <div className="metric-row">
+              <span className="muted">Runway (3-mo burn)</span>
+              <span>
+                {data.kpi ? <Fact {...data.kpi.runway} sourcePath={pathFor(data.kpi.runway.sourceRefId)} cite={citeFor(data, data.kpi.runway.sourceRefId)} /> : <span className="chip unfact">—</span>}
+              </span>
+            </div>
+            <div className="metric-row">
+              <span className="muted">Net revenue</span>
+              <span>
+                {revenueDual ? (
+                  <Fact
+                    display={revenueDual.display}
+                    isFact={revenueDual.isFact}
+                    sourcePath={pathFor(revenue?.sourceRefId)}
+                    note={revenueDual.fxNote}
+                    cite={citeFor(data, revenue?.sourceRefId)}
+                  />
+                ) : (
+                  <span className="chip unfact">—</span>
+                )}
+              </span>
+            </div>
+          </Panel>
 
-      <div className="grid-2" style={{ marginBottom: 16 }}>
-        <Panel title="Evidence trail" kicker="Provenance">
-          {evidence.length === 0 ? (
-            <p className="lede" style={{ margin: 0 }}>
-              No citations yet. Confirm an extract to write a locator.
-            </p>
+          <Panel title="Positions">
+            {!data.positions?.length ? (
+              <div className="empty">No positions.</div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fund</th>
+                    <th>Instrument</th>
+                    <th>Ownership</th>
+                    <th>Cost</th>
+                    <th>Invested</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.positions.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.fundName}</td>
+                      <td>{p.instrument}</td>
+                      <td>{formatOwnership(p.ownershipPct)}</td>
+                      <td>
+                        {p.costBasis == null
+                          ? "—"
+                          : `${p.costBasis.toLocaleString("en-IN")} ${p.costCurrency}`}
+                      </td>
+                      <td>{p.investedAt ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Panel>
+
+          <div className="grid-2" style={{ marginBottom: 16 }}>
+            <Panel title="Evidence trail" kicker="Provenance">
+              {evidence.length === 0 ? (
+                <p className="lede" style={{ margin: 0 }}>
+                  No citations. <Link href="/confirm">Confirm</Link> an extract.
+                </p>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Source</th>
+                      <th>Type</th>
+                      <th>Date</th>
+                      <th>Cite</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {evidence.map((e) => (
+                      <tr key={e.id}>
+                        <td>{e.source}</td>
+                        <td className="lede">{e.kind}</td>
+                        <td className="lede">{e.date}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="cite"
+                            onClick={() =>
+                              openCite({
+                                display: e.source,
+                                filename: e.source,
+                                documentId: e.documentId,
+                                sourcePath: `/api/documents/${e.documentId}/file`,
+                                locator: e.locator,
+                                excerpt: e.excerpt,
+                                periodStart: e.periodStart,
+                                periodEnd: e.periodEnd,
+                                confirmedBy: e.confirmedBy,
+                                confirmedAt: e.confirmedAt,
+                              })
+                            }
+                          >
+                            {e.cite}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Panel>
+            <Panel title="Required docs" kicker="Coverage">
+              <ul className="doc-req">
+                {required.map((r) => (
+                  <li key={r.key} className="doc-row">
+                    <span>{r.label}</span>
+                    <span className={`cover-pill ${r.state}`}>{r.state}</span>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          </div>
+        </>
+      )}
+
+      {tab === "book" && (
+        <Panel title="Book">
+          <label className="lede">
+            <input type="checkbox" checked={currentOnly} onChange={(e) => setCurrentOnly(e.target.checked)} /> Current
+            version only
+          </label>
+          {data.metrics.length === 0 ? (
+            <div className="empty">
+              No facts. <Link href="/confirm">Confirm</Link> extracts.
+            </div>
           ) : (
             <table>
               <thead>
                 <tr>
-                  <th>Source</th>
-                  <th>Type</th>
-                  <th>Date</th>
-                  <th>Cite</th>
+                  <th>Metric</th>
+                  <th>Value</th>
+                  <th>Period</th>
+                  <th>Locator</th>
+                  <th>Lane</th>
+                  <th>Ver.</th>
+                  <th>Confirmed</th>
                 </tr>
               </thead>
               <tbody>
-                {evidence.map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.source}</td>
-                    <td className="lede">{e.kind}</td>
-                    <td className="lede">{e.date}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="cite"
-                        onClick={() =>
-                          openCite({
-                            display: e.source,
-                            filename: e.source,
-                            sourcePath: `/api/documents/${e.documentId}/file`,
-                            locator: e.locator,
-                            excerpt: e.excerpt,
-                            periodStart: e.periodStart,
-                            periodEnd: e.periodEnd,
-                            confirmedBy: e.confirmedBy,
-                            confirmedAt: e.confirmedAt,
-                          })
-                        }
-                      >
-                        {e.cite}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {bookRows.map((m) => {
+                  const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
+                  const loc = ref?.locator;
+                  const dual = formatDualDisplay({
+                    value: m.valueNumeric,
+                    sourceRefId: m.sourceRefId,
+                    unit: m.unit as never,
+                    currency: m.currency as never,
+                    valueEur: m.valueEur,
+                    fxRate: m.fxRate,
+                    fxDate: m.fxDate,
+                    fxSource: m.fxSource,
+                  });
+                  return (
+                    <tr key={m.id}>
+                      <td>{m.metricKey}</td>
+                      <td>
+                        <Fact
+                          display={dual.display}
+                          isFact={dual.isFact}
+                          sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
+                          note={dual.fxNote}
+                          cite={citeFor(data, m.sourceRefId)}
+                        />
+                      </td>
+                      <td>{m.periodEnd}</td>
+                      <td className="lede">
+                        {loc?.sheet} {loc?.cell}
+                        {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
+                      </td>
+                      <td>{m.lane}</td>
+                      <td>{m.version}</td>
+                      <td className="lede">
+                        {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
+                        {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
         </Panel>
-        <Panel title="Required documentation" kicker="Coverage">
-          <ul className="doc-req">
-            {required.map((r) => (
-              <li key={r.key} className="doc-row">
-                <span>{r.label}</span>
-                <span className={`cover-pill ${r.state}`}>{r.state}</span>
+      )}
+
+      {tab === "commentary" && (
+        <>
+          <div className="grid-2" style={{ marginTop: 8 }}>
+            <div className="lane-obj">
+              <h3>Objective <span className="lane-chip obj">MIS</span></h3>
+              {data.commentary.filter((n) => n.lane === "objective").map((n) => (
+                <p key={n.id}>
+                  <span className="lede">{n.periodEnd} · objective</span>
+                  <br />
+                  {n.body}
+                </p>
+              ))}
+              {data.commentary.filter((n) => n.lane === "objective").length === 0 && <p className="lede">—</p>}
+            </div>
+            <div className="lane-sub">
+              <h3>Subjective <span className="lane-chip sub">judgement</span></h3>
+              {data.commentary.filter((n) => n.lane === "subjective").map((n) => (
+                <p key={n.id}>
+                  <span className="lede">{n.periodEnd} · subjective</span>
+                  <br />
+                  {n.body}
+                </p>
+              ))}
+              {data.commentary.filter((n) => n.lane === "subjective").length === 0 && <p className="lede">—</p>}
+            </div>
+          </div>
+
+          {canWrite && (
+            <form id="add-note" onSubmit={addNote} style={{ marginTop: 16 }} className="field">
+              <label className="field">
+                Add note
+                <select value={lane} onChange={(e) => setLane(e.target.value as "objective" | "subjective")}>
+                  <option value="objective">Objective</option>
+                  <option value="subjective">Subjective</option>
+                </select>
+              </label>
+              <div className="row">
+                <label className="field">
+                  Period start
+                  <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} required />
+                </label>
+                <label className="field">
+                  Period end
+                  <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} required />
+                </label>
+              </div>
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={3} />
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                <button className="btn sm" type="submit">
+                  Save note
+                </button>
+                <button className="btn ghost sm" type="button" onClick={() => draftCommentary("objective")}>
+                  Propose objective draft
+                </button>
+                <button className="btn ghost sm" type="button" onClick={() => draftCommentary("subjective")}>
+                  Propose call draft
+                </button>
+              </div>
+              {draftMsg ? <p className="lede">{draftMsg}</p> : null}
+            </form>
+          )}
+        </>
+      )}
+
+      {tab === "flags" && (
+        <Panel title="Flags">
+          <ul>
+            {data.flags.map((f) => (
+              <li key={f.id} className={`sev-${f.severity}`}>
+                <Link href="/flags">{flagLabel(f.flagKey)}</Link> · {f.severity}
+                {evidenceLine(f.evidence) && <div className="lede">{evidenceLine(f.evidence)}</div>}
+              </li>
+            ))}
+            {data.flags.length === 0 && <li className="lede">No open flags.</li>}
+          </ul>
+        </Panel>
+      )}
+
+      {tab === "sources" && (
+        <Panel title="Vault">
+          <label className="field" style={{ maxWidth: 220 }}>
+            Kind
+            <select value={vaultKind} onChange={(e) => setVaultKind(e.target.value)} aria-label="Vault kind">
+              <option value="">All kinds</option>
+              {[...new Set(data.documents.map((d) => d.kind))].map((k) => (
+                <option key={k} value={k}>
+                  {k.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
+          </label>
+          <ul>
+            {data.documents
+              .filter((d) => !vaultKind || d.kind === vaultKind)
+              .map((d) => (
+              <li key={d.id}>
+                <button type="button" className="chip" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
+                  {d.filename}
+                </button>{" "}
+                · {d.kind}
+                {d.periodEnd ? ` · period ${d.periodEnd}` : ""}
+                {d.createdAt ? ` · ${new Date(d.createdAt).toLocaleString()}` : ""}
+                {d.sha256 ? ` · sha ${d.sha256.slice(0, 10)}` : ""}
               </li>
             ))}
           </ul>
-          <p className="lede" style={{ fontSize: 12, margin: "12px 0 0" }}>
-            Only kinds this book stores: MIS, board pack, transcript. Stale is MIS older than 45 days.
-          </p>
+          {data.documents.length === 0 && <div className="empty">No documents.</div>}
+          {canWrite && <Upload companyId={id} onDone={load} />}
         </Panel>
-      </div>
-
-      <Panel title="Positions">
-      <p className="lede">
-        Booked positions only. Affinity writes ownership only after a mapped numeric field id and a successful sync.
-      </p>
-      {!data.positions?.length ? (
-        <div className="empty">No positions on the book. Add a fund in Settings, then onboard with a fund attached.</div>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Fund</th>
-              <th>Instrument</th>
-              <th>Ownership</th>
-              <th>Cost</th>
-              <th>Invested</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.positions.map((p) => (
-              <tr key={p.id}>
-                <td>{p.fundName}</td>
-                <td>{p.instrument}</td>
-                <td>{formatOwnership(p.ownershipPct)}</td>
-                <td>
-                  {p.costBasis == null
-                    ? "—"
-                    : `${p.costBasis.toLocaleString("en-IN")} ${p.costCurrency}`}
-                </td>
-                <td>{p.investedAt ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      </Panel>
-
-      <Panel title="Book">
-      <label className="lede">
-        <input type="checkbox" checked={currentOnly} onChange={(e) => setCurrentOnly(e.target.checked)} /> Current
-        version only (highest version per metric+period)
-      </label>
-      {data.metrics.length === 0 ? (
-        <div className="empty">
-          No confirmed facts. Upload MIS and <Link href="/inbox">confirm Inbox</Link>.
-        </div>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Metric</th>
-              <th>Value</th>
-              <th>Period</th>
-              <th>Locator</th>
-              <th>Lane</th>
-              <th>Ver.</th>
-              <th>Confirmed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookRows.map((m) => {
-              const ref = data.sourceRefs.find((r) => r.id === m.sourceRefId);
-              const loc = ref?.locator;
-              const dual = formatDualDisplay({
-                value: m.valueNumeric,
-                sourceRefId: m.sourceRefId,
-                unit: m.unit as never,
-                currency: m.currency as never,
-                valueEur: m.valueEur,
-                fxRate: m.fxRate,
-                fxDate: m.fxDate,
-                fxSource: m.fxSource,
-              });
-              return (
-                <tr key={m.id}>
-                  <td>{m.metricKey}</td>
-                  <td>
-                    <Fact
-                      display={dual.display}
-                      isFact={dual.isFact}
-                      sourcePath={ref ? `/api/documents/${ref.documentId}/file` : undefined}
-                      note={dual.fxNote}
-                      cite={citeFor(data, m.sourceRefId)}
-                    />
-                  </td>
-                  <td>{m.periodEnd}</td>
-                  <td className="lede">
-                    {loc?.sheet} {loc?.cell}
-                    {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
-                  </td>
-                  <td>{m.lane}</td>
-                  <td>{m.version}</td>
-                  <td className="lede">
-                    {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
-                    {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-      </Panel>
-
-      <div className="grid-2" style={{ marginTop: 16 }}>
-        <div className="lane-obj">
-          <h3>Objective <span className="lane-chip obj">MIS</span></h3>
-          {data.commentary.filter((n) => n.lane === "objective").map((n) => (
-            <p key={n.id}>
-              <span className="lede">{n.periodEnd} · objective</span>
-              <br />
-              {n.body}
-            </p>
-          ))}
-          {data.commentary.filter((n) => n.lane === "objective").length === 0 && <p className="lede">—</p>}
-        </div>
-        <div className="lane-sub">
-          <h3>Subjective <span className="lane-chip sub">calls / judgement</span></h3>
-          {data.commentary.filter((n) => n.lane === "subjective").map((n) => (
-            <p key={n.id}>
-              <span className="lede">{n.periodEnd} · subjective</span>
-              <br />
-              {n.body}
-            </p>
-          ))}
-          {data.commentary.filter((n) => n.lane === "subjective").length === 0 && <p className="lede">—</p>}
-        </div>
-      </div>
-
-      {canWrite && (
-      <form id="add-note" onSubmit={addNote} style={{ marginTop: 16 }} className="field">
-        <label className="field">
-          Add commentary (stored in the selected lane only). Subjective notes here are human judgement — MIS extracts
-          cannot be confirmed as subjective. Period defaults to the latest booked period, not a hardcoded month.
-          <select value={lane} onChange={(e) => setLane(e.target.value as "objective" | "subjective")}>
-            <option value="objective">Objective</option>
-            <option value="subjective">Subjective</option>
-          </select>
-        </label>
-        <div className="row">
-          <label className="field">
-            Period start
-            <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} required />
-          </label>
-          <label className="field">
-            Period end
-            <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} required />
-          </label>
-        </div>
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={3} />
-        <button className="btn sm" type="submit">
-          Save note
-        </button>
-      </form>
       )}
 
-      <Panel title="Flags">
-      <ul>
-        {data.flags.map((f) => (
-          <li key={f.id} className={`sev-${f.severity}`}>
-            <Link href="/flags">{flagLabel(f.flagKey)}</Link> · {f.severity}
-            {evidenceLine(f.evidence) && <div className="lede">{evidenceLine(f.evidence)}</div>}
-          </li>
-        ))}
-        {data.flags.length === 0 && <li className="lede">No open flags.</li>}
-      </ul>
-      </Panel>
+      {tab === "links" && (
+        <>
+          {editing && canWrite && (
+            <form onSubmit={saveProfile} className="grid-2" style={{ maxWidth: 720, marginBottom: 16 }}>
+              <label className="field">
+                Name
+                <input name="name" defaultValue={data.company.name} required />
+              </label>
+              <label className="field">
+                Legal name
+                <input name="legalName" defaultValue={data.company.legalName ?? ""} />
+              </label>
+              <label className="field">
+                Sector
+                <input name="sector" defaultValue={data.company.sector ?? ""} />
+              </label>
+              <label className="field">
+                Stage
+                <input name="stage" defaultValue={data.company.stage ?? ""} />
+              </label>
+              <label className="field">
+                FY start month
+                <input name="fyStartMonth" type="number" min={1} max={12} defaultValue={data.company.fyStartMonth ?? 4} />
+              </label>
+              <label className="field">
+                Unit hint
+                <input name="unitHint" defaultValue={data.company.unitHint ?? ""} placeholder="crore" />
+              </label>
+              <label className="field">
+                Currency hint
+                <input name="currencyHint" defaultValue={data.company.currencyHint ?? ""} placeholder="INR" />
+              </label>
+              <label className="field">
+                OneDrive folder id
+                <input name="onedriveFolderId" defaultValue={data.company.onedriveFolderId ?? ""} />
+              </label>
+              <label className="field">
+                OneDrive folder path
+                <input name="onedriveFolderPath" defaultValue={data.company.onedriveFolderPath ?? ""} placeholder="/MIS" />
+              </label>
+              <label className="field">
+                Affinity company id
+                <input name="affinityCompanyId" defaultValue={data.company.affinityCompanyId ?? ""} placeholder="numeric" />
+              </label>
+              <label className="field">
+                Granola note id
+                <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} placeholder="not_…" />
+              </label>
+              <label className="field">
+                Revenue definition
+                <select name="revenueDefinition" defaultValue={data.company.revenueDefinition ?? "unspecified"}>
+                  <option value="unspecified">Unspecified</option>
+                  <option value="net">Net</option>
+                  <option value="gross">Gross</option>
+                  <option value="gmv">GMV</option>
+                  <option value="gst_inclusive">GST inclusive</option>
+                  <option value="gst_exclusive">GST exclusive</option>
+                </select>
+              </label>
+              <label className="field">
+                Last round
+                <input name="lastRoundLabel" defaultValue={data.company.lastRoundLabel ?? ""} placeholder="Series A" />
+              </label>
+              <label className="field">
+                Last round date
+                <input name="lastRoundAt" type="date" defaultValue={data.company.lastRoundAt ?? ""} />
+              </label>
+              <label className="field">
+                Post-money
+                <input name="postMoney" type="number" step="any" defaultValue={data.company.postMoney ?? ""} />
+              </label>
+              <label className="field">
+                Post-money currency
+                <input name="postMoneyCurrency" defaultValue={data.company.postMoneyCurrency ?? ""} placeholder="INR" />
+              </label>
+              <button className="btn sm" type="submit">
+                Save profile
+              </button>
+            </form>
+          )}
 
-      <Panel title="Vault">
-      <p className="lede">DOCX is not supported yet — upload XLSX, XLS, CSV, or PDF.</p>
-      <label className="field" style={{ maxWidth: 220 }}>
-        Kind
-        <select value={vaultKind} onChange={(e) => setVaultKind(e.target.value)} aria-label="Vault kind">
-          <option value="">All kinds</option>
-          {[...new Set(data.documents.map((d) => d.kind))].map((k) => (
-            <option key={k} value={k}>
-              {k.replaceAll("_", " ")}
-            </option>
-          ))}
-        </select>
-      </label>
-      <ul>
-        {data.documents
-          .filter((d) => !vaultKind || d.kind === vaultKind)
-          .map((d) => (
-          <li key={d.id}>
-            <button type="button" className="chip" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
-              {d.filename}
-            </button>{" "}
-            · {d.kind}
-            {d.periodEnd ? ` · period ${d.periodEnd}` : ""}
-            {d.createdAt ? ` · ${new Date(d.createdAt).toLocaleString()}` : ""}
-            {d.sha256 ? ` · sha ${d.sha256.slice(0, 10)}` : ""}
-          </li>
-        ))}
-      </ul>
-      {canWrite && <Upload companyId={id} onDone={load} />}
-      </Panel>
+          {canWrite && (
+            <form
+              className="grid-2"
+              style={{ maxWidth: 720, marginBottom: 16 }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setMapMsg("");
+                const fd = new FormData(e.currentTarget);
+                try {
+                  await api(`/api/companies/${id}/connector-mapping`, {
+                    method: "PATCH",
+                    body: JSON.stringify({
+                      onedriveFolderId: String(fd.get("onedriveFolderId") || ""),
+                      onedriveFolderPath: String(fd.get("onedriveFolderPath") || ""),
+                      affinityCompanyId: String(fd.get("affinityCompanyId") || ""),
+                      granolaLink: String(fd.get("granolaLink") || ""),
+                    }),
+                  });
+                  setMapMsg("Connector mapping saved.");
+                  load();
+                } catch (ex) {
+                  setMapMsg(ex instanceof Error ? ex.message : "Could not save mapping");
+                }
+              }}
+            >
+              <h2 style={{ gridColumn: "1 / -1" }}>Connector mapping</h2>
+              <label className="field">
+                OneDrive folder id
+                <input name="onedriveFolderId" defaultValue={data.company.onedriveFolderId ?? ""} data-testid="map-onedrive-id" />
+              </label>
+              <label className="field">
+                OneDrive folder path
+                <input name="onedriveFolderPath" defaultValue={data.company.onedriveFolderPath ?? ""} data-testid="map-onedrive-path" />
+              </label>
+              <label className="field">
+                Affinity company id
+                <input name="affinityCompanyId" defaultValue={data.company.affinityCompanyId ?? ""} data-testid="map-affinity-id" />
+              </label>
+              <label className="field">
+                Granola note id
+                <input name="granolaLink" defaultValue={data.company.granolaLink ?? ""} data-testid="map-granola-link" />
+              </label>
+              <div className="row">
+                <button className="btn sm" type="submit">
+                  Save mapping
+                </button>
+                <button
+                  className="btn ghost sm"
+                  type="button"
+                  onClick={async () => {
+                    setPullMsg("");
+                    try {
+                      await api("/api/connectors/onedrive/sync", {
+                        method: "POST",
+                        body: JSON.stringify({ companyId: id }),
+                      });
+                      setPullMsg("OneDrive sync queued.");
+                      load();
+                    } catch (ex) {
+                      setPullMsg(ex instanceof Error ? ex.message : "Pull failed");
+                    }
+                  }}
+                >
+                  Pull from OneDrive
+                </button>
+              </div>
+              {mapMsg && <p className="lede">{mapMsg}</p>}
+              {pullMsg && <p className="lede">{pullMsg}</p>}
+            </form>
+          )}
+          {!canWrite && <p className="lede">No connector edits for this role.</p>}
+        </>
+      )}
     </Shell>
   );
 }
@@ -817,7 +865,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
         `/api/documents/${documentId}`,
       ).catch(() => null);
       const st = r?.parse?.status ?? "queued";
-      setMsg(`Parse ${st}${r?.parse?.error ? ` — ${r.parse.error}` : ""}. Confirm extracts in Inbox.`);
+      setMsg(`Parse ${st}${r?.parse?.error ? ` — ${r.parse.error}` : ""}.`);
       if (st === "done" || st === "error") return;
       await new Promise((ok) => setTimeout(ok, 800));
     }
@@ -834,8 +882,8 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
       );
       setMsg(
         res.duplicateOf
-          ? "Same SHA as a vault file already stored. Extract queued — confirm Inbox; do not treat as a new source."
-          : "Queued. Confirm extracts in Inbox — nothing auto-posts.",
+          ? "Same SHA already in vault. Confirm extracts."
+          : "Queued. Confirm extracts — nothing auto-posts.",
       );
       if (res.document?.id) await pollParse(res.document.id);
       onDone();
@@ -863,7 +911,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
       </button>
       {msg && (
         <span className="lede">
-          {msg} <Link href="/inbox">Open Inbox</Link>
+          {msg} <Link href="/confirm">Confirm</Link>
         </span>
       )}
     </form>

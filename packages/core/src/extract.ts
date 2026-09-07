@@ -1,6 +1,14 @@
 import type { Currency, Grain, Locator, MetricKey, Unit } from "@venture-os/schema";
-import { matchMetricAlias } from "./catalog.js";
+import { METRIC_CATALOG, matchMetricAlias, metricByKey } from "./catalog.js";
 import { parsePeriodHint } from "./fiscal.js";
+import {
+  clusterItemsToRows,
+  kvRowsFromPlainText,
+  tablesFromPlainText,
+  type PdfPageBundle,
+  type PdfTextItem,
+} from "./pdf-layout.js";
+import { suggestCatalogMetricFuzzy } from "./fuzzy-rank.js";
 import { detectCurrency, detectUnit } from "./units.js";
 
 export type ExtractedProposal = {
@@ -54,7 +62,8 @@ export function extractFromRows(
       const valueNumeric = parseNumber(row[c]);
       if (valueNumeric === null && row[c] !== 0) continue;
       const cell = `${colName(c)}${r + 1}`;
-      const excerpt = `${label} → ${row[c]}`;
+      const headerBits = header.trim() ? ` · ${header.trim().slice(0, 80)}` : "";
+      const excerpt = `${label} → ${row[c]}${headerBits}`;
       if (resolvedUnit === "ambiguous" || (def?.unitFamily === "money" && resolvedUnit === "unknown")) {
         out.push({
           kind: "unit_ambiguity",
@@ -73,19 +82,32 @@ export function extractFromRows(
         });
         continue;
       }
-      if (!def) continue;
-      const unit: Unit = resolvedUnit === "unknown" ? def.defaultUnit : resolvedUnit;
+      let matched = def;
+      let fuzzyBoost = false;
+      if (!matched) {
+        // Careful: fuzzy only proposes; confidence capped; never auto-books.
+        const hint = suggestCatalogMetricFuzzy(label, METRIC_CATALOG, { threshold: 0.9 });
+        if (!hint) continue;
+        matched = metricByKey(hint.key as MetricKey);
+        if (!matched) continue;
+        fuzzyBoost = true;
+      }
+      const unit: Unit = resolvedUnit === "unknown" ? matched.defaultUnit : resolvedUnit;
       out.push({
         kind: "metric",
-        metricKey: def.key,
+        metricKey: matched.key,
         label,
         valueNumeric,
         unit,
-        currency: def.unitFamily === "money" ? currency : "unknown",
+        currency: matched.unitFamily === "money" ? currency : "unknown",
         periodStart: period?.start,
         periodEnd: period?.end,
         grain: period?.grain ?? "month",
-        confidence: resolvedUnit === "unknown" ? 0.55 : 0.82,
+        confidence: fuzzyBoost
+          ? 0.48
+          : resolvedUnit === "unknown"
+            ? 0.55
+            : 0.82,
         locator: { sheet, cell, excerpt },
         excerpt,
         lane: "objective",
@@ -96,21 +118,83 @@ export function extractFromRows(
 }
 
 export function extractFromPdfText(text: string, fyStartMonth = 4): ExtractedProposal[] {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  const rows: unknown[][] = [];
-  for (const line of lines) {
-    const period = parsePeriodHint(line, fyStartMonth);
-    const m = line.match(/^(.{3,40}?)[:\s]+(-?[\d,.]+)\s*(crore|cr|lakh|lacs?|%|percent)?/i);
-    if (m) {
-      rows.push([`${m[1]} ${m[3] ?? ""} ${period ? "FY" : ""}`, m[2]]);
+  return extractFromPlainText(text, "pdf", fyStartMonth, 0.5);
+}
+
+/**
+ * Table-aware plain text / PDF text path.
+ * Prefers whitespace|pipe tables → extractFromRows; falls back to KV lines.
+ * Confidence capped until layout OCR / bbox exists.
+ */
+export function extractFromPlainText(
+  text: string,
+  sheet: string,
+  fyStartMonth = 4,
+  confidenceCap = 0.5,
+): ExtractedProposal[] {
+  const out: ExtractedProposal[] = [];
+  const tables = tablesFromPlainText(text);
+  for (let i = 0; i < tables.length; i++) {
+    const sheetName = tables.length > 1 ? `${sheet}:t${i + 1}` : sheet;
+    out.push(...extractFromRows(tables[i]!, sheetName, fyStartMonth));
+  }
+  if (out.length === 0) {
+    const kv = kvRowsFromPlainText(text);
+    if (kv.length) out.push(...extractFromRows(kv, sheet, fyStartMonth));
+  }
+  return out.map((p) => ({
+    ...p,
+    confidence: Math.min(p.confidence, confidenceCap),
+    locator: {
+      ...p.locator,
+      page: p.locator.page ?? (sheet.startsWith("pdf") ? 1 : undefined),
+      excerpt: p.excerpt,
+    },
+  }));
+}
+
+/**
+ * Positioned PDF pages (from pdfjs). Builds per-page tables with page locators.
+ * Higher confidence than plain text when multi-column grids are detected.
+ */
+export function extractFromPdfPages(
+  pages: PdfPageBundle[],
+  fyStartMonth = 4,
+): ExtractedProposal[] {
+  const out: ExtractedProposal[] = [];
+  for (const page of pages) {
+    const grid = clusterItemsToRows(page.items);
+    const sheet = `pdf:p${page.page}`;
+    if (grid.length >= 2 && grid.some((r) => r.length >= 2)) {
+      const proposals = extractFromRows(grid, sheet, fyStartMonth).map((p) => ({
+        ...p,
+        confidence: Math.min(p.confidence, 0.72),
+        locator: { ...p.locator, page: page.page, excerpt: p.excerpt },
+      }));
+      out.push(...proposals);
+    } else if (page.text.trim()) {
+      out.push(
+        ...extractFromPlainText(page.text, sheet, fyStartMonth, 0.55).map((p) => ({
+          ...p,
+          locator: { ...p.locator, page: page.page },
+        })),
+      );
     }
   }
-  const extracted = extractFromRows(rows, "pdf", fyStartMonth);
-  return extracted.map((p) => ({
-    ...p,
-    confidence: Math.min(p.confidence, 0.5),
-    locator: { ...p.locator, page: 1, excerpt: p.excerpt },
-  }));
+  // Dedupe identical metric+period+value across overlapping strategies
+  return dedupeProposals(out);
+}
+
+function dedupeProposals(rows: ExtractedProposal[]): ExtractedProposal[] {
+  const seen = new Set<string>();
+  const out: ExtractedProposal[] = [];
+  for (const p of rows) {
+    const k = `${p.metricKey ?? p.label}|${p.periodEnd ?? ""}|${p.valueNumeric}|${p.unit}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(p);
+  }
+  return out;
 }
 
 function colName(i: number): string {
@@ -123,3 +207,5 @@ function colName(i: number): string {
   }
   return s;
 }
+
+export type { PdfPageBundle, PdfTextItem };

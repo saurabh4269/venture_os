@@ -1,7 +1,16 @@
 import { Queue, Worker } from "bullmq";
 import { loadEnv } from "@venture-os/config";
 import { redactSecretsForLog } from "@venture-os/core";
-import { listConnectedOrgs, runConnectorHealth, runConnectorSync, runFlagJob, runParseJob, runReportJob } from "@venture-os/db";
+import {
+  draftMonthlyPackForOrg,
+  listConnectedOrgs,
+  listMonthlyPackDueOrgs,
+  runConnectorHealth,
+  runConnectorSync,
+  runFlagJob,
+  runParseJob,
+  runReportJob,
+} from "@venture-os/db";
 
 const env = loadEnv();
 const connection = () => {
@@ -120,6 +129,30 @@ async function start() {
     { connection: connection() },
   );
 
+  const monthlyPackSchedule = new Worker(
+    "report.monthly_schedule",
+    async (job) => {
+      const due = await listMonthlyPackDueOrgs();
+      if (!due.length) {
+        log("monthly_pack_schedule_noop", { jobId: job.id });
+        return { ok: true, noop: true, due: 0 };
+      }
+      const reportQ = new Queue("report", { connection: connection() });
+      let drafted = 0;
+      for (const orgId of due) {
+        const row = await draftMonthlyPackForOrg(orgId);
+        if (row?.id) {
+          await reportQ.add("artifact", { orgId, reportId: row.id });
+          drafted += 1;
+        }
+      }
+      await reportQ.close();
+      log("monthly_pack_schedule_done", { jobId: job.id, drafted });
+      return { ok: true, drafted };
+    },
+    { connection: connection() },
+  );
+
   try {
     const sched = new Queue("connector.schedule", { connection: connection() });
     await sched.add("tick", { poll: true }, { repeat: { every: 15 * 60 * 1000 }, jobId: "connector-poll" });
@@ -128,7 +161,29 @@ async function start() {
     log("connector_schedule_repeat_failed", { err: String(err) });
   }
 
-  for (const w of [hello, parse, flags, report, nav, connectorSync, connectorHealth, connectorSchedule]) {
+  try {
+    const packSched = new Queue("report.monthly_schedule", { connection: connection() });
+    await packSched.add(
+      "tick",
+      { poll: true },
+      { repeat: { every: 24 * 60 * 60 * 1000 }, jobId: "monthly-pack-daily" },
+    );
+    await packSched.close();
+  } catch (err) {
+    log("monthly_pack_schedule_repeat_failed", { err: String(err) });
+  }
+
+  for (const w of [
+    hello,
+    parse,
+    flags,
+    report,
+    nav,
+    connectorSync,
+    connectorHealth,
+    connectorSchedule,
+    monthlyPackSchedule,
+  ]) {
     w.on("failed", (job, err) => {
       console.error(
         JSON.stringify({
@@ -144,7 +199,17 @@ async function start() {
   }
 
   log("worker_listen", {
-    queues: ["hello", "parse", "flags", "report", "nav", "connector.sync", "connector.health", "connector.schedule"],
+    queues: [
+      "hello",
+      "parse",
+      "flags",
+      "report",
+      "nav",
+      "connector.sync",
+      "connector.health",
+      "connector.schedule",
+      "report.monthly_schedule",
+    ],
   });
 }
 

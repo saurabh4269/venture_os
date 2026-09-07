@@ -47,6 +47,12 @@ export const companies = pgTable(
     website: text("website"),
     unitHint: text("unit_hint"),
     currencyHint: text("currency_hint"),
+    /** How headline revenue is defined in MIS — never inferred from magnitude. */
+    revenueDefinition: text("revenue_definition").notNull().default("unspecified"),
+    lastRoundLabel: text("last_round_label"),
+    lastRoundAt: date("last_round_at"),
+    postMoney: doublePrecision("post_money"),
+    postMoneyCurrency: text("post_money_currency"),
     onedriveFolderId: text("onedrive_folder_id"),
     onedriveFolderPath: text("onedrive_folder_path"),
     affinityCompanyId: text("affinity_company_id"),
@@ -72,6 +78,8 @@ export const positions = pgTable(
     costBasis: doublePrecision("cost_basis"),
     costCurrency: text("cost_currency").notNull().default("INR"),
     ownershipPct: doublePrecision("ownership_pct"),
+    /** Previous ownership before last CRM sync — missing ≠ 0; used by ownership_change flag. */
+    priorOwnershipPct: doublePrecision("prior_ownership_pct"),
     shares: doublePrecision("shares"),
     investedAt: date("invested_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -400,4 +408,20 @@ export const documentChunks = pgTable(
     tsv: text("tsv"),
   },
   (t) => [index("document_chunks_org_idx").on(t.orgId)],
+);
+
+/**
+ * Firm success counters (§7). Never stores invented portfolio facts — only operational events.
+ */
+export const opsEvents = pgTable(
+  "ops_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: orgId(),
+    eventKey: text("event_key").notNull(),
+    value: doublePrecision("value"),
+    meta: jsonb("meta").notNull().default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("ops_events_org_idx").on(t.orgId, t.eventKey, t.createdAt)],
 );

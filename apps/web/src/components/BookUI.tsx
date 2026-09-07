@@ -65,21 +65,57 @@ export function Panel({
   );
 }
 
-export function SettingsSubnav({ current }: { current: "firm" | "connectors" }) {
+export type SettingsTab = "formula" | "flags" | "connectors" | "firm" | "funds" | "people";
+
+export function SettingsSubnav({ current }: { current: SettingsTab }) {
+  const tabs: { id: SettingsTab; href: string; label: string }[] = [
+    { id: "formula", href: "/settings?tab=formula", label: "Formula book" },
+    { id: "flags", href: "/settings?tab=flags", label: "Flag policy" },
+    { id: "connectors", href: "/settings/connectors", label: "Connectors" },
+    { id: "firm", href: "/settings?tab=firm", label: "Firm" },
+    { id: "funds", href: "/settings?tab=funds", label: "Funds" },
+    { id: "people", href: "/settings?tab=people", label: "People" },
+  ];
   return (
-    <nav className="settings-subnav" aria-label="Settings sections">
-      <Link href="/settings" className={current === "firm" ? "on" : undefined} aria-current={current === "firm" ? "page" : undefined}>
-        Firm
-      </Link>
-      <Link href="/settings#people">Members</Link>
-      <Link
-        href="/settings/connectors"
-        className={current === "connectors" ? "on" : undefined}
-        aria-current={current === "connectors" ? "page" : undefined}
-      >
-        Connectors
-      </Link>
+    <nav className="settings-subnav" aria-label="Settings">
+      {tabs.map((t) => (
+        <Link
+          key={t.id}
+          href={t.href}
+          className={current === t.id ? "on" : undefined}
+          aria-current={current === t.id ? "page" : undefined}
+        >
+          {t.label}
+        </Link>
+      ))}
     </nav>
+  );
+}
+
+export function PageTabs({
+  tabs,
+  current,
+  onChange,
+}: {
+  tabs: { id: string; label: string }[];
+  current: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="page-tabs" role="tablist">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          aria-selected={current === t.id}
+          className={`page-tab${current === t.id ? " on" : ""}`}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -138,7 +174,6 @@ export function AuthFrame({
             <Link href="/">Venture OS</Link>
           </h1>
         )}
-        <p>Portfolio operating system</p>
       </div>
       <div className="auth">
         {mode !== "other" && (
@@ -153,8 +188,6 @@ export function AuthFrame({
         )}
         {children}
       </div>
-      <p className="auth-principles">AES-backed vault · Cite-or-refuse · Institutional calm</p>
-      <p className="auth-foot">© 2026 Venture OS. Keys are AES-encrypted at rest. SSO and password reset by email are not connected.</p>
     </div>
   );
 }

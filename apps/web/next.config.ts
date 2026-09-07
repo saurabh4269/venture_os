@@ -27,6 +27,12 @@ const config: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: "/inbox", destination: "/confirm", permanent: false },
+      { source: "/vault", destination: "/sources", permanent: false },
+    ];
+  },
 };
 
 export default config;
