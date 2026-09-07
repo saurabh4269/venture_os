@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
+import useSWR, { mutate as swrMutate } from "swr";
 import { AskFab } from "@/components/AskPanel";
 import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
 import {
@@ -22,6 +23,7 @@ import {
 import { WakingBook } from "@/components/WakingBook";
 import { api, UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
+import { BOOK_KEEPALIVE_MS, bookFetcher, prefetchBookApis } from "@/lib/book-data";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
 import { isWakeError, WAKING_COPY } from "@/lib/wake";
 
@@ -34,42 +36,20 @@ const BookSessionContext = createContext<BookSession>({
   ready: false,
 });
 
-/** Safe above or below <Shell>: pages mount as the parent, so we also read /api/me once. */
+/** Prefer Shell context (shared layout). Falls back to a cached /api/me read. */
 export function useBookSession(): BookSession {
   const ctx = useContext(BookSessionContext);
-  const [me, setMe] = useState<Me | null>(ctx.me);
-  const [fetched, setFetched] = useState(Boolean(ctx.me));
-  useEffect(() => {
-    if (ctx.me) {
-      setMe(ctx.me);
-      setFetched(true);
-      return;
-    }
-    let cancelled = false;
-    api<Me>("/api/me")
-      .then((m) => {
-        if (!cancelled) {
-          setMe(m);
-          setFetched(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setMe(null);
-          setFetched(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [ctx.me]);
+  const { data: me, isLoading } = useSWR<Me>(ctx.me ? null : "/api/me", bookFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30_000,
+  });
   const role = ctx.me?.role ?? me?.role ?? null;
   return {
-    me: ctx.me ?? me,
+    me: ctx.me ?? me ?? null,
     canWrite: isWriteRole(role),
     isAdmin: isAdminRole(role),
     canLock: isLockRole(role),
-    ready: Boolean(ctx.me) || fetched,
+    ready: ctx.ready || Boolean(ctx.me) || Boolean(me) || !isLoading,
   };
 }
 
@@ -146,12 +126,21 @@ function NavLink({
   onClick: () => void;
   nested?: boolean;
 }) {
+  const router = useRouter();
   return (
     <Link
       href={href}
       className={`${nested ? "nav-sub" : ""}${active ? " active" : ""}`}
       aria-current={active ? "page" : undefined}
       onClick={onClick}
+      onMouseEnter={() => {
+        router.prefetch(href);
+        prefetchBookApis(href);
+      }}
+      onFocus={() => {
+        router.prefetch(href);
+        prefetchBookApis(href);
+      }}
     >
       <Icon className="nav-ico" />
       {label}
@@ -159,14 +148,13 @@ function NavLink({
   );
 }
 
+type OrgRow = { id: string; name: string; fixtureOnly?: boolean };
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const pathRef = useRef(path);
   pathRef.current = path;
   const router = useRouter();
-  const [me, setMe] = useState<Me | null>(null);
-  const [orgs, setOrgs] = useState<{ id: string; name: string; fixtureOnly?: boolean }[]>([]);
-  const [ready, setReady] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [orgLive, setOrgLive] = useState("");
   const [wake, setWake] = useState<"loading" | "slow" | "error">("loading");
@@ -174,8 +162,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [retrying, setRetrying] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const redirected = useRef(false);
 
-  const alive = useRef(true);
+  const {
+    data: me,
+    error: meError,
+    isLoading: meLoading,
+    isValidating: meValidating,
+    mutate: mutateMe,
+  } = useSWR<Me>("/api/me", bookFetcher, { dedupingInterval: 30_000, revalidateOnFocus: true });
+  const { data: orgsData, mutate: mutateOrgs } = useSWR<{ orgs: OrgRow[] }>(
+    me?.user ? "/api/orgs" : null,
+    bookFetcher,
+    { dedupingInterval: 30_000, revalidateOnFocus: false },
+  );
+  const orgs = orgsData?.orgs ?? [];
+  const ready = Boolean(me?.user && me.orgId && !me.needsOrg);
+  const sessionPending = meLoading && !me;
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
@@ -183,70 +186,80 @@ export function Shell({ children }: { children: React.ReactNode }) {
     setExpanded((prev) => ({ ...prev, ...next }));
   }, [path]);
 
-  function loadSession() {
-    setWakeErr("");
-    setRetrying(true);
-    Promise.all([
-      api<Me>("/api/me"),
-      api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
-        orgs: [],
-      })),
-    ])
-      .then(([m, o]) => {
-        if (!alive.current) return;
-        setMe(m);
-        setOrgs(o.orgs);
-        if (!m.user) {
-          router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
-          return;
-        }
-        if (m.needsOrg || !m.orgId) {
-          router.replace("/onboard");
-          return;
-        }
-        setReady(true);
-      })
-      .catch((e: unknown) => {
-        if (!alive.current) return;
-        const msg = e instanceof Error ? e.message : UPSTREAM_UNAVAILABLE_MESSAGE;
-        if (isWakeError(msg)) {
-          setWake("error");
-          setWakeErr(msg);
-          return;
-        }
-        router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
-      })
-      .finally(() => {
-        if (alive.current) setRetrying(false);
-      });
-  }
+  useEffect(() => {
+    if (!sessionPending) return;
+    const slow = window.setTimeout(() => setWake((w) => (w === "loading" ? "slow" : w)), 2500);
+    return () => window.clearTimeout(slow);
+  }, [sessionPending]);
 
   useEffect(() => {
-    alive.current = true;
-    const slow = window.setTimeout(() => {
-      setWake((w) => (w === "loading" ? "slow" : w));
-    }, 2500);
-    loadSession();
-    return () => {
-      alive.current = false;
-      window.clearTimeout(slow);
+    if (!meError) return;
+    const msg = meError instanceof Error ? meError.message : UPSTREAM_UNAVAILABLE_MESSAGE;
+    if (isWakeError(msg)) {
+      setWake("error");
+      setWakeErr(msg);
+      return;
+    }
+    if (redirected.current) return;
+    redirected.current = true;
+    router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
+  }, [meError, router]);
+
+  useEffect(() => {
+    if (!me || redirected.current) return;
+    if (!me.user) {
+      redirected.current = true;
+      router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
+      return;
+    }
+    if (me.needsOrg || !me.orgId) {
+      redirected.current = true;
+      router.replace("/onboard");
+    }
+  }, [me, router]);
+
+  /** Keep free-tier API warm while the book tab stays open. */
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    const ping = () => {
+      if (cancelled || document.visibilityState === "hidden") return;
+      void fetch("/api/health", { credentials: "include", cache: "no-store" }).catch(() => undefined);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+    ping();
+    const id = window.setInterval(ping, BOOK_KEEPALIVE_MS);
+    const onVis = () => {
+      if (document.visibilityState === "visible") ping();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [ready]);
+
+  async function loadSession() {
+    setWakeErr("");
+    setWake("loading");
+    setRetrying(true);
+    redirected.current = false;
+    try {
+      await mutateMe();
+      await mutateOrgs();
+      setWake("loading");
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   async function switchOrg(id: string) {
     if (!id || id === me?.org?.id) return;
     try {
       await api("/api/orgs/select", { method: "POST", body: JSON.stringify({ organizationId: id }) });
-      const [m, o] = await Promise.all([
-        api<Me>("/api/me"),
-        api<{ orgs: { id: string; name: string; fixtureOnly?: boolean }[] }>("/api/orgs").catch(() => ({
-          orgs: [],
-        })),
-      ]);
-      setMe(m);
-      setOrgs(o.orgs);
-      setOrgLive(m.org?.name ?? "");
+      await Promise.all([mutateMe(), mutateOrgs()]);
+      await swrMutate(() => true, undefined, { revalidate: true });
+      setOrgLive(me?.org?.name ?? "");
       setAccountOpen(false);
       router.refresh();
     } catch {
@@ -255,13 +268,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    setMe(null);
-    setReady(false);
+    redirected.current = true;
     try {
       await api("/api/logout", { method: "POST", body: "{}" });
     } catch {
       await authClient.signOut();
     }
+    await swrMutate(() => true, undefined, { revalidate: false });
     router.push("/login");
   }
 
@@ -274,7 +287,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     const message =
-      wake === "error" ? WAKING_COPY.unreachable : wake === "slow" ? WAKING_COPY.slow : WAKING_COPY.checking;
+      wake === "error" ? WAKING_COPY.unreachable : wake === "slow" || meValidating ? WAKING_COPY.slow : WAKING_COPY.checking;
     return (
       <WakingBook
         message={message}
@@ -436,7 +449,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <BookSessionContext.Provider
           value={{
-            me,
+            me: me ?? null,
             canWrite,
             isAdmin: isAdminRole(me?.role),
             canLock: isLockRole(me?.role),
