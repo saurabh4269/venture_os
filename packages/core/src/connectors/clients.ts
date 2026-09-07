@@ -1,4 +1,4 @@
-import { mapAffinityCompanyPage, type MappedAffinityLink } from "./affinity-map.js";
+import { mapAffinityCompany, mapAffinityCompanyPage, type MappedAffinityLink } from "./affinity-map.js";
 import type { ConnectorKind, OnedriveAuthMode } from "./kinds.js";
 import type {
   Connector,
@@ -276,7 +276,10 @@ export const affinityConnector: Connector = {
   async listNewArtifacts(ctx, params, cursor) {
     const key = params.apiKey;
     if (!key) throw new Error("missing_api_key");
-    const url = cursor && cursor.startsWith("https://") ? cursor : `${AFFINITY_API_BASE}/v2/companies?limit=100`;
+    const url =
+      cursor && cursor.startsWith("https://")
+        ? cursor
+        : affinityCompaniesListUrl({ limit: 100, ownershipFieldId: params.ownershipFieldId });
     const res = await ctx.fetch(url, { headers: { authorization: `Bearer ${key}` } });
     if (!res.ok) throw new Error(await readError(res, "affinity_list_failed"));
     const json = (await res.json()) as { data?: unknown[]; pagination?: { nextUrl?: string | null } };
@@ -292,10 +295,72 @@ export const affinityConnector: Connector = {
       cursor: json.pagination?.nextUrl ?? null,
     };
   },
-  async fetch(_ctx, _params, artifact): Promise<FetchArtifactResult> {
-    return { payload: artifact.raw };
+  async fetch(ctx, params, artifact): Promise<FetchArtifactResult> {
+    const key = params.apiKey;
+    if (!key) throw new Error("missing_api_key");
+    // Official: GET /v2/companies/{id} — field data only when fieldIds/fieldTypes are passed.
+    const url = affinityCompanyUrl(artifact.externalId, { ownershipFieldId: params.ownershipFieldId });
+    const res = await ctx.fetch(url, { headers: { authorization: `Bearer ${key}` } });
+    if (!res.ok) throw new Error(await readError(res, "affinity_company_failed"));
+    const json = await res.json();
+    const company =
+      json && typeof json === "object" && "data" in json && json.data && typeof json.data === "object" && !Array.isArray(json.data)
+        ? json.data
+        : json;
+    const mapped = mapAffinityCompany(company, { ownershipFieldId: params.ownershipFieldId });
+    return { payload: mapped ?? company };
   },
 };
+
+/** Affinity v2: field data requires fieldIds or fieldTypes on the query string. */
+export function affinityCompaniesListUrl(opts: {
+  limit?: number;
+  ownershipFieldId?: string | null;
+}): string {
+  const u = new URL(`${AFFINITY_API_BASE}/v2/companies`);
+  u.searchParams.set("limit", String(opts.limit ?? 100));
+  const fieldId = opts.ownershipFieldId?.trim();
+  if (fieldId) u.searchParams.append("fieldIds", fieldId);
+  return u.toString();
+}
+
+export function affinityCompanyUrl(
+  companyId: string,
+  opts?: { ownershipFieldId?: string | null },
+): string {
+  const u = new URL(`${AFFINITY_API_BASE}/v2/companies/${encodeURIComponent(companyId)}`);
+  const fieldId = opts?.ownershipFieldId?.trim();
+  if (fieldId) u.searchParams.append("fieldIds", fieldId);
+  return u.toString();
+}
+
+/**
+ * Official field metadata: GET /v2/companies/fields
+ * https://developer.affinity.co/api-reference/2026-07-15/companies/get-metadata-on-company-fields
+ */
+export async function listAffinityCompanyFields(
+  ctx: ConnectorHttp,
+  apiKey: string,
+): Promise<{ id: string; name: string; type?: string }[]> {
+  const res = await ctx.fetch(`${AFFINITY_API_BASE}/v2/companies/fields`, {
+    headers: { authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) throw new Error(await readError(res, "affinity_fields_failed"));
+  const json = (await res.json()) as { data?: unknown[] } | unknown[];
+  const rows = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
+  const out: { id: string; name: string; type?: string }[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const o = row as Record<string, unknown>;
+    if (typeof o.id !== "string" || typeof o.name !== "string") continue;
+    out.push({
+      id: o.id,
+      name: o.name,
+      type: typeof o.type === "string" ? o.type : undefined,
+    });
+  }
+  return out;
+}
 
 export const granolaConnector: Connector = {
   kind: "granola",
@@ -305,7 +370,7 @@ export const granolaConnector: Connector = {
   async healthCheck(ctx, params) {
     const key = params.apiKey;
     if (!key) return { ok: false, error: "missing_api_key" };
-    const res = await ctx.fetch(`${GRANOLA_API_BASE}/notes`, {
+    const res = await ctx.fetch(`${GRANOLA_API_BASE}/notes?page_size=1`, {
       headers: { authorization: `Bearer ${key}` },
     });
     if (!res.ok) return { ok: false, error: await readError(res, "granola_health_failed") };
@@ -315,6 +380,7 @@ export const granolaConnector: Connector = {
     const key = params.apiKey;
     if (!key) throw new Error("missing_api_key");
     const url = new URL(`${GRANOLA_API_BASE}/notes`);
+    url.searchParams.set("page_size", "50");
     if (cursor && !cursor.startsWith("https://")) url.searchParams.set("cursor", cursor);
     const res = await ctx.fetch(cursor?.startsWith("https://") ? cursor : url.toString(), {
       headers: { authorization: `Bearer ${key}` },
@@ -337,30 +403,53 @@ export const granolaConnector: Connector = {
     return { artifacts, cursor: json.hasMore ? (json.cursor ?? null) : null };
   },
   async fetch(ctx, params, artifact) {
-    const key = params.apiKey;
-    if (!key) throw new Error("missing_api_key");
-    const res = await ctx.fetch(`${GRANOLA_API_BASE}/notes/${encodeURIComponent(artifact.externalId)}?include=transcript`, {
-      headers: { authorization: `Bearer ${key}` },
-    });
-    if (res.status === 413) {
-      const tr = await ctx.fetch(`${GRANOLA_API_BASE}/notes/${encodeURIComponent(artifact.externalId)}/transcript`, {
-        headers: { authorization: `Bearer ${key}` },
-      });
-      if (!tr.ok) throw new Error(await readError(tr, "granola_transcript_failed"));
-      const payload = await tr.json();
-      return { payload, text: transcriptToText(payload), filename: `${artifact.name}.txt`, mime: "text/plain" };
-    }
-    if (!res.ok) throw new Error(await readError(res, "granola_note_failed"));
-    const payload = (await res.json()) as {
-      id?: string;
-      title?: string;
-      summary?: string;
-      transcript?: unknown;
-    };
-    const text = [payload.title, payload.summary, transcriptToText(payload.transcript)].filter(Boolean).join("\n\n");
-    return { payload, text, filename: `${payload.title ?? artifact.name}.txt`, mime: "text/plain" };
+    return fetchGranolaNote(ctx, params.apiKey ?? "", artifact);
   },
 };
+
+/** Official Get Note (+ transcript). 413 → GET /notes/{id}/transcript. */
+export async function fetchGranolaNote(
+  ctx: ConnectorHttp,
+  apiKey: string,
+  artifact: ConnectorArtifact,
+): Promise<FetchArtifactResult> {
+  if (!apiKey) throw new Error("missing_api_key");
+  const res = await ctx.fetch(
+    `${GRANOLA_API_BASE}/notes/${encodeURIComponent(artifact.externalId)}?include=transcript`,
+    { headers: { authorization: `Bearer ${apiKey}` } },
+  );
+  if (res.status === 413) {
+    const tr = await ctx.fetch(
+      `${GRANOLA_API_BASE}/notes/${encodeURIComponent(artifact.externalId)}/transcript`,
+      { headers: { authorization: `Bearer ${apiKey}` } },
+    );
+    if (!tr.ok) throw new Error(await readError(tr, "granola_transcript_failed"));
+    const payload = await tr.json();
+    return {
+      payload,
+      text: transcriptToText(payload),
+      filename: `${artifact.name}.txt`,
+      mime: "text/plain",
+    };
+  }
+  if (res.status === 404) throw new Error("granola_note_not_found");
+  if (!res.ok) throw new Error(await readError(res, "granola_note_failed"));
+  const payload = (await res.json()) as {
+    id?: string;
+    title?: string;
+    summary?: string;
+    transcript?: unknown;
+  };
+  const text = [payload.title, payload.summary, transcriptToText(payload.transcript)]
+    .filter(Boolean)
+    .join("\n\n");
+  return {
+    payload,
+    text,
+    filename: `${payload.title ?? artifact.name}.txt`,
+    mime: "text/plain",
+  };
+}
 
 /** Official Granola transcript items: { speaker: { source, diarization_label? }, text }. */
 export function transcriptToText(transcript: unknown): string {

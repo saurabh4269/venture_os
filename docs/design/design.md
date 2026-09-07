@@ -80,6 +80,10 @@ Avoid filling the UI with explanatory paragraphs, declarations, and ornamental p
 
 `image-references/` is a **starting point** for packaging and viz craft only. Many screens are marketing mockups; several modules (captables, forecasting, peer-fund benchmarks, investee portal, Excel add-in) are **out of Venture OS V1 wedge**. Steal clarity of hierarchy; leave product scope to the brief.
 
+## Current ship note (2026-09-07)
+
+The institutional paper shell, Confirm/Sources naming, cite drawer with sheet/page preview, and Command coverage honesty are **in the product**. Treat this file as packaging intent for what comes next (density, charts, Settings formula-book polish) — not as a backlog to re-implement shipped rituals.
+
 ---
 
 ## Non-goals for this layer

@@ -1,6 +1,6 @@
 # Decision log
 
-**Pack date:** 2026-09-05 (Asia/Calcutta)
+**Pack date:** 2026-09-07 (Asia/Calcutta)
 
 ---
 
@@ -78,8 +78,42 @@ Status: Locked.
 
 ---
 
+## D12 — Claude via Anthropic is optional; OpenAI stays the default
+
+**Decision:** Production default LLM remains **OpenAI** (`LLM_PROVIDER=openai`, D5). The Gargi brief’s Claude reasoning layer is available by setting `LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` (Messages API, `x-api-key` + `anthropic-version: 2023-06-01`). Domain code still depends only on `LlmProvider`; the LLM never writes objective book facts.
+
+**Status:** Locked (2026-09-07).
+
+---
+
 ## D8 — Auth sessions are 7-day cookie sessions with Redis IP rate-limit
 
 **Decision:** Better Auth `expiresIn` = 7 days, `updateAge` = 24 hours. Signup / sign-in / invite accept+reject share a Redis sliding window (20 / 15 min / IP) with in-memory fallback if Redis is down. No SSO. No SMTP reset. Settings documents this honestly.
 
 **Status:** Locked (pass 32 TTL + pass 36 Redis).
+
+---
+
+## D9 — Cite drawer previews locators; bbox OCR is later
+
+**Decision:** One-click source means: Fact / Ask citation opens the cite drawer with metadata plus an in-app preview — bounded Excel sheet window around A1 (`sheet-preview`) or PDF page text — when `canHighlightSource` says the locator is resolvable. Full-file download remains available. Pixel bbox highlight inside the binary is **not** V1; keep gap #16 partial until then.
+
+**Why:** Operators need to verify the number without leaving the ritual. Inventing a highlight when the locator cannot resolve would fake provenance.
+
+**Status:** Locked (2026-09-07).
+
+---
+
+## D10 — Public chrome does not name design-partner customers
+
+**Decision:** Marketing landing, layout metadata, and signup/onboard placeholders use generic firm examples. Design-partner naming stays in briefs / internal docs / FIXTURE labels — not in public product chrome.
+
+**Status:** Locked (2026-09-07).
+
+---
+
+## D11 — Confirm / Sources are the operator names for write-gate and vault
+
+**Decision:** Primary nav labels are **Confirm** (`/confirm`, legacy `/inbox`) and **Sources** (`/sources`, legacy `/vault`). Confirm is the write-gate to the book; it is not a CRM or mail inbox. Mentions / Owner columns stay out until the book stores that data.
+
+**Status:** Locked (2026-09-07).

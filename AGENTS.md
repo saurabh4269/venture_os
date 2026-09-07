@@ -2,8 +2,8 @@
 
 **Repo:** https://github.com/saurabh4269/venture_os  
 **Domain:** ventureos.xyz  
-**Design partner:** V3 Ventures  
-**Pack date:** 2026-09-05 (Asia/Calcutta)
+**Design partner:** V3 Ventures (brief SoT; public chrome does not name the partner)  
+**Pack date:** 2026-09-07 (Asia/Calcutta)
 
 This file is mandatory reading for every coding agent before any code change.
 
@@ -11,7 +11,9 @@ This file is mandatory reading for every coding agent before any code change.
 
 ## Mission
 
-Build a production multi-tenant **portfolio operating system** for VC investment teams. Data arrives from source systems, messy company packs are standardized into a firm schema, and dashboard / NAV / flags / Ask / reports read only from the standardized book.
+Build a production multi-tenant **portfolio operating system** for VC investment teams. Data arrives from source systems, messy company packs are standardized into a firm schema, and Command / NAV / flags / Ask / reports read only from the standardized **book**.
+
+**Wedge:** standardization, provenance, ritual cadence, cite-or-refuse. Not CRM, not fund accounting, not cap table.
 
 Greenfield only. Do **not** extend `saurabh4269/v3_agentic_os` as production SoR.
 
@@ -56,13 +58,15 @@ Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
 
 | Phase | Status |
 | --- | --- |
-| 0 Platform | Shipped (auth, RLS, CI, empty shell). Pass 01: locked-role AC, invite accept, org onboard, membership-checked select |
-| 1 Book | Shipped (upload → parse → inbox → book) |
-| 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements) |
-| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge + period lock, Compare). Passes 23–24: lock/unlock, firm flag policy |
-| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX from the book). Pass 05/09: overlap + invented-number refuse; one-pager requires companyId |
+| 0 Platform | Shipped (auth, RLS, CI, shell, marketing landing). Pass 01 + same-origin BFF / session hardening |
+| 1 Book | Shipped (upload → parse → **Confirm** → book). Sources list + parse-phase stall UX |
+| 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements). Optional high-confidence auto-confirm via org setting |
+| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge + period lock + pack snapshot, Compare). Honest coverage Source/Stage |
+| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX). Cite drawer: sheet window + PDF page preview (`SourceViewer`) |
 | 5 Live connectors | Infra ready (Pass 42). UI honest until healthCheck. Live Graph/Affinity/Granola wait on operator secrets |
 | 6 LP room + billing | Out of scope |
+
+**Still open (typical):** live vendor secrets, domain/SMTP join, bbox OCR highlight inside source files, NAV multi-approver, LP room, billing. See `docs/improvements/NEXT.md`.
 
 Resume from `docs/02_GAP_MATRIX.md` (This-repo column) and unchecked boxes in `docs/04_BUILD_PLAN.md`.
 
@@ -91,19 +95,21 @@ pnpm dev                       # turbo: web :3000, api :4000, worker
 
 If Redis is up and the worker is down, parse jobs sit queued — start the worker or `POST /api/parse/:documentId`.
 
-### OpenAI
+### OpenAI / Claude
 
-- `OPENAI_API_KEY` in `.env` (never commit it).
+- Default: `OPENAI_API_KEY` in `.env` (never commit it). `LLM_PROVIDER=openai`.
+- Brief Claude layer: `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` (Messages API). Still propose → Confirm only.
 - If unset: parse still runs heuristically; Ask still searches the book/FTS and **refuses** to invent a completion.
-- Model via `OPENAI_MODEL` (default `gpt-4o-mini`).
+- Models via `OPENAI_MODEL` / `ANTHROPIC_MODEL`.
 
 ### Demo for a VC
 
 1. Sign up → create org (you are Org Admin). If org create fails, `/onboard` finishes it. Invites: Settings → copy link → `/invite?id=`.
 2. Companies → Add company → upload an MIS `.xlsx` / `.csv` (or run opt-in seed).
-3. Inbox → confirm rows (edit units if needed). Nothing auto-posts to the book.
-4. Command / Flags / NAV / Compare / Ask / Reports now read the **book**.
-5. Optional labelled fixture: `pnpm demo:vc` or `SEED_DEMO=1 pnpm seed:demo`. Banner: **FIXTURE_ONLY**. Never use as production data.
+3. **Confirm** (`/confirm`, legacy `/inbox`) → confirm rows (edit units if needed). Nothing auto-posts to the book unless the org sets a high-confidence auto-confirm threshold.
+4. Command / Flags / NAV / Compare / Ask / Reports now read the **book**. Cite chips open sheet/page preview when locators resolve.
+5. **Sources** (`/sources`, legacy `/vault`) shows parse phase (including stalled).
+6. Optional labelled fixture: `pnpm demo:vc` or `SEED_DEMO=1 pnpm seed:demo`. Banner: **FIXTURE_ONLY**. Never use as production data.
 
 ---
 
@@ -155,7 +161,7 @@ Wave A infra lives in `packages/core` (types/status/validate/map/redact) and `@v
 | --- | --- |
 | Tables, RLS, migrations | `packages/db` |
 | Zod / DTO | `packages/schema` |
-| Runway, MOIC, XIRR, units, FY, flags, Ask, extract | `packages/core` |
+| Runway, MOIC, XIRR, units, FY, flags, Ask, extract, cite helpers, salvage, fuzzy propose, parse-phase, ops | `packages/core` |
 | LLM port | `packages/llm` |
 | HTTP | `apps/api` |
 | Jobs | `apps/worker` |
@@ -188,7 +194,7 @@ Wave A infra lives in `packages/core` (types/status/validate/map/redact) and `@v
 
 ## UI
 
-First principles. Do not copy `v3.heisenbug.in`. Dense calm desktop, provenance chips, objective/subjective split, ritual nav.
+First principles. Do not copy `v3.heisenbug.in`. Dense calm desktop, provenance chips, objective/subjective split, ritual nav (Today / Book / Review / Output — see `docs/design/design.md`). Confirm is the write-gate; Ask is cite-or-refuse (panel + route). Public marketing does not name design-partner customers.
 
 ---
 

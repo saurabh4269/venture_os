@@ -93,6 +93,8 @@ export function validateCompanyConnectorMapping(input: {
   const affinityId = trim(input.affinityCompanyId ?? undefined);
   const granola = trim(input.granolaLink ?? undefined);
   if (affinityId && !/^\d+$/.test(affinityId)) fields.affinityCompanyId = "must_be_numeric_id";
+  // Official Granola note ids look like not_1d3tmYTlCICgjy (docs.granola.ai).
+  if (granola && !/^not_[a-zA-Z0-9]+$/.test(granola)) fields.granolaLink = "must_be_not_id";
   if (granola && granola.length > 400) fields.granolaLink = "too_long";
   if (folderId && folderId.length > 200) fields.onedriveFolderId = "too_long";
   if (folderPath && folderPath.length > 500) fields.onedriveFolderPath = "too_long";

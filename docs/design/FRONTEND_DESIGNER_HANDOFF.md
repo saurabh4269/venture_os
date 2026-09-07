@@ -2,11 +2,12 @@
 
 **Audience:** Product / UI designer producing IA, wireframes, and a first-principles visual system  
 **Product:** Venture OS — cited portfolio operating system for VC investment teams  
-**Design partner:** V3 Ventures  
+**Design partner:** V3 Ventures (brief SoT; public chrome does not name the partner)  
 **Live preview (working product, not a visual template):** https://venture-os-saurabh-gupta.vercel.app  
+**Pack / ship note:** 2026-09-07 — book + rituals + Ask/Reports live; cite drawer previews sheet/page; connectors infra-ready  
 **This file is not source of truth.** It cites locked product docs. If this brief and those docs disagree, **the numbered docs win**. If those docs and the Gargi brief disagree on **V3 functional behavior**, **the Gargi brief wins**.
 
-**Shipped visual system:** [`BOOK_UI.md`](BOOK_UI.md) — paper / forest / dual-lane tokens, 220px rail, Command KPI + pulse layout.
+**Shipped visual system:** [`BOOK_UI.md`](BOOK_UI.md) — paper / forest / dual-lane tokens, 220px rail, Command KPI + pulse layout. Packaging intent: [`design.md`](design.md).
 
 ---
 
@@ -29,13 +30,13 @@ Venture OS inverts that:
 
 1. **Data arrives** from source systems (OneDrive for MIS, Affinity for ownership, Granola for founder-call transcripts) or a controlled **upload fallback**.
 2. Messy company packs are **standardized into a firm book** — one schema, one period model, dual currency, explicit units.
-3. **Nothing auto-posts.** A human-in-the-loop **Inbox** confirms (or rejects / edits) proposed extracts. Confirmed rows become **facts** with provenance (source file + cell/page locator).
+3. **Nothing auto-posts by default.** A human-in-the-loop **Confirm** queue confirms (or rejects / edits) proposed extracts. Confirmed rows become **facts** with provenance (source file + cell/page locator). Optional org high-confidence auto-confirm is an explicit Settings threshold, not the default.
 4. **Objective commentary** (what the numbers support, from MIS) and **subjective commentary** (what the founder said, from transcripts / human judgement) stay **visibly separate**. Never blended.
 5. Command, Flags, NAV, Compare, Ask, and Reports **read only from the standardized book** — never from ad-hoc Excel.
 
-**Cite or refuse.** Every user-visible figure needs a source, or it must not display as fact. Ask must say “not available” rather than estimate. Missing is **not** zero: UI shows `—` / “not reported”.
+**Cite or refuse.** Every user-visible figure needs a source, or it must not display as fact. The cite drawer previews a sheet window or PDF page text when the locator resolves; Ask must say “not available” rather than estimate. Missing is **not** zero: UI shows `—` / “not reported”.
 
-**Who it is for now:** V3 Ventures (India + Europe/US evergreen vehicles; consumer brands). Scale: **15–40 companies** per org initially; architecture must not hard-cap there.
+**Who it is for now:** Design partner workflows from the Gargi brief (V3 Ventures). Scale: **15–40 companies** per org initially; architecture must not hard-cap there. Public product chrome stays partner-anonymous.
 
 **Who it is for later:** the same product sold to other VC firms as **multi-tenant SaaS** (one org per firm, roles, connectors, firm metric schema and flag policy). Tenancy is already in the product; billing / LP portal are out of scope.
 
@@ -59,7 +60,7 @@ Platform super-admin is internal and audited — not a firm role.
 ### Morning loop (design for this, not a generic SaaS dashboard)
 
 1. Open **Command** — fund pulse + “needs a look” (pending inbox + open flags).
-2. Clear **Inbox** — confirm / edit units / reject proposed extracts.
+2. Clear **Confirm** — confirm / edit units / reject proposed extracts.
 3. Drill a **company** — book, dual commentary, vault, flags.
 4. Rituals as needed: **Flags**, **NAV** (quarterly), **Compare**, **Ask**, **Reports**.
 
@@ -70,7 +71,7 @@ Target from the brief: a new company producing structured output in **≤15 minu
 1. Sign up with work email → create Organisation (you are Org Admin), or accept an invite.
 2. Create Fund(s) and reporting currency defaults.
 3. Connect sources *or* start upload-only.
-4. Add first portfolio company → first file (upload or OneDrive pull) → human confirms Inbox → Command has a live row.
+4. Add first portfolio company → first file (upload or OneDrive pull) → human confirms in Confirm → Command has a live row.
 
 **Not yet connected (design honestly):** domain auto-join, SMTP invites (copy-link only), SSO, password reset by email.
 
@@ -93,16 +94,16 @@ Legend: **shipped** = real end-to-end in this product · **partial** = real surf
 | Org switcher | shell chrome | shipped | Multi-org membership. Membership-checked select. |
 | FIXTURE_ONLY banner | shell chrome | shipped | When org is labelled fixture: “illustrative rows — do not report these figures.” Never style this as a toast you can dismiss away from the book. |
 
-### 3.2 Book: companies, vault, inbox (Phases 1–2 — shipped)
+### 3.2 Book: companies, Sources, Confirm (Phases 1–2 — shipped)
 
 | Feature | Route | Status | Designer notes |
 | --- | --- | --- | --- |
 | Company list | `/companies` | shipped | Coverage only. Empty state = empty book. |
-| 15-min onboard wizard | `/companies/new` | partial | Profile → first file (upload or OneDrive pull) → Inbox. Live pull needs operator secrets. |
-| Company detail | `/companies/[id]` | shipped | Headlines, positions, book table, **dual commentary**, flags, per-company vault, connector mapping. |
-| Company vault (org-wide) | `/vault` | shipped | Immutable source files + parse status. Firm library is thin. **LP room is Phase 2 / missing.** |
-| HITL inbox | `/inbox` | shipped | Propose ≠ fact. Tabs: pending / confirmed / edited / rejected. Unit ambiguity must be resolved before confirm. |
-| Units / FY / FX / restatements / corrections | company + inbox | shipped | Ambiguous unit → inbox, never silent convert. FY Apr–Mar default. Dual INR Cr + EUR only with FX **rate + date + source**. Restatements keep history. Corrections survive re-parse. |
+| 15-min onboard wizard | `/companies/new` | partial | Profile → first file (upload or OneDrive pull) → Confirm. Connector ids optional. Live pull needs operator secrets. |
+| Company detail | `/companies/[id]` | shipped | Headlines, positions, book table, **dual commentary**, flags, per-company sources, connector mapping. Cite opens sheet/page preview. |
+| Sources (org-wide) | `/sources` (legacy `/vault`) | shipped | Immutable source files + parse-phase badges (incl. stalled). Firm library is thin. **LP room is Phase 6 / missing.** |
+| HITL Confirm | `/confirm` (legacy `/inbox`) | shipped | Propose ≠ fact. Evidence pills. Tabs: pending / confirmed / edited / rejected. Unit ambiguity must be resolved before confirm. No Mentions/Owner until book stores them. |
+| Units / FY / FX / restatements / corrections | company + Confirm | shipped | Ambiguous unit → Confirm, never silent convert. FY Apr–Mar default (month-named selects). Dual INR Cr + EUR only with FX **rate + date + source**. Restatements keep history. Corrections survive re-parse. Optional high-confidence auto-confirm via org setting. |
 
 ### 3.3 Rituals (Phase 3 — shipped)
 
@@ -182,22 +183,24 @@ Unauthenticated
 Signed in, no org
   /onboard
 
-Signed in, in org  (left rail)
-  Morning
-    /command          Fund pulse
+Signed in, in org  (left rail — cadence groups; labels can evolve)
+  Today
+    /command          Fund pulse / needs a look
+  Book
     /companies        Names on the book
     /companies/new    15-min onboard
     /companies/[id]   Company operating page
-    /inbox            Confirm before it posts
-  Rituals
+    /confirm          Confirm before it posts (legacy /inbox)
+    /sources          Source files + parse phase (legacy /vault)
+  Review
     /flags            Catalog risks
     /nav              Marks and lock
     /compare          Peer metrics
-    /ask              Cite or refuse
+  Output
     /reports          Packs from the book
-  Firm
-    /vault            Source files
-    /settings         Firm, people, policy
+  Ask                Cite-or-refuse panel + /ask history (not a crowded rail peer)
+  Firm (via account chrome)
+    /settings         Firm, people, policy, formula book
     /settings/connectors
 ```
 
@@ -213,17 +216,17 @@ Design a **dense desktop-first institutional shell**, not a marketing site.
 | Top bar | Org switcher | Firm name is a first-class object. Switching orgs must feel irreversible enough that you notice (same book chrome, different data). |
 | Fixture banner | Full-width alert when org is `FIXTURE_ONLY` | Persistent, high-contrast, not a snackbar. Copy must stay honest. |
 | Skip link | “Skip to book” | Keep. Institutional users tab. |
-| Provenance | `Fact` chips — click downloads source (session cookie) | Recurring atom. Unfact = `—` chip, not a grey zero. FX note sits under the chip (rate + date + source). |
+| Provenance | `Fact` chips — click opens cite drawer (sheet/page preview when resolvable) + download | Recurring atom. Unfact = `—` chip, not a grey zero. FX note sits under the chip (rate + date + source). |
 
-**Do not** add a global search that pretends to answer numbers. Number questions go to **Ask** (cite or refuse). File finding can later live in Vault.
+**Do not** add a global search that pretends to answer numbers. Number questions go to **Ask** (cite or refuse). File finding lives in **Sources**.
 
 ### 4.3 Language (use these names in UI)
 
 | Use | Do not use |
 | --- | --- |
 | **Book** (confirmed facts) | “Database”, “spreadsheet”, “AI memory” |
-| **Inbox** / confirm | “Approve AI”, “magic import” |
-| **Company vault** | Overloading “data room” for company files |
+| **Confirm** / proposed / queue | “Approve AI”, “magic import”, mail “Inbox” as the product metaphor |
+| **Sources** / company vault | Overloading “data room” for company files |
 | **Firm library** | — |
 | **LP data room** | Only if/when Phase 6 exists |
 | **Objective** / **Subjective** | A single “Notes” or “AI summary” column |
@@ -233,11 +236,11 @@ Design a **dense desktop-first institutional shell**, not a marketing site.
 
 ### 4.4 User journeys to wireframe end-to-end
 
-1. **Empty firm:** signup → org → empty Command → add company → upload MIS → Inbox confirm → Command row with chips.
+1. **Empty firm:** signup → org → empty Command → add company → upload MIS → Confirm → Command row with chips.
 2. **Invite:** Org Admin copies link → teammate signup/login → `/invite` accept → Command as offered role (Viewer is read-only).
-3. **Monthly ritual:** Command “needs a look” → Inbox → company dual commentary → Flags.
+3. **Monthly ritual:** Command “needs a look” → Confirm → company dual commentary → Flags.
 4. **Quarterly NAV:** NAV as-of + prior → unmarked chips → add mark (method + rationale + optional memo + FX triple) → lock → download official pack.
-5. **Ask:** question → cited answer **or** refuse banner + empty/unresolved citations.
+5. **Ask:** question → cited answer **or** refuse banner + empty/unresolved citations; cite opens sheet/page preview when resolvable.
 6. **Connectors:** Settings status table → Connectors paste keys → Test → Connect. Status stays not connected until test succeeds.
 
 ---
@@ -254,7 +257,7 @@ Each screen: job, layout, states, constraints. Wireframe at **1440×900** first;
 
 - Title + one-line lede (facts only; missing is —).
 - Pulse cards: Names · NAV (as-of, with “incomplete · N unmarked” when incomplete) · MOIC · Needs a look (inbox count + flag count).
-- **Needs a look** list: inbox rows → `/inbox`; flag rows → `/flags`.
+- **Needs a look** list: Confirm rows → `/confirm`; flag rows → `/flags`. Aggregated by company when multiple pending extracts.
 - Coverage table: Company · Stage · Own. · Last MIS · Cash · Burn · Runway · Mark · Flags. Company name → `/companies/[id]`. Cash/burn/runway/mark are **Fact chips** (click = source). FX note under converted figures.
 
 **States**
@@ -311,15 +314,16 @@ Each screen: job, layout, states, constraints. Wireframe at **1440×900** first;
 
 **Constraints:** Subjective lane **rejects MIS-only source**. Dual EUR only with complete FX triple; else refuse conversion (native + “EUR —”).
 
-### 5.5 Inbox — `/inbox`
+### 5.5 Confirm — `/confirm`
 
-**Job:** Human confirm is the write-gate to the book.
+**Job:** Human confirm is the write-gate to the book (not a CRM or mail inbox).
 
 **Layout**
 
-- Lede: “AI / parser proposes. You confirm, edit units or values, or reject. Nothing here is a fact until you say so.”
+- Lede: “Parser proposes. You confirm, edit units or values, or reject. Nothing here is a fact until you say so.”
 - Status tabs: pending · confirmed · edited · rejected.
-- Table: Company · Kind · Proposal (value, period, unit, correction note) · Locator (sheet/cell/page + excerpt) · Confidence · Confirm / Reject.
+- Table: Company · Kind · Proposal (value, period, unit, correction note) · Locator (sheet/cell/page + excerpt) · Evidence pill · Confidence · Confirm / Reject.
+- No Mentions filter / Owner column until the book stores that data.
 
 **Critical interactions**
 
@@ -327,18 +331,19 @@ Each screen: job, layout, states, constraints. Wireframe at **1440×900** first;
 - Low confidence (<50% today) visually flagged — still a human decision, not auto-reject.
 - Value may be edited to `—` (null). Missing stays missing.
 - Viewer: no confirm/reject controls.
+- Cite / locator opens the cite drawer with sheet/page preview when resolvable.
 
 **Empty pending:** “Queue is clear. Upload a pack from Companies if you expect extracts.” — not “You’re done!” if the book is empty.
 
-### 5.6 Vault — `/vault`
+### 5.6 Sources — `/sources`
 
-**Job:** Firm-wide list of immutable source files.
+**Job:** Firm-wide list of immutable source files + honest parse phase.
 
-**Layout:** Table File (download chip) · Company · Kind · Parse (status + error).
+**Layout:** Table File (download chip) · Company · Kind · Parse phase (queued / running / done / error / stalled).
 
 **Empty:** “No documents. Open a company and upload.”
 
-**Copy:** “Company vault — MIS, board packs, transcripts. Firm library is thin. LP room is Phase 2.” Do not design an LP diligence tree in V1.
+**Copy:** “Sources — MIS, board packs, transcripts. Firm library is thin. LP room is Phase 6.” Do not design an LP diligence tree in V1.
 
 ### 5.7 Flags — `/flags`
 

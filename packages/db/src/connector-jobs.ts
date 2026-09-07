@@ -241,44 +241,58 @@ async function syncOnedrive(
   if (!targets.length) return 0;
   let ingested = 0;
   const store = createObjectStore();
+  const allowedExt = [".xlsx", ".xls", ".csv", ".pdf", ".docx"];
   for (const co of targets) {
     const extra: Record<string, string> = {};
     if (co.onedriveFolderId) extra.folderId = co.onedriveFolderId;
     if (co.onedriveFolderPath) extra.folderPath = co.onedriveFolderPath;
-    const listed = await CONNECTORS.onedrive.listNewArtifacts(httpWith(fetchImpl), connectorParams(secrets, extra));
-    for (const art of listed.artifacts) {
-      const [prior] = await tx
-        .select()
-        .from(documents)
-        .where(and(eq(documents.externalId, art.externalId), eq(documents.source, "onedrive")));
-      if (prior) continue;
-      const name = art.name.toLowerCase();
-      if (![".xlsx", ".xls", ".csv", ".pdf"].some((ext) => name.endsWith(ext))) continue;
-      const fetched = await CONNECTORS.onedrive.fetch(httpWith(fetchImpl), connectorParams(secrets, extra), art);
-      if (!fetched.bytes?.length) continue;
-      const buf = Buffer.from(fetched.bytes);
-      const digest = sha256(buf);
-      const safeName = (fetched.filename ?? art.name).replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 180);
-      const key = `${orgId}/${co.id}/onedrive-${Date.now()}-${safeName}`;
-      await store.put(key, buf, fetched.mime || "application/octet-stream");
-      const [doc] = await tx
-        .insert(documents)
-        .values({
-          orgId,
-          companyId: co.id,
-          kind: "mis",
-          filename: safeName,
-          storageKey: key,
-          mime: fetched.mime || "application/octet-stream",
-          sha256: digest,
-          source: "onedrive",
-          externalId: art.externalId,
-        })
-        .returning();
-      if (doc) pendingParse.push(doc.id);
-      ingested += 1;
-    }
-    await upsertCursor(tx, orgId, "onedrive", co.id, listed.cursor ?? null);
+    // Follow Graph @odata.nextLink until the folder page is exhausted.
+    let cursor: string | null | undefined = undefined;
+    do {
+      const listed = await CONNECTORS.onedrive.listNewArtifacts(
+        httpWith(fetchImpl),
+        connectorParams(secrets, extra),
+        cursor,
+      );
+      for (const art of listed.artifacts) {
+        const [prior] = await tx
+          .select()
+          .from(documents)
+          .where(and(eq(documents.externalId, art.externalId), eq(documents.source, "onedrive")));
+        if (prior) continue;
+        const name = art.name.toLowerCase();
+        if (!allowedExt.some((ext) => name.endsWith(ext))) continue;
+        const fetched = await CONNECTORS.onedrive.fetch(
+          httpWith(fetchImpl),
+          connectorParams(secrets, extra),
+          art,
+        );
+        if (!fetched.bytes?.length) continue;
+        const buf = Buffer.from(fetched.bytes);
+        const digest = sha256(buf);
+        const safeName = (fetched.filename ?? art.name).replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 180);
+        const key = `${orgId}/${co.id}/onedrive-${Date.now()}-${safeName}`;
+        await store.put(key, buf, fetched.mime || "application/octet-stream");
+        const [doc] = await tx
+          .insert(documents)
+          .values({
+            orgId,
+            companyId: co.id,
+            kind: "mis",
+            filename: safeName,
+            storageKey: key,
+            mime: fetched.mime || "application/octet-stream",
+            sha256: digest,
+            source: "onedrive",
+            externalId: art.externalId,
+          })
+          .returning();
+        if (doc) pendingParse.push(doc.id);
+        ingested += 1;
+      }
+      cursor = listed.cursor ?? null;
+      await upsertCursor(tx, orgId, "onedrive", co.id, cursor);
+    } while (cursor);
   }
   return ingested;
 }
@@ -290,22 +304,26 @@ async function syncAffinity(
   cos: { id: string; affinityCompanyId: string | null }[],
   fetchImpl: FetchLike,
 ): Promise<number> {
-  const listed = await CONNECTORS.affinity.listNewArtifacts(
-    httpWith(fetchImpl),
-    connectorParams(secrets),
-  );
+  const targets = cos.filter((c) => c.affinityCompanyId);
+  if (!targets.length) return 0;
   let updated = 0;
-  for (const art of listed.artifacts) {
-    const mapped = art.raw as MappedAffinityLink | undefined;
-    if (!mapped) continue;
-    const match = cos.find((c) => c.affinityCompanyId && c.affinityCompanyId === mapped.affinityCompanyId);
-    if (!match) continue;
-    if (mapped.ownershipPct == null) continue;
-    const pos = await tx.select().from(positions).where(eq(positions.companyId, match.id));
+  const ctx = httpWith(fetchImpl);
+  const params = connectorParams(secrets);
+  // Prefer GET /v2/companies/{id}?fieldIds=… for each mapped company (official fieldIds required for ownership).
+  for (const co of targets) {
+    const externalId = (co.affinityCompanyId ?? "").trim();
+    if (!externalId) continue;
+    const fetched = await CONNECTORS.affinity.fetch(ctx, params, {
+      externalId,
+      name: externalId,
+      kind: "ownership",
+    });
+    const mapped = fetched.payload as MappedAffinityLink | undefined;
+    if (!mapped || mapped.ownershipPct == null) continue;
+    const pos = await tx.select().from(positions).where(eq(positions.companyId, co.id));
     if (!pos.length) continue;
     const prior = pos[0]!.ownershipPct;
     const next = mapped.ownershipPct;
-    // Preserve prior only when we have a reported previous value that differs (missing ≠ 0).
     const priorOwnershipPct =
       prior != null && next != null && Math.abs(prior - next) > 1e-9 ? prior : pos[0]!.priorOwnershipPct;
     await tx
@@ -314,7 +332,7 @@ async function syncAffinity(
       .where(eq(positions.id, pos[0]!.id));
     updated += 1;
   }
-  await upsertCursor(tx, orgId, "affinity", null, listed.cursor ?? null);
+  await upsertCursor(tx, orgId, "affinity", null, null);
   return updated;
 }
 
@@ -327,77 +345,87 @@ async function syncGranola(
 ): Promise<number> {
   const targets = cos.filter((c) => c.granolaLink);
   if (!targets.length) return 0;
-  const listed = await CONNECTORS.granola.listNewArtifacts(httpWith(fetchImpl), connectorParams(secrets));
   let ingested = 0;
   const store = createObjectStore();
   const today = new Date().toISOString().slice(0, 10);
+  const ctx = httpWith(fetchImpl);
   for (const co of targets) {
     const link = (co.granolaLink ?? "").trim();
-    const arts = listed.artifacts.filter((a) => a.externalId === link || a.name === link);
-    for (const art of arts) {
-      const [prior] = await tx
-        .select()
-        .from(documents)
-        .where(and(eq(documents.externalId, art.externalId), eq(documents.source, "granola")));
-      if (prior) continue;
-      const fetched = await CONNECTORS.granola.fetch(httpWith(fetchImpl), connectorParams(secrets), art);
-      const text = fetched.text || transcriptToText(fetched.payload) || art.name;
-      const buf = Buffer.from(text, "utf8");
-      const digest = sha256(buf);
-      const safeName = `${art.externalId}.txt`.replace(/[^a-zA-Z0-9._-]+/g, "_");
-      const key = `${orgId}/${co.id}/granola-${safeName}`;
-      await store.put(key, buf, "text/plain");
-      const [doc] = await tx
-        .insert(documents)
-        .values({
-          orgId,
-          companyId: co.id,
-          kind: "transcript",
-          filename: safeName,
-          storageKey: key,
-          mime: "text/plain",
-          sha256: digest,
-          source: "granola",
-          externalId: art.externalId,
-        })
-        .returning();
-      if (!doc) continue;
-      const refId = randomUUID();
-      await tx.insert(sourceRefs).values({
-        id: refId,
-        orgId,
-        documentId: doc.id,
-        locator: { excerpt: text.slice(0, 240) },
-        excerpt: text.slice(0, 500),
+    if (!link) continue;
+    // Official Get Note by not_… id — do not depend on list pagination finding the mapped note.
+    let fetched;
+    try {
+      fetched = await CONNECTORS.granola.fetch(ctx, connectorParams(secrets), {
+        externalId: link,
+        name: link,
+        kind: "transcript",
       });
-      await tx.insert(documentChunks).values({
-        orgId,
-        documentId: doc.id,
-        sourceRefId: refId,
-        body: text.slice(0, 20_000),
-      });
-      await tx.insert(inboxItems).values({
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("granola_note_not_found") || msg.includes(":404")) continue;
+      throw err;
+    }
+    const [prior] = await tx
+      .select()
+      .from(documents)
+      .where(and(eq(documents.externalId, link), eq(documents.source, "granola")));
+    if (prior) continue;
+    const text = fetched.text || transcriptToText(fetched.payload) || link;
+    const buf = Buffer.from(text, "utf8");
+    const digest = sha256(buf);
+    const safeName = `${link}.txt`.replace(/[^a-zA-Z0-9._-]+/g, "_");
+    const storageKey = `${orgId}/${co.id}/granola-${safeName}`;
+    await store.put(storageKey, buf, "text/plain");
+    const [doc] = await tx
+      .insert(documents)
+      .values({
         orgId,
         companyId: co.id,
-        documentId: doc.id,
-        sourceRefId: refId,
-        kind: "commentary",
-        status: "pending",
-        proposed: {
-          lane: "subjective",
-          body: text.slice(0, 4000),
-          periodStart: today.slice(0, 8) + "01",
-          periodEnd: today,
-          sourceKind: "transcript",
-        },
-        confidence: 0.6,
-        locator: { excerpt: text.slice(0, 120) },
-        proposedBy: "granola",
-      });
-      ingested += 1;
-    }
+        kind: "transcript",
+        filename: safeName,
+        storageKey,
+        mime: "text/plain",
+        sha256: digest,
+        source: "granola",
+        externalId: link,
+      })
+      .returning();
+    if (!doc) continue;
+    const refId = randomUUID();
+    await tx.insert(sourceRefs).values({
+      id: refId,
+      orgId,
+      documentId: doc.id,
+      locator: { excerpt: text.slice(0, 240) },
+      excerpt: text.slice(0, 500),
+    });
+    await tx.insert(documentChunks).values({
+      orgId,
+      documentId: doc.id,
+      sourceRefId: refId,
+      body: text.slice(0, 20_000),
+    });
+    await tx.insert(inboxItems).values({
+      orgId,
+      companyId: co.id,
+      documentId: doc.id,
+      sourceRefId: refId,
+      kind: "commentary",
+      status: "pending",
+      proposed: {
+        lane: "subjective",
+        body: text.slice(0, 4000),
+        periodStart: today.slice(0, 8) + "01",
+        periodEnd: today,
+        sourceKind: "transcript",
+      },
+      confidence: 0.6,
+      locator: { excerpt: text.slice(0, 120) },
+      proposedBy: "granola",
+    });
+    ingested += 1;
   }
-  await upsertCursor(tx, orgId, "granola", null, listed.cursor ?? null);
+  await upsertCursor(tx, orgId, "granola", null, null);
   return ingested;
 }
 

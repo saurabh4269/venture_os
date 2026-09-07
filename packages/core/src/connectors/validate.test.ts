@@ -38,4 +38,10 @@ describe("connector credential validation", () => {
     expect(validateConnectorCredentials({ kind: "affinity", apiKey: "x" }).ok).toBe(false);
     expect(validateConnectorCredentials({ kind: "granola", apiKey: "grn_workspace_key" }).ok).toBe(true);
   });
+
+  it("requires Granola company links to be official not_… ids", async () => {
+    const { validateCompanyConnectorMapping } = await import("./validate.js");
+    expect(validateCompanyConnectorMapping({ granolaLink: "uuid-looking" }).ok).toBe(false);
+    expect(validateCompanyConnectorMapping({ granolaLink: "not_1d3tmYTlCICgjy" }).ok).toBe(true);
+  });
 });

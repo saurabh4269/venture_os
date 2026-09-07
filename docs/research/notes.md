@@ -1,16 +1,20 @@
 # Research notes
 
+## Higher-level picture (2026-09-07)
+
+Greenfield book is live: upload/parse → Confirm → rituals/Ask/Reports. Connector infra sealed; live vendor calls need secrets. Cite drawer previews sheet windows and PDF page text; bbox OCR overlay still open.
+
 ## Historical demo (workflow only)
 
 - URL: `https://v3.heisenbug.in`
 - Sibling repo name: `saurabh4269/v3_agentic_os` (not a visual template)
-- Useful: Command → company → Ask → inbox → one-pager ritual order
+- Useful: Command → company → Ask → confirm → one-pager ritual order
 - Not useful: chrome, fonts, film landing, seeded illustrative NAV
 - Demo itself labelled ownership / NAV / MIS / flags as **not the live book**
 
 ## V3 public context (names only)
 
-Public site `https://v3.ventures`: consumer early-stage; India / Europe / US; Verlinvest-backed. Public brand names may appear in **FIXTURE_ONLY** seed copy as labels, never as default production rows, and never with invented operating figures presented as fact.
+Public site `https://v3.ventures`: consumer early-stage; India / Europe / US; Verlinvest-backed. Public brand names may appear in **FIXTURE_ONLY** seed copy as labels, never as default production rows, never with invented operating figures presented as fact, and **not** in public marketing chrome (D10).
 
 ## Stack lock vs older drafts
 
@@ -18,9 +22,11 @@ Handoffs that mentioned Clerk, WorkOS, Inngest, Claude-default, or R2-only are v
 
 ## Parser reality
 
-- XLSX: `exceljs` — headers + alias map + unit tokens in header/cells.
-- PDF: text extract (`pdf-parse`); layout-fragile. Low confidence → inbox.
-- Do not claim OCR completeness.
+- XLSX/CSV: `exceljs` — headers + alias map + unit tokens; fuzzy catalog suggest at capped confidence when exact alias misses.
+- PDF: pdfjs layout tables + plain text; low confidence → Confirm. No bbox OCR claim.
+- DOCX: supported on the parse path; treat layout as fragile.
+- LLM assist: propose → Confirm only; JSON fence salvage for structured replies; never writes the book.
+- Cite preview: bounded sheet window (`packages/db` sheet-preview) + PDF page text APIs — not full tiler / OCR.
 
 ## Better Auth
 

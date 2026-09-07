@@ -1,11 +1,11 @@
-# Build plan — Agentic OS (phases 0–6)
+# Build plan — Venture OS (phases 0–6)
 
 **Status:** Locked delivery order  
-**Pack date:** 2026-09-05 (Asia/Calcutta)  
-**Implementation:** Phases 0–4 largely shipped in this repo; Phase 5 connector **infra** shipped (Pass 42) — live vendor calls wait on operator secrets. Tick boxes in the same PR as behaviour — do not rewrite the plan.  
+**Pack date:** 2026-09-07 (Asia/Calcutta)  
+**Implementation:** Phases 0–4 **shipped**; Phase 5 connector **infra** shipped (Pass 42) — live vendor calls wait on operator secrets. Cite-to-source deepened (sheet/page preview in cite drawer; bbox OCR still later). Tick boxes in the same PR as behaviour — do not rewrite the plan.  
 **Rule:** Port UX patterns from the demo; **do not** port the demo data plane (corpus-JSON, ephemeral inbox, OpenAI-coupled Luna, serverless-heavy parse).
 
-Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`). Architecture: `03_ARCHITECTURE.md`. Invariants: `05_DATA_MODEL.md`.
+Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`). Architecture: `03_ARCHITECTURE.md`. Invariants: `05_DATA_MODEL.md`. Residual backlog: `improvements/NEXT.md`.
 
 ---
 
@@ -13,8 +13,8 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 ### Port (reimplement patterns)
 
-- Command-center IA: Command / Inbox / Flags / NAV / Compare / Reports / Ask / Documents.
-- Citation / SourceChip UX and “decline rather than guess” Ask contract.
+- Command-center IA: Command / Confirm / Flags / NAV / Compare / Reports / Ask / Sources (cadence grouping in `design/design.md`).
+- Citation / SourceChip UX and “decline rather than guess” Ask contract (cite drawer + sheet/page preview landed).
 - Flag categories and severity framing (starting catalog; firm-configurable later).
 - First-principles Venture OS UI (do not clone v3.heisenbug.in).
 - Empty-state / tour narrative.
@@ -43,7 +43,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - Postgres + migrations; `org_id` + RLS policies on core tables.
 - S3-compatible client stub; BullMQ+Redis hello-world.
 - `packages/llm` provider interface; OpenAI default wired behind interface (no production calls required yet).
-- Empty shell routes with OS IA labels (Command/Inbox/Flags/NAV/Compare/Reports/Ask/Documents); first-principles UI — not a demo clone (no seed numbers).
+- Empty shell routes with OS IA labels (Command/Confirm/Flags/NAV/Compare/Reports/Ask/Sources); first-principles UI — not a demo clone (no seed numbers).
 - CI: lint, typecheck, migrate-on-test.
 
 ### Acceptance criteria
@@ -78,10 +78,11 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 
 - [x] Upload PDF/XLSX → job completes → inbox shows proposed fields with confidence + locator.
 - [x] Confirm persists across refresh and redeploy.
-- [x] Confirmed fact has `document_id` + locator; UI can open source.
+- [x] Confirmed fact has `document_id` + locator; UI opens cite drawer with sheet window / PDF page text when resolvable (download always available).
 - [x] Missing fields stay `null` (never coerced to 0).
 - [x] Second upload of same company period creates versioned extract; prior confirmed values merge per `05_DATA_MODEL.md`.
 - [x] No LLM write directly into book tables.
+- [x] Sources list shows parse phase including stalled jobs.
 
 ---
 
@@ -150,7 +151,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Ask with insufficient evidence returns explicit not-available / refuse — eval case in CI.
 - [x] Ask refuses on token non-overlap and on invented numerals (Pass 05).
 - [x] One-pager requires companyId; exports use session credentials (Pass 09).
-- [x] Citation resolves to real chunk/page/cell; fake locators fail tests.
+- [x] Citation resolves to real chunk/page/cell; fake locators fail tests; `canHighlightSource` gates jump-to-source.
 - [x] Subjective commentary pipeline rejects MIS-only input (no transcript → no subjective draft).
 - [x] Report job does not run inside serverless HTTP; artifacts land in the object store when Redis is up; inline fallback if Redis is down (Pass 25).
 - [x] Report headlines match book queries bit-for-bit for fixture org.

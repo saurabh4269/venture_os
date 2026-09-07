@@ -9,7 +9,7 @@ import {
   validateConnectorCredentials,
   type ConnectorKind,
 } from "@venture-os/core";
-import { exchangeOnedriveCode, onedriveAuthorizeUrl } from "@venture-os/core/server";
+import { exchangeOnedriveCode, httpWith, listAffinityCompanyFields, onedriveAuthorizeUrl } from "@venture-os/core/server";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { loadEnv } from "@venture-os/config";
 import { CompanyConnectorMappingSchema, SaveConnectorCredentialsSchema } from "@venture-os/schema";
@@ -100,6 +100,24 @@ async function publicConnectors(orgId: string) {
 connectorRoutes.get("/api/connectors", async (c) => {
   const s = requireAdmin(c);
   return c.json({ connectors: await publicConnectors(s.orgId) });
+});
+
+/** Affinity v2 field catalog so operators can paste a real ownership field id (never invent names). */
+connectorRoutes.get("/api/connectors/affinity/fields", async (c) => {
+  const s = requireAdmin(c);
+  const row = await withOrg(s.orgId, async (tx) => {
+    const [r] = await tx.select().from(connectors).where(eq(connectors.kind, "affinity"));
+    return r;
+  });
+  const secrets = row ? resolveSecrets(row, "affinity").secrets : null;
+  if (!secrets?.apiKey) throw new HttpError(400, "save_credentials_first");
+  try {
+    const fields = await listAffinityCompanyFields(httpWith(globalThis.fetch), secrets.apiKey);
+    return c.json({ fields });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new HttpError(400, message);
+  }
 });
 
 connectorRoutes.post("/api/connectors/:kind/credentials", async (c) => {

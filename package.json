@@ -12,6 +12,7 @@
     "db:generate": "pnpm --filter @venture-os/db generate",
     "seed:demo": "pnpm --filter @venture-os/db seed:demo",
     "demo:vc": "bash scripts/demo-vc.sh",
+    "fixtures:mis": "pnpm --filter @venture-os/db exec node ../../scripts/generate-fixture-mis.mjs",
     "test:e2e": "pnpm --filter @venture-os/web test:e2e",
     "clean": "turbo clean && rm -rf node_modules"
   },

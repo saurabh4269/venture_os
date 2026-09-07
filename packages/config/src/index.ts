@@ -59,7 +59,10 @@ const Env = z.object({
     .transform((v) => v !== "false"),
   OPENAI_API_KEY: z.string().optional().default(""),
   OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+  /** openai (default, D5) or anthropic (brief Claude layer). */
   LLM_PROVIDER: z.string().default("openai"),
+  ANTHROPIC_API_KEY: z.string().optional().default(""),
+  ANTHROPIC_MODEL: z.string().default("claude-sonnet-4-5"),
   SEED_DEMO: z.string().optional().default("0"),
   SEED_DEMO_EMAIL: z.string().default("analyst@fixture.local"),
   SEED_DEMO_PASSWORD: z.string().default("fixture-only-password"),

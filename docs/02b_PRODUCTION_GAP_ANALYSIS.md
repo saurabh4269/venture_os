@@ -1,12 +1,12 @@
 # V3 Agentic OS — Production Gap Analysis
-**Audience:** coding agent handoff  
-**Date:** 2026-09-05  
+**Audience:** coding agent handoff (historical deep dive)  
+**Date:** 2026-09-05 (analysis frozen); **live status:** see `02_GAP_MATRIX.md` as-of 2026-09-07  
 **Sources of truth:** Gargi brief 2026-09-03 (primary); Adishree brief 2026-08-26 (sibling, shorter); live demo https://v3.heisenbug.in/; repo https://github.com/saurabh4269/v3_agentic_os (private Next.js 15 monolith)  
 **Demo facts (do not invent beyond these):** seed corpus JSON · no DB · no auth · OpenAI “Luna” for ask/extract/draft · lexical RAG · deterministic flags · inbox confirm = ephemeral `useState` · no real PDF parse · no OneDrive / Affinity / Granola connectors · UI surfaces exist: command, companies, inbox, flags, NAV, compare, reports, ask, documents, exports  
 
 **LLM decision (locked):** Production default is **OpenAI** (DECISION D5). Brief Claude wording superseded for vendor choice; functional brief still wins on behavior. Keep pluggable provider interface.
 
-**This-repo status:** live checkboxes are in `02_GAP_MATRIX.md` (This repo column). Do not duplicate a third matrix here.
+**This-repo status:** live checkboxes are in `02_GAP_MATRIX.md` (This repo column). Do not duplicate a third matrix here. As of 2026-09-07 the greenfield book + rituals + Ask/Reports are shipped; cite drawer has sheet/page preview; Phase 5 connector infra is ready; remaining partials are mostly live vendor secrets, domain/SMTP, bbox overlay, and Phase 6.
 
 ---
 

@@ -72,6 +72,8 @@ function ConnectorCards() {
   const [msg, setMsg] = useState<Record<string, string>>({});
   const [err, setErr] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string>("");
+  const [affinityFields, setAffinityFields] = useState<{ id: string; name: string; type?: string }[]>([]);
+  const [affinityFieldsErr, setAffinityFieldsErr] = useState("");
 
   const oauthNote = search.get("onedrive") || search.get("error");
 
@@ -107,6 +109,22 @@ function ConnectorCards() {
 
   function form(kind: string): FormState {
     return forms[kind] ?? EMPTY;
+  }
+
+  async function loadAffinityFields() {
+    setAffinityFieldsErr("");
+    setBusy("affinity-fields");
+    try {
+      const r = await api<{ fields: { id: string; name: string; type?: string }[] }>(
+        "/api/connectors/affinity/fields",
+      );
+      setAffinityFields(r.fields);
+    } catch (e) {
+      setAffinityFields([]);
+      setAffinityFieldsErr(bookErrorMessage(e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy("");
+    }
   }
 
   function valid(kind: ConnectorKind): boolean {
@@ -219,9 +237,9 @@ function ConnectorCards() {
       onedrive:
         "Azure app: Files.Read.All + offline_access (delegated) or Files.Read.All (app-only). Redirect URI must be this site’s /api/connectors/onedrive/callback.",
       affinity:
-        "Paste an Affinity v2 API key (Settings → Manage Apps). Ownership is only written when you set a verified field id — we will not invent CRM fields.",
+        "Paste an Affinity v2 API key (Settings → Manage Apps). Use Load Affinity fields, then set an ownership field id — we never invent CRM fields. Map numeric company ids per company.",
       granola:
-        "Granola Business/Enterprise key (grn_…). Transcripts become subjective commentary sources only — never objective metric cells.",
+        "Granola Business/Enterprise key (grn_…). Map each company to a note id not_…. Transcripts become subjective Confirm proposals only — never objective metric cells.",
     }),
     [],
   );
@@ -397,8 +415,33 @@ function ConnectorCards() {
                             setForms((p) => ({ ...p, [kind]: { ...form(kind), ownershipFieldId: e.target.value } }))
                           }
                           placeholder="from GET /v2/companies/fields"
+                          list="affinity-field-ids"
                         />
                       </label>
+                      <datalist id="affinity-field-ids">
+                        {affinityFields.map((af) => (
+                          <option key={af.id} value={af.id}>
+                            {af.name}
+                            {af.type ? ` (${af.type})` : ""}
+                          </option>
+                        ))}
+                      </datalist>
+                      <button
+                        className="btn ghost sm"
+                        type="button"
+                        disabled={Boolean(busy) || !row?.hasCredentials}
+                        onClick={() => void loadAffinityFields()}
+                        data-testid="affinity-load-fields"
+                      >
+                        {busy === "affinity-fields" ? "Loading fields…" : "Load Affinity fields"}
+                      </button>
+                      {affinityFieldsErr ? <p className="error">{affinityFieldsErr}</p> : null}
+                      {affinityFields.length > 0 ? (
+                        <p className="muted">
+                          {affinityFields.length} field{affinityFields.length === 1 ? "" : "s"} loaded — pick an id for
+                          ownership, or paste one.
+                        </p>
+                      ) : null}
                     </>
                   )}
                   {kind === "granola" && (

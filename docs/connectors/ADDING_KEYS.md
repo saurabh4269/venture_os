@@ -14,11 +14,21 @@ You do not need an engineer after this pack. Paste credentials in the product (o
 6. **Disconnect** wipes ciphertext / nonce / key version and last-sync for that connector.
 7. On each company (or the onboard wizard), paste:
    - OneDrive folder **id** and/or path (e.g. `/MIS`)
-   - Affinity company **id** (digits)
-   - Granola note **id** (`not_…`)
+   - Affinity company **id** (digits) — and on Connectors, Load Affinity fields → ownership field id if you want stake sync
+   - Granola note **id** (`not_…` only)
 8. Upload remains the fallback. **Pull from OneDrive** appears when that connector is connected.
 
 Help copy on the page: *Paste keys here — sync starts automatically after a successful test.*
+
+### Claude (optional)
+
+Brief asks for Claude as a reasoning layer. Default is still OpenAI. In `.env`:
+
+```
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-4-5
+```
 
 Azure / Affinity / Granola setup steps: [`README.md`](README.md). Redirect URI:
 
@@ -41,6 +51,10 @@ GRANOLA_API_KEY=
 # Preferred envelope key (32+). Else CONNECTOR_SEAL_SECRET, else BETTER_AUTH_SECRET.
 CONNECTOR_SECRETS_KEY=
 CONNECTOR_SECRETS_KEY_VERSION=1
+# Optional Claude (brief). Default LLM remains OpenAI.
+LLM_PROVIDER=openai
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-4-5
 ```
 
 **Precedence:** org-sealed envelope (multi-tenant) wins over env fallback (single-tenant). Env keys are never written into `org_settings`. Status stays **configured** until Test succeeds.

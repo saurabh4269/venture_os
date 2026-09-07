@@ -1,9 +1,10 @@
-# Architecture — Agentic OS (greenfield)
+# Architecture — Venture OS (greenfield)
 
 **Status:** Locked  
-**Pack date:** 2026-09-05 (Asia/Calcutta)  
+**Pack date:** 2026-09-07 (Asia/Calcutta)  
 **Rule:** Production-grade greenfield. Do **not** extend the demo repo corpus-JSON / serverless-HTTP data plane.
 **Stack authority:** `DECISION.md` D5 — Better Auth, OpenAI, BullMQ+Redis, Hono, S3-compatible, first-principles UI, free-tier then Azure.
+**Ship picture:** Phases 0–4 live in this monorepo; Phase 5 connector infra sealed; cite drawer previews sheet/page locators via API + `packages/core` helpers.
 
 
 ---
@@ -21,8 +22,9 @@ packages/
   db/           # Drizzle + migrations + RLS helpers
   schema/       # Shared Zod / types for firm metric dictionary, jobs, provenance
   core/         # Deterministic runway / MOIC / XIRR / units / FY / flags / Ask / extract
+                # + cell-refs, salvage, fuzzy-rank (propose only), job-phase, pdf-layout, propose, ops
   llm/          # Pluggable provider interface (default OpenAI)
-  ui/           # Shared components / design tokens (optional V3 theme pack)
+  ui/           # Shared components / design tokens
   config/       # ESLint, TSConfig, Tailwind presets
 ```
 
@@ -35,8 +37,8 @@ packages/
 
 | App | Responsibility | Must not |
 | --- | --- | --- |
-| **`apps/web`** | Next.js 15 App Router; auth session; OS shell; citation UX; inbox confirm UI | Run PDF/Excel parse, long LLM extract, bulk report gen, or connector backfills in Route Handlers |
-| **`apps/api`** | Authenticated CRUD, book queries, enqueue jobs, RBAC checks | Become a dumping ground for unbounded CPU/IO |
+| **`apps/web`** | Next.js 15 App Router; auth session; OS shell; Confirm / Sources; cite drawer + `SourceViewer`; Ask panel | Run PDF/Excel parse, long LLM extract, bulk report gen, or connector backfills in Route Handlers |
+| **`apps/api`** | Authenticated CRUD, book queries, document sheet/page preview, enqueue jobs, RBAC checks | Become a dumping ground for unbounded CPU/IO |
 | **`apps/worker`** | Ingest, parse, standardize, commentary drafts, flags recompute, report render, connector sync | Serve user HTTP directly |
 
 **Reject:** corpus-JSON as system of record; heavy parse/LLM/report work inside serverless HTTP timeouts.
@@ -121,7 +123,7 @@ interface LlmProvider {
 | Document search | **FTS first** (Postgres `tsvector` / equivalent) over chunks + transcript snippets |
 | Later | Embeddings / hybrid optional; do not block Phase 0–2 on vector infra |
 
-**Hard gate:** Ask answers only from org-scoped retrieval + book facts. Refuse without citation. Citations must resolve to real `document_id` + locator (page / sheet!cell / chunk id). No cross-tenant retrieval.
+**Hard gate:** Ask answers only from org-scoped retrieval + book facts. Refuse without citation. Citations must resolve to real `document_id` + locator (page / sheet!cell / chunk id). UI may preview a bounded sheet window or PDF page text; that is still not bbox OCR. No cross-tenant retrieval.
 
 ---
 
@@ -136,7 +138,7 @@ interface LlmProvider {
 | Model tiers | Smaller/faster for classify; stronger OpenAI model for hard extract/Ask |
 | Fail closed | Low confidence → inbox review, not silent auto-commit |
 
-Instrument: parse cost, LLM tokens, auto-commit rate, review rate, citation miss rate — before claiming 90% auto-ingest.
+Instrument: parse cost, LLM tokens, auto-commit rate, review rate, citation miss rate — before claiming 90% auto-ingest. Closed event keys live in `packages/core` (`ops_events`); never invent vendor field names as metrics.
 
 ---
 
@@ -166,6 +168,8 @@ Instrument: parse cost, LLM tokens, auto-commit rate, review rate, citation miss
 - Design Venture OS as its own product system.
 - Do **not** copy colors, fonts, layouts, or chrome from https://v3.heisenbug.in.
 - Reuse IA labels and HITL/citation contracts only — not as a skin.
+- Cadence grouping (Today / Book / Review / Output): `docs/design/design.md`. Paper tokens: `docs/design/BOOK_UI.md`.
+- Public marketing does not name design-partner customers.
 
 ## 13. Hosting posture
 

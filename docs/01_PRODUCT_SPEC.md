@@ -1,8 +1,9 @@
-# Product Spec — Agentic OS (production)
+# Product Spec — Venture OS (production)
 
 **Status:** Locked for design-partner V1 + SaaS-ready tenancy from day one  
 **Functional SoT:** Gargi brief v3, 3 Sep 2026  
-**Pack date:** 2026-09-05
+**Pack date:** 2026-09-07  
+**Ship picture:** Book + rituals + Ask/Reports are live in this repo; live connectors wait on operator secrets; LP room / billing remain Phase 6.
 
 ---
 
@@ -13,9 +14,10 @@ Build a **cited portfolio operating system** for VC investment teams:
 - Data arrives from source systems (or a controlled upload fallback).
 - Messy company packs are standardized into a firm schema.
 - **Objective commentary** (from numbers / MIS) and **subjective commentary** (from founder calls / Granola) stay **visibly separate**.
-- Dashboard, NAV, flags, Ask, and reports read **only** from the standardized book — never from ad-hoc Excel.
+- Command, NAV, flags, Ask, and reports read **only** from the standardized book — never from ad-hoc Excel.
+- Every figure is citeable: drawer opens sheet window or PDF page text when locators resolve; missing stays `—`.
 
-**Design partner:** V3 Ventures (India + Europe/US evergreen vehicles; consumer brands).  
+**Design partner:** V3 Ventures (India + Europe/US evergreen vehicles; consumer brands). Brief shapes workflows and schema; **public product chrome does not name the partner**.  
 **Commercial future:** same product sold to other VC firms as **multi-tenant SaaS** (org per firm, domain join, connectors, firm-specific metric schema and flag policy).
 
 ---
@@ -32,7 +34,7 @@ Typical VC stack today:
 | Data rooms | DocSend / Datasite / firm Drive | Document vault, not a live book |
 | Standards | ILPA reporting / PC templates | Reporting *out*, not ingest *in* |
 
-**Agentic OS owns:** API-first MIS ingest → standardization → live book → cited Ask → dual commentary → flags → partner-ready drafts.
+**Agentic OS / Venture OS owns:** API-first MIS ingest → standardization → live book → cited Ask → dual commentary → flags → partner-ready drafts.
 
 **Integrate with** Affinity / Carta / Visible later; **do not** try to replace fund accounting, CRM, or cap-table admin in V1.
 
@@ -103,7 +105,7 @@ Must implement for V3 design partner:
    - Restatements — hold both; mark which is current.
    - **Missing ≠ 0** — “not reported”, never silent zero.
    - Dual **INR crore + EUR** with FX rate + date on every converted figure.
-4. **User logins**; attributable corrections that survive re-parse; one-click source cell/page check.
+4. **User logins**; attributable corrections that survive re-parse; one-click source cell/page check (cite drawer with sheet/page preview; bbox OCR overlay later).
 5. **Company time series + fund roll-up.**
 6. **Quarterly NAV** with versioned marks + bridge + history.
 7. **Monthly sheet:** numbers + **objective** commentary (MIS) + **subjective** commentary (Granola) — never blended.

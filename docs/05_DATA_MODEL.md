@@ -1,8 +1,9 @@
 # Data model — entities & hard invariants
 
 **Status:** Locked for design-partner V1  
-**Pack date:** 2026-09-05 (Asia/Calcutta)  
-**Rule:** Schema changes require migrations. Demo seed JSON is not a model.
+**Pack date:** 2026-09-07 (Asia/Calcutta)  
+**Rule:** Schema changes require migrations. Demo seed JSON is not a model.  
+**Recent schema (migration `0011`):** company revenue/last-round fields; `positions.prior_ownership_pct`; org `auto_confirm_min_confidence` + monthly pack schedule flags; `ops_events` for closed success counters.
 
 ---
 
@@ -13,11 +14,12 @@ Every tenant table includes `org_id` (UUID) and is covered by **RLS**. Platform 
 | Entity | Purpose | Key fields (conceptual) |
 | --- | --- | --- |
 | **Organization** | VC firm tenant | name, slug, domains[], plan/entitlements |
+| **OrgSettings** | Firm tuning | FY start, flag_policy, `auto_confirm_min_confidence` (null = never auto), monthly pack flags |
 | **OrgDomain** | Verified email domains | domain, verified_at, verify_method |
 | **Membership** | User ↔ org | user_id, role (`org_admin` / `partner` / `analyst` / `viewer`), status |
 | **User** | Auth principal (provider id) | email, name; no cross-org data without membership |
 | **Fund** | Vehicle | name, reporting_currency, evergreen flags |
-| **Company** | Portfolio company | name, stage, fy_calendar (`apr_mar` default / `calendar`), base_currency, fund links |
+| **Company** | Portfolio company | name, stage, fy_calendar (`apr_mar` default / `calendar`), base_currency, fund links; optional `revenue_definition`, last-round label/date/post-money |
 | **CompanyProfile** | Mapping defaults | template_id, unit defaults, OneDrive folder id, Affinity id, Granola links |
 | **Vault** | Document container | type: `company_vault` / `firm_library` / `lp_data_room`; company_id nullable |
 | **Document** | Immutable raw file | vault_id, storage_key, content_hash, mime, source (`upload` / `onedrive` / …), version |
@@ -36,6 +38,7 @@ Every tenant table includes `org_id` (UUID) and is covered by **RLS**. Platform 
 | **AskSession / AskMessage** | Q&A audit | org_id, citations[], refused bool |
 | **ConnectorAccount** | OAuth / API key | provider, status (`not_connected` / `configured` / `connected` / `error`), `secret_ciphertext` + `nonce` + `key_version` (never plaintext), last_sync_at only after real sync |
 | **SyncCursor** | Connector progress | connector_id, cursor, last_success_at |
+| **OpsEvent** | Closed success counters | event_key (see `packages/core` ops), value?, meta; never portfolio facts |
 | **AuditEvent** | Tamper-evident log | actor, action, entity_ref, payload, created_at |
 | **ReportArtifact** | Generated export | type, storage_key, params, created_by |
 
@@ -119,7 +122,8 @@ No silent “approx” FX. If rate missing → show native only or “FX unavail
 ```
 upload/connector → Document (S3-compatible)
   → worker parse → DocumentChunk + ExtractionProposal
-    → human/auto confirm → MetricFact (+ provenance)
+    → human confirm (or org high-confidence auto-confirm with `system:auto_confirm` actor)
+      → MetricFact (+ provenance)
       → optional Correction later
         → reparse merges proposals under Correction dominance
 ```

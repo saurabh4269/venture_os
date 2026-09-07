@@ -1,5 +1,7 @@
 # Cloud Agent kickoff prompt (paste-ready)
 
+> **Historical.** This was the Phase 0 greenfield kickoff. The monorepo is past Phases 0–4 with Phase 5 connector infra ready. For current status use `AGENTS.md`, `00_README.md`, `02_GAP_MATRIX.md`, and `improvements/NEXT.md`. Do not re-run Phase 0 as if the book does not exist.
+
 Copy everything below the line into a Cursor Cloud Agent launch with **`new_repo: true`**. Attach the handoff pack (this folder) as `/docs/handoff/` in the new repo (or upload the same files before coding).
 
 ---

@@ -1,46 +1,37 @@
-# Next — remaining after passes 35–42
+# Next — remaining after cite-to-source + ritual polish (2026-09-07)
 
-**Branch / PR:** `cursor/wave-a-connector-infra-11d6`  
-**Prior:** passes 35–41 on `main` @ `a22207f`
+**Branch:** `main`  
+**Prior:** passes 35–42; then cite/Confirm/Sources deepening + ritual honesty polish on `main`.
 
-## Closed in this batch
+## Closed since Pass 42
 
-- **35 Playwright hardening** — viewer `storageState`; Flags / NAV / Ask refuse (unsourced question digits) / inbox reject + `inbox-ready` poll; axe optional in CI (`PLAYWRIGHT_AXE=1`, `continue-on-error`).
-- **36 Redis rate-limit** — sliding-window Lua on `REDIS_URL`; memory fallback if Redis is down; session notes (7d / 24h refresh, no SSO).
-- **37 NAV pack snapshot** — lock writes a deterministic JSON pack to the object store; unlock keeps the last official sha; GET `/api/nav/snapshot`.
-- **38 Flag policy UX** — threshold bounds + field errors; `flag_policy_audits` + Settings table. Per-company override still deferred.
-- **39 Dual EUR + Compare INR Cr** — NAV headlines/marks use `formatDualDisplay` / `rollupEur`; Compare shows an explicit INR Cr line; monthly XLSX EUR columns refuse without a triple.
-- **40 `pnpm demo:vc`** — Compose (or native) + migrate + signup + FIXTURE seed + membership attach.
-- **41 UX/copy** — signup empty-book, login session, Flags firm policy, Reports EUR refuse, viewer heading.
+- **Cite-to-source** — `SourceViewer` sheet window + PDF page text via preview APIs; `cell-refs` / `canHighlightSource`; evidence pills on Confirm; cite drawer wired from Fact / Ask / company.
+- **Parse-phase UX** — Sources list shows queued / running / done / error / stalled.
+- **Extract assist** — fuzzy catalog suggest (capped confidence); structured-LLM salvage; table-aware PDF layout path; optional org auto-confirm threshold + `ops_events`.
+- **Ritual honesty** — Confirm without Mentions/Owner; Command Needs-a-look by company; coverage Source/Stage; month-named FY selects; connector ids under optional mapping; public chrome without design-partner naming.
+- Draft upstream PR harvest closed; do not revive those branches.
 
 ## Still later (do not invent)
 
 1. **NAV multi-approver / LP sign-off** — one Partner/Org Admin lock + frozen pack is official. No second signature.
 2. **Per-company / per-fund flag policy** — firm jsonb + audit only.
-3. **Scheduled monthly pack + email** — on-demand + worker artifact only. No cron.
+3. **Scheduled monthly pack + email** — on-demand + worker artifact; schedule flags exist, no cron/email yet.
 4. **Live Ask eval vs seeded org** — goldens remain unit tests. No `SEED_DEMO` in CI.
 5. **Growth / burn-multiple derived compare columns** — not in the metric enum.
 6. **SSO / session revoke-on-remove / per-email rate-limit / captcha**.
 7. **SOC2 audit-log viewer** — lock + policy audit rows exist; no export UI.
 8. **Compose-attached Playwright / Fact download event**.
 9. **Live Fly/Vercel smoke after a real release** (needs operator credentials).
-10. **PDF bbox / cell highlight** inside the source file.
-
-## Closed in Pass 42
-
-- **Connector infra** — envelope-sealed per-org creds (`CONNECTOR_SECRETS_KEY`), env fallbacks, Graph/Affinity/Granola clients (official fields only), BullMQ `connector.sync` / `health` / schedule no-op, Settings → Connectors cards, company mapping, onboard pull, mock-HTTP tests, Playwright cards + invalid key. P0 secrets: ciphertext/nonce/key_version, admin-only settings API, audit, rate-limit, `docs/connectors/SECURITY.md`.
-
-## Explicitly deferred (need operator secrets or Phase 6)
-
-- Live OneDrive / Affinity / Granola against production APIs — paste keys in Settings or env. Infra is ready; do not claim connected without a real healthCheck.
-- SMTP / domain auto-join.
-- LP / ILPA room.
-- Billing.
+10. **PDF bbox / cell highlight overlay** inside the source binary (sheet/page preview already ships).
+11. **Domain verify / SMTP invites**.
+12. **Live OneDrive / Affinity / Granola** against production APIs — paste keys; infra ready.
+13. **LP / ILPA room + billing** — Phase 6.
 
 ## How to continue
 
-1. Open `cursor/<slug>-11d6` off latest `main` after merge.
-2. Do not reopen 23–42 P0s.
-3. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1.
+1. Work off latest `main`. Prefer small honesty / connector-live / Phase 6 slices.
+2. Do not reopen 23–42 P0s or invent bbox OCR without a real locator model.
+3. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1 when doing a numbered pass.
 4. `pnpm typecheck && pnpm test` before push. CI also builds web and runs Playwright.
-5. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts.
+5. Update `docs/02_GAP_MATRIX.md` This-repo column in the same PR as behaviour.
+6. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts. Public chrome stays partner-anonymous.

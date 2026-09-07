@@ -1,0 +1,295 @@
+{
+  "label": "FIXTURE_ONLY",
+  "generatedAt": "2026-09-07",
+  "source": {
+    "portfolioNames": "https://www.v3.ventures/ public homepage logos (2026-09-07)",
+    "numbers": "Invented for extract testing — not live company financials",
+    "rfp": "docs/brief/V3_Requirement_Brief_v3_Gargi_2026-09-03.md §5 field groups"
+  },
+  "portfolio": [
+    {
+      "slug": "creme-castle",
+      "name": "Creme Castle",
+      "sector": "Food & drinks",
+      "geo": "India"
+    },
+    {
+      "slug": "hosteller",
+      "name": "The Hosteller",
+      "sector": "Lifestyle / travel",
+      "geo": "India"
+    },
+    {
+      "slug": "ugaoo",
+      "name": "Ugaoo",
+      "sector": "Lifestyle / home",
+      "geo": "India"
+    },
+    {
+      "slug": "wild",
+      "name": "Wild",
+      "sector": "Wellness & beauty",
+      "geo": "UK"
+    },
+    {
+      "slug": "holy",
+      "name": "Holy",
+      "sector": "Food & drinks",
+      "geo": "Europe"
+    },
+    {
+      "slug": "yepoda",
+      "name": "Yepoda",
+      "sector": "Wellness & beauty",
+      "geo": "Europe"
+    },
+    {
+      "slug": "go-zero",
+      "name": "Go Zero",
+      "sector": "Food & drinks",
+      "geo": "India"
+    },
+    {
+      "slug": "katkin",
+      "name": "KatKin",
+      "sector": "Lifestyle / pet",
+      "geo": "UK"
+    },
+    {
+      "slug": "deconstruct",
+      "name": "Deconstruct",
+      "sector": "Wellness & beauty",
+      "geo": "India"
+    },
+    {
+      "slug": "salad-days",
+      "name": "Salad Days",
+      "sector": "Food & drinks",
+      "geo": "India"
+    },
+    {
+      "slug": "cava",
+      "name": "CAVA Athleisure",
+      "sector": "Lifestyle",
+      "geo": "India"
+    },
+    {
+      "slug": "lightfury-games",
+      "name": "Lightfury Games",
+      "sector": "Lifestyle / entertainment",
+      "geo": "India"
+    },
+    {
+      "slug": "superyou",
+      "name": "SuperYou",
+      "sector": "Food & drinks",
+      "geo": "India"
+    }
+  ],
+  "cases": [
+    {
+      "company": "Creme Castle",
+      "slug": "creme-castle",
+      "files": [
+        "FIXTURE_ONLY-creme-castle-FY26-M4-M5.xlsx",
+        "FIXTURE_ONLY-creme-castle-FY26-M3.csv"
+      ],
+      "challenge": "standard_inr_crore_multi_month_plus_prior_csv",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "The Hosteller",
+      "slug": "hosteller",
+      "files": [
+        "FIXTURE_ONLY-hosteller-Aug2025-lakhs.xlsx"
+      ],
+      "challenge": "lakh_units_financials_sheet",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "Ugaoo",
+      "slug": "ugaoo",
+      "files": [
+        "FIXTURE_ONLY-ugaoo-FY26-Q1.xlsx"
+      ],
+      "challenge": "wide_month_columns_plan_vs_actual",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "Wild",
+      "slug": "wild",
+      "files": [
+        "FIXTURE_ONLY-wild-2025-Q2-USD.xlsx"
+      ],
+      "challenge": "usd_thousands_management_accounts",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "Holy",
+      "slug": "holy",
+      "files": [
+        "FIXTURE_ONLY-holy-H1-2025-EUR.xlsx"
+      ],
+      "challenge": "eur_millions_turnover_alias",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "Yepoda",
+      "slug": "yepoda",
+      "files": [
+        "FIXTURE_ONLY-yepoda-May2025.xlsx"
+      ],
+      "challenge": "gross_vs_net_plan_extra_sheet",
+      "expects": [
+        "gross_revenue",
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct"
+      ]
+    },
+    {
+      "company": "Go Zero",
+      "slug": "go-zero",
+      "files": [
+        "FIXTURE_ONLY-go-zero-ambiguous-units.xlsx"
+      ],
+      "challenge": "ambiguous_units_hitl",
+      "expects": [
+        "unit_ambiguity"
+      ]
+    },
+    {
+      "company": "KatKin",
+      "slug": "katkin",
+      "files": [
+        "FIXTURE_ONLY-katkin-2025-05-GBP.xlsx"
+      ],
+      "challenge": "gbp_absolute_amounts_subscribers",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "Deconstruct",
+      "slug": "deconstruct",
+      "files": [
+        "FIXTURE_ONLY-deconstruct-missing-cash.xlsx"
+      ],
+      "challenge": "missing_cash_not_zero",
+      "expects": [
+        "net_revenue",
+        "burn",
+        "gross_margin_pct"
+      ],
+      "must_not_invent": [
+        "cash"
+      ]
+    },
+    {
+      "company": "Salad Days",
+      "slug": "salad-days",
+      "files": [
+        "FIXTURE_ONLY-salad-days-below-plan.xlsx"
+      ],
+      "challenge": "below_plan_revenue_for_flags",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct"
+      ]
+    },
+    {
+      "company": "CAVA Athleisure",
+      "slug": "cava",
+      "files": [
+        "FIXTURE_ONLY-cava-2025-H1.csv"
+      ],
+      "challenge": "csv_calendar_months_sales_alias",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "Lightfury Games",
+      "slug": "lightfury-games",
+      "files": [
+        "FIXTURE_ONLY-lightfury-Jul2025.xlsx"
+      ],
+      "challenge": "split_pnl_and_cash_tabs",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct",
+        "headcount"
+      ]
+    },
+    {
+      "company": "SuperYou",
+      "slug": "superyou",
+      "files": [
+        "FIXTURE_ONLY-superyou-fuzzy-labels.xlsx"
+      ],
+      "challenge": "fuzzy_typo_labels",
+      "expects": [
+        "net_revenue",
+        "cash",
+        "burn",
+        "gross_margin_pct"
+      ]
+    }
+  ],
+  "dashboardCoverage": {
+    "fromMis": [
+      "stage (company profile, not MIS)",
+      "cash / burn / runway (derived)",
+      "revenue / GM / OpEx / EBITDA",
+      "headcount / customers / orders / AOV where present"
+    ],
+    "notFromMis": [
+      "ownership % (Affinity)",
+      "NAV / MOIC / IRR (marks + positions)",
+      "subjective commentary (Granola)"
+    ]
+  }
+}

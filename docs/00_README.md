@@ -1,12 +1,33 @@
 # Venture OS — Documentation index
 
-**Product working name:** Venture OS (Agentic OS) — portfolio operating layer for VC investment teams  
+**Product working name:** Venture OS — portfolio operating layer for VC investment teams  
 **Repo:** https://github.com/saurabh4269/venture_os  
 **Domain:** ventureos.xyz  
-**First customer / design partner:** V3 Ventures  
+**First customer / design partner:** V3 Ventures (workflows and schema shaped by the Gargi brief; public product chrome does not name the partner)  
 **Long-term:** Multi-tenant B2B SaaS sold to other VC firms  
-**Pack date:** 2026-09-05 (Asia/Calcutta)  
+**Pack date:** 2026-09-07 (Asia/Calcutta)  
 **Author intent:** Production-grade **greenfield** build. Do **not** extend the demo architecture.
+
+---
+
+## Higher-level picture (read this first)
+
+Venture OS is the **book**: messy MIS and source files in → human confirm → Command / Flags / NAV / Compare / Reports / Ask read **only** confirmed facts with provenance.
+
+| Layer | Status (2026-09-07) |
+| --- | --- |
+| Platform (auth, RLS, CI, shell) | **Shipped** |
+| Book (upload → parse → Confirm → facts) | **Shipped** |
+| Standardization (units, FY, FX, corrections, restatements) | **Shipped** |
+| Rituals (Command, Flags, NAV lock + pack, Compare) | **Shipped** |
+| Ask + Reports (FTS cite-or-refuse; PDF/PPTX/XLSX from the book) | **Shipped** |
+| Cite-to-source (sheet window + PDF page preview in the cite drawer) | **Shipped** (bbox OCR highlight still later) |
+| Live connectors (OneDrive / Affinity / Granola) | **Infra ready** — honest not-connected until operator secrets + healthCheck |
+| LP room + billing | **Out of scope** this phase |
+
+**Product wedge:** own standardization, provenance, morning/ritual cadence, and cite-or-refuse answers. Do not replace Affinity, Carta, or fund accounting.
+
+**Resume from:** [`02_GAP_MATRIX.md`](02_GAP_MATRIX.md) (This-repo column) and unchecked boxes in [`04_BUILD_PLAN.md`](04_BUILD_PLAN.md). Dated QA: [`improvements/NEXT.md`](improvements/NEXT.md).
 
 ---
 
@@ -18,7 +39,7 @@
 
 2. **Product contract:** [`01_PRODUCT_SPEC.md`](01_PRODUCT_SPEC.md)
 
-3. **Build backlog:** [`02_GAP_MATRIX.md`](02_GAP_MATRIX.md) · deep dive [`02b_PRODUCTION_GAP_ANALYSIS.md`](02b_PRODUCTION_GAP_ANALYSIS.md)
+3. **Build backlog:** [`02_GAP_MATRIX.md`](02_GAP_MATRIX.md) · deep dive [`02b_PRODUCTION_GAP_ANALYSIS.md`](02b_PRODUCTION_GAP_ANALYSIS.md) (historical; live status is the matrix)
 
 4. **Technical decisions (mandatory):** [`03_ARCHITECTURE.md`](03_ARCHITECTURE.md) — **LOCKED stack**
 
@@ -26,7 +47,7 @@
 
 6. **Entities & invariants:** [`05_DATA_MODEL.md`](05_DATA_MODEL.md)
 
-7. **Kickoff prompt:** [`06_AGENT_PROMPT.md`](06_AGENT_PROMPT.md)
+7. **Kickoff prompt:** [`06_AGENT_PROMPT.md`](06_AGENT_PROMPT.md) (historical Phase 0)
 
 8. **Decision log:** [`DECISION.md`](DECISION.md)
 
@@ -46,7 +67,7 @@
 | Live demo `https://v3.heisenbug.in/` | Narrative walkthrough only — **do not copy** look-and-feel |
 | Firm site `https://www.v3.ventures` | Public names only |
 
-**UI posture:** first-principles product design for Venture OS. Do **not** clone v3.heisenbug.in visuals, tokens, or chrome.
+**UI posture:** first-principles product design for Venture OS. Do **not** clone v3.heisenbug.in visuals, tokens, or chrome. Directional IA / packaging: [`design/design.md`](design/design.md), book chrome: [`design/BOOK_UI.md`](design/BOOK_UI.md).
 
 ---
 
@@ -75,7 +96,7 @@ Full detail: `03_ARCHITECTURE.md`.
 5. **Headline numbers** computed by **deterministic code** from stored facts.
 6. **Every user-visible figure** needs provenance (`document_id` + locator) or must not display as fact.
 7. **Ask must refuse** when evidence is insufficient.
-8. **Citations must resolve** to real chunks/pages/cells.
+8. **Citations must resolve** to real chunks/pages/cells — cite drawer previews sheet windows / PDF page text when locators resolve; download remains available.
 9. **Corrections are sacred.** Survive re-parse.
 10. **FX:** every dual-currency display needs `fx_rate` + `fx_date` + source.
 11. **Units:** detect lakh/crore/USD explicitly; never infer from magnitude alone.
@@ -87,7 +108,7 @@ Full detail: `03_ARCHITECTURE.md`.
 17. **LLM provider:** production default is **OpenAI** behind a pluggable interface (see D5).
 18. **Greenfield mandatory.** No corpus-JSON as SoR. No heavy jobs in serverless HTTP.
 19. **Migrations required** for any schema change.
-20. **Instrument success metrics** before claiming 90% auto-ingest or near-zero headline error.
+20. **Instrument success metrics** before claiming 90% auto-ingest or near-zero headline error (`ops_events`).
 
 ---
 
@@ -102,10 +123,12 @@ Do **not** add a second kebab-case product/architecture/brief tree. Extra notes 
 
 | File | Role |
 | --- | --- |
-| [`design/FRONTEND_DESIGNER_HANDOFF.md`](design/FRONTEND_DESIGNER_HANDOFF.md) | UI designer brief (not SoT — cites numbered docs; live preview linked) |
+| [`design/design.md`](design/design.md) | Cadence IA + packaging intent (not SoT) |
+| [`design/BOOK_UI.md`](design/BOOK_UI.md) | Institutional paper system + honesty map |
+| [`design/FRONTEND_DESIGNER_HANDOFF.md`](design/FRONTEND_DESIGNER_HANDOFF.md) | UI designer brief (cites numbered docs; live preview linked) |
 | [`cost-hosting.md`](cost-hosting.md) | Free-tier then Azure bands (no secrets) |
 | [`research/notes.md`](research/notes.md) | Parser / Better Auth / FTS research |
-| [`improvements/`](improvements/) | Dated QA notes |
+| [`improvements/`](improvements/) | Dated QA notes; [`NEXT.md`](improvements/NEXT.md) is the residual list |
 | [`connectors/`](connectors/) | OneDrive / Affinity / Granola paste-later keys + [`SECURITY.md`](connectors/SECURITY.md) |
 
-`packages/core` holds deterministic runway / MOIC / XIRR / units / FY / flags / Ask / extract. Headlines never come from the LLM.
+`packages/core` holds deterministic runway / MOIC / XIRR / units / FY / flags / Ask / extract, plus cite helpers (`cell-refs`), structured-LLM salvage, fuzzy proposal assist, parse-phase badges, PDF layout tables, propose, and ops counters. Headlines never come from the LLM.

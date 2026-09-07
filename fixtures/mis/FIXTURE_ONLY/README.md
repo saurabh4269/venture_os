@@ -1,0 +1,56 @@
+# FIXTURE_ONLY — V3-named portfolio MIS packs
+
+**These are not the book.** Every monetary and operating figure is **invented** for extract / Confirm / flag testing. Company *names* come from the public V3 Ventures homepage logos ([v3.ventures](https://www.v3.ventures/), fetched 2026-09-07). Do not paste into a production org without the FIXTURE banner.
+
+## Portfolio names included (public logos)
+
+- **Creme Castle** (Food & drinks, India)
+- **The Hosteller** (Lifestyle / travel, India)
+- **Ugaoo** (Lifestyle / home, India)
+- **Wild** (Wellness & beauty, UK)
+- **Holy** (Food & drinks, Europe)
+- **Yepoda** (Wellness & beauty, Europe)
+- **Go Zero** (Food & drinks, India)
+- **KatKin** (Lifestyle / pet, UK)
+- **Deconstruct** (Wellness & beauty, India)
+- **Salad Days** (Food & drinks, India)
+- **CAVA Athleisure** (Lifestyle, India)
+- **Lightfury Games** (Lifestyle / entertainment, India)
+- **SuperYou** (Food & drinks, India)
+
+Public context also notes Wild’s Unilever exit elsewhere on the internet; the name still appears on the homepage logo strip, so a MIS fixture is included for format coverage only.
+
+## RFP extraction challenges covered
+
+| Slug | Challenge |
+| --- | --- |
+| `creme-castle` | standard_inr_crore_multi_month_plus_prior_csv |
+| `hosteller` | lakh_units_financials_sheet |
+| `ugaoo` | wide_month_columns_plan_vs_actual |
+| `wild` | usd_thousands_management_accounts |
+| `holy` | eur_millions_turnover_alias |
+| `yepoda` | gross_vs_net_plan_extra_sheet |
+| `go-zero` | ambiguous_units_hitl |
+| `katkin` | gbp_absolute_amounts_subscribers |
+| `deconstruct` | missing_cash_not_zero |
+| `salad-days` | below_plan_revenue_for_flags |
+| `cava` | csv_calendar_months_sales_alias |
+| `lightfury-games` | split_pnl_and_cash_tabs |
+| `superyou` | fuzzy_typo_labels |
+
+## Dashboard fields these packs can feed (after Confirm)
+
+From MIS (objective): net/gross revenue, GM%, COGS/OpEx/EBITDA where present, closing cash, burn, headcount, customers/orders/AOV/users.
+
+Derived in product (not in file as fact): **runway** = cash / avg last-3-month burn (needs ≥1 confirmed cash + burn series).
+
+Not in these MIS (by design): ownership %, NAV, MOIC/IRR, subjective call commentary — Affinity / marks / Granola.
+
+## How to use
+
+1. Sign in → add companies with the public names (or reuse Fixture Capital).
+2. Upload a file from `fixtures/mis/FIXTURE_ONLY/<slug>/`.
+3. Confirm → Command / Flags / Compare / Ask should only show confirmed facts.
+4. Regenerate: `node scripts/generate-fixture-mis.mjs`
+
+See `MANIFEST.json` for expected metrics per case.
