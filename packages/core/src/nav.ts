@@ -170,7 +170,7 @@ export function rollupEur(
     (r) => isPresent(r.fxRate ?? null) && r.fxDate && r.fxSource && isPresent(r.valueEur ?? null),
   );
   if (!complete) {
-    return { total: null, conversionRefused: true, fxNote: "EUR — (no FX triple)" };
+    return { total: null, conversionRefused: true, fxNote: null };
   }
   const total = sourced.reduce((acc, r) => acc + (r.valueEur as number), 0);
   return { total, conversionRefused: false, fxNote: null };

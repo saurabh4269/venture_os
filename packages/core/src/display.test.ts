@@ -32,7 +32,7 @@ describe("dual currency display", () => {
     });
     expect(d.conversionRefused).toBe(true);
     expect(d.converted).toBe("—");
-    expect(d.fxNote).toBe("EUR — (no FX triple)");
+    expect(d.fxNote).toBeNull();
     expect(d.display).toContain("10");
   });
 });

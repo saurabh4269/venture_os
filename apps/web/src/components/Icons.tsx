@@ -158,3 +158,18 @@ export function IconKey(p: IconProps) {
     </Svg>
   );
 }
+export function IconSearch(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="7" cy="7" r="4.2" />
+      <path d="M10.2 10.2 13.5 13.5" />
+    </Svg>
+  );
+}
+export function IconChevronDown(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4 6.5 8 10.5 12 6.5" />
+    </Svg>
+  );
+}

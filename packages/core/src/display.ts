@@ -70,7 +70,8 @@ export function formatDualDisplay(args: {
       ...base,
       converted: "—",
       conversionRefused: true,
-      fxNote: "EUR — (no FX triple)",
+      // Refusal is silent in UI — native amount stays; never invent EUR.
+      fxNote: null,
     };
   }
   const eur = isPresent(args.valueEur ?? null)

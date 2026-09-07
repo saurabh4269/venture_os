@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { CompanyMark, EM, FilterChips, formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import {
+  CompanyCombobox,
+  CompanyMark,
+  formatOwnership,
+  PageHead,
+  Panel,
+} from "@/components/BookUI";
 import { Fact, useBookSession } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -27,11 +34,6 @@ function coverageKind(row: Coverage | undefined) {
   return "booked" as const;
 }
 
-function bookCloseLine(d = new Date()) {
-  const rest = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  return `Portfolio companies · book as of ${rest}`;
-}
-
 function exportVisible(
   rows: { name: string; stage: string | null; sector: string | null; ownership: string; lastMis: string; flags: string; cover: string }[],
 ) {
@@ -39,7 +41,7 @@ function exportVisible(
   const lines = [
     header.join(","),
     ...rows.map((r) =>
-      [`"${r.name}"`, r.stage ?? EM, r.sector ?? EM, r.ownership, r.lastMis, r.flags, r.cover].join(","),
+      [`"${r.name}"`, r.stage ?? "", r.sector ?? "", r.ownership, r.lastMis, r.flags, r.cover].join(","),
     ),
   ];
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
@@ -50,6 +52,7 @@ function exportVisible(
 }
 
 export default function CompaniesPage() {
+  const router = useRouter();
   const { canWrite } = useBookSession();
   const { data: cosData, error: cosErr } = useSWR<{ companies: Company[] }>("/api/companies", bookFetcher);
   const { data: cmdData } = useSWR<{
@@ -100,50 +103,10 @@ export default function CompaniesPage() {
 
   return (
     <>
-      <div className="page-toolbar">
-        <label className="sr-only" htmlFor="co-search">
-          Search companies
-        </label>
-        <input
-          id="co-search"
-          className="look-search"
-          placeholder="Search companies…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <div className="toolbar-actions">
-          {visible.length > 0 && (
-            <button
-              type="button"
-              className="btn ghost sm"
-              onClick={() =>
-                exportVisible(
-                  visible.map((c) => {
-                    const cov = covById.get(c.id);
-                    const kind = coverageKind(cov);
-                    return {
-                      name: c.name,
-                      stage: c.stage,
-                      sector: c.sector,
-                      ownership: formatOwnership(cov?.ownershipPct),
-                      lastMis: cov?.lastMis ?? EM,
-                      flags: String(cov?.openFlags ?? 0),
-                      cover: kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review",
-                    };
-                  }),
-                )
-              }
-            >
-              Export
-            </button>
-          )}
-        </div>
-      </div>
       <PageHead
         title="Companies"
         testId="companies-ready"
         kicker="Portfolio performance"
-        lede={bookCloseLine()}
         actions={
           canWrite ? (
             <Link className="btn" href="/companies/new">
@@ -196,140 +159,167 @@ export default function CompaniesPage() {
           </Link>
         </div>
       ) : null}
-      <div className="filter-bar">
-        <FilterChips
-          label="Coverage"
-          value={cover}
-          onChange={(id) => setCover(id as typeof cover)}
-          options={[
-            { id: "all", label: "All", count: stats.names },
-            { id: "booked", label: "Booked", count: stats.booked },
-            { id: "gap", label: "Gap", count: stats.gap },
-            { id: "review", label: "Review", count: stats.review },
-          ]}
-        />
-        <span className="page-kicker" style={{ margin: 0 }}>
-          Stage
-        </span>
-        <div className="tabs filter-pills" style={{ margin: 0 }} aria-label="Stage">
-          {stages.length === 0 ? <span className="lede">—</span> : null}
-          {stages.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className={`filter-pill${stage === s ? " on" : ""}`}
-              onClick={() => setStage(stage === s ? "" : s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-        <label className="sr-only" htmlFor="own-filter">
-          Ownership
-        </label>
-        <select id="own-filter" value={own} onChange={(e) => setOwn(e.target.value as typeof own)} aria-label="Ownership">
-          <option value="all">Ownership</option>
-          <option value="has">Has booked ownership</option>
-          <option value="missing">Ownership —</option>
-        </select>
-        {filtered && (
-          <button
-            type="button"
-            className="linkish push"
-            onClick={() => {
-              setQ("");
-              setStage("");
-              setOwn("all");
-              setCover("all");
-            }}
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
       {rows.length === 0 ? (
         <div className="empty">
           <strong>Empty book</strong>
-          {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."}{" "}
-          (15-minute path).
+          {canWrite ? <Link href="/companies/new">Create the first company</Link> : "Ask an Org Admin to add a name."}
         </div>
-      ) : visible.length === 0 ? (
-        <div className="empty">No companies match these filters.</div>
       ) : (
-        <Panel title="Performance" kicker={`${visible.length} shown`} flush>
-          <div className="table-scroll">
-            <table className="table-hover">
-              <thead>
-                <tr>
-                  <th>Company</th>
-                  <th>Stage</th>
-                  <th>Ownership</th>
-                  <th>Last MIS</th>
-                  <th>Cash</th>
-                  <th>Burn</th>
-                  <th>Runway</th>
-                  <th>Flags</th>
-                  <th>Coverage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((c) => {
-                  const cov = covById.get(c.id);
-                  const kind = coverageKind(cov);
-                  const rowClass =
-                    kind === "gap" ? "row-gap" : kind === "review" || (cov?.openFlags ?? 0) > 0 ? "row-flag" : undefined;
-                  return (
-                    <tr key={c.id} data-testid="companies-row" className={rowClass}>
-                      <td>
-                        <div className="company-cell">
-                          <CompanyMark name={c.name} />
-                          <Link className="company-link" href={`/companies/${c.id}`}>
-                            {c.name}
-                          </Link>
-                        </div>
-                      </td>
-                      <td>{c.stage ?? EM}</td>
-                      <td className="num">{formatOwnership(cov?.ownershipPct)}</td>
-                      <td className="lede">{cov?.lastMis ?? EM}</td>
-                      <td>
-                        {cov?.cash ? (
-                          <Fact {...cov.cash} sourcePath={sourcePathFor(sourceRefs, cov.cash.sourceRefId)} note={cov.cash.fxNote} />
-                        ) : (
-                          EM
-                        )}
-                      </td>
-                      <td>
-                        {cov?.burn ? (
-                          <Fact {...cov.burn} sourcePath={sourcePathFor(sourceRefs, cov.burn.sourceRefId)} note={cov.burn.fxNote} />
-                        ) : (
-                          EM
-                        )}
-                      </td>
-                      <td>
-                        {cov?.runway ? <Fact {...cov.runway} sourcePath={sourcePathFor(sourceRefs, cov.runway.sourceRefId)} /> : EM}
-                      </td>
-                      <td>
-                        {cov?.openFlags ? (
-                          <span className={`flag-n${cov.openFlags >= 2 ? " high" : ""}`}>{cov.openFlags}</span>
-                        ) : (
-                          EM
-                        )}
-                      </td>
-                      <td>
-                        <span className={`status-chip ${kind}`}>
-                          {kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <Panel
+          title="Performance"
+          kicker={`${visible.length} shown`}
+          flush
+          actions={
+            visible.length > 0 ? (
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() =>
+                  exportVisible(
+                    visible.map((c) => {
+                      const cov = covById.get(c.id);
+                      const kind = coverageKind(cov);
+                      return {
+                        name: c.name,
+                        stage: c.stage,
+                        sector: c.sector,
+                        ownership: formatOwnership(cov?.ownershipPct),
+                        lastMis: cov?.lastMis ?? "",
+                        flags: cov?.openFlags ? String(cov.openFlags) : "",
+                        cover: kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review",
+                      };
+                    }),
+                  )
+                }
+              >
+                Export
+              </button>
+            ) : undefined
+          }
+        >
+          <div className="table-tools">
+            <CompanyCombobox
+              companies={rows}
+              value={q}
+              onChange={setQ}
+              onPick={(c) => router.push(`/companies/${c.id}`)}
+            />
+            <label className="field table-tools-field">
+              <span className="sr-only">Stage</span>
+              <select value={stage} onChange={(e) => setStage(e.target.value)} aria-label="Stage">
+                <option value="">All stages</option>
+                {stages.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field table-tools-field">
+              <span className="sr-only">Ownership</span>
+              <select
+                id="own-filter"
+                value={own}
+                onChange={(e) => setOwn(e.target.value as typeof own)}
+                aria-label="Ownership"
+              >
+                <option value="all">Ownership</option>
+                <option value="has">Has booked ownership</option>
+                <option value="missing">Ownership missing</option>
+              </select>
+            </label>
+            {filtered ? (
+              <button
+                type="button"
+                className="linkish push"
+                onClick={() => {
+                  setQ("");
+                  setStage("");
+                  setOwn("all");
+                  setCover("all");
+                }}
+              >
+                Clear
+              </button>
+            ) : null}
           </div>
-          <p className="table-foot">
-            Displaying {visible.length} of {rows.length} {rows.length === 1 ? "company" : "companies"}
-            {filtered ? " matching current filters" : ""}. Cash, burn, and runway are booked facts — never a score.
-          </p>
+          {visible.length === 0 ? (
+            <div className="empty" style={{ margin: 0, border: 0, borderRadius: 0 }}>
+              No companies match these filters.
+            </div>
+          ) : (
+            <div className="table-scroll">
+              <table className="table-hover">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Stage</th>
+                    <th>Ownership</th>
+                    <th>Last MIS</th>
+                    <th>Cash</th>
+                    <th>Burn</th>
+                    <th>Runway</th>
+                    <th>Flags</th>
+                    <th>Coverage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((c) => {
+                    const cov = covById.get(c.id);
+                    const kind = coverageKind(cov);
+                    const rowClass =
+                      kind === "gap" ? "row-gap" : kind === "review" || (cov?.openFlags ?? 0) > 0 ? "row-flag" : undefined;
+                    return (
+                      <tr key={c.id} data-testid="companies-row" className={rowClass}>
+                        <td>
+                          <div className="company-cell">
+                            <CompanyMark name={c.name} />
+                            <Link className="company-link" href={`/companies/${c.id}`}>
+                              {c.name}
+                            </Link>
+                          </div>
+                        </td>
+                        <td>{c.stage ?? ""}</td>
+                        <td className="num">{formatOwnership(cov?.ownershipPct)}</td>
+                        <td className="lede">{cov?.lastMis ?? ""}</td>
+                        <td>
+                          {cov?.cash ? (
+                            <Fact
+                              {...cov.cash}
+                              sourcePath={sourcePathFor(sourceRefs, cov.cash.sourceRefId)}
+                              note={cov.cash.fxNote}
+                            />
+                          ) : null}
+                        </td>
+                        <td>
+                          {cov?.burn ? (
+                            <Fact
+                              {...cov.burn}
+                              sourcePath={sourcePathFor(sourceRefs, cov.burn.sourceRefId)}
+                              note={cov.burn.fxNote}
+                            />
+                          ) : null}
+                        </td>
+                        <td>
+                          {cov?.runway ? (
+                            <Fact {...cov.runway} sourcePath={sourcePathFor(sourceRefs, cov.runway.sourceRefId)} />
+                          ) : null}
+                        </td>
+                        <td>
+                          {cov?.openFlags ? (
+                            <span className={`flag-n${cov.openFlags >= 2 ? " high" : ""}`}>{cov.openFlags}</span>
+                          ) : null}
+                        </td>
+                        <td className={`cover-plain cover-${kind}`}>
+                          {kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Panel>
       )}
     </>

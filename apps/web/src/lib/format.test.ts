@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { formatOwnership, monthName, titleCaseKind } from "./format";
 
 describe("formatOwnership", () => {
-  it("keeps missing as an em dash", () => {
-    expect(formatOwnership(null)).toBe("—");
-    expect(formatOwnership(undefined)).toBe("—");
-    expect(formatOwnership(Number.NaN)).toBe("—");
+  it("keeps missing blank", () => {
+    expect(formatOwnership(null)).toBe("");
+    expect(formatOwnership(undefined)).toBe("");
+    expect(formatOwnership(Number.NaN)).toBe("");
   });
 
   it("treats fractions as booked percents", () => {

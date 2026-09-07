@@ -75,7 +75,7 @@ export function SourceViewer(props: {
   if (!gate.ok) {
     return (
       <div className="cite-viewer muted">
-        <p className="lede">Jump unavailable — locator incomplete ({gate.reason.replaceAll("_", " ")}). Missing stays —.</p>
+        <p className="lede">Jump unavailable. Locator incomplete ({gate.reason.replaceAll("_", " ")}).</p>
       </div>
     );
   }
@@ -127,7 +127,7 @@ export function SourceViewer(props: {
                         sheet.highlight && sheet.highlight.row === r && sheet.highlight.col === c;
                       return (
                         <td key={c} className={on ? "cite-hl" : undefined}>
-                          {cell == null || cell === "" ? "—" : String(cell)}
+                          {cell == null || cell === "" ? "" : String(cell)}
                         </td>
                       );
                     })}
@@ -148,7 +148,7 @@ export function SourceViewer(props: {
           Page {page.page} of {page.pageCount}
         </p>
         {props.locator?.excerpt ? <p className="cite-excerpt">{props.locator.excerpt}</p> : null}
-        <pre className="cite-page-text">{page.text || "—"}</pre>
+        <pre className="cite-page-text">{page.text || ""}</pre>
       </div>
     );
   }

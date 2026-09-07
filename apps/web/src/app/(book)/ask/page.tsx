@@ -6,6 +6,7 @@ import { useCite } from "@/components/Cite";
 import { BusyDots } from "@/components/motion/BusyDots";
 
 import { api } from "@/lib/api";
+import { titleCaseKind } from "@/lib/format";
 import { bookErrorMessage } from "@/lib/wake";
 
 type Res = {
@@ -65,7 +66,7 @@ export default function AskPage() {
 
   return (
     <><div className="ask-hero">
-        <PageHead title="Ask" testId="ask-ready" />
+        <PageHead title="Ask" testId="ask-ready" lede="Cite-or-refuse over confirmed book facts." />
         <form onSubmit={send}>
           <label className="field" style={{ textAlign: "left" }}>
             <span className="sr-only">Company</span>
@@ -96,7 +97,7 @@ export default function AskPage() {
               {busy ? "…" : "Ask"}
             </button>
           </div>
-          {busy ? <BusyDots label="Searching the book…" className="ask-busy" /> : null}
+          {busy ? <BusyDots label="Searching confirmed facts…" className="ask-busy" /> : null}
         </form>
       </div>
       {err && (
@@ -106,7 +107,7 @@ export default function AskPage() {
       )}
       {res && refused && (
         <div className="ask-answer" data-testid="ask-refused" role="status">
-          <p className="body">{res.answer}</p>
+          <p className="body">{res.answer || "Not enough confirmed evidence to answer."}</p>
         </div>
       )}
       {res && !refused && (
@@ -114,7 +115,9 @@ export default function AskPage() {
           <p className="body" data-testid="ask-answer">
             {res.answer}
           </p>
-          {res.citations.length === 0 ? null : (
+          {res.citations.length === 0 ? (
+            <p className="lede">No citations returned.</p>
+          ) : (
             <div className="ask-prov">
               {res.citations.map((c, i) => {
                 const doc = c.documentId ? docs.find((d) => d.id === c.documentId) : undefined;
@@ -125,30 +128,22 @@ export default function AskPage() {
                     body={
                       <>
                         {doc?.companyName ? `${doc.companyName} · ` : ""}
-                        {doc?.kind ? doc.kind.replaceAll("_", " ") : "—"}
+                        {doc?.kind ? titleCaseKind(doc.kind) : ""}
                         {c.excerpt ? ` · ${c.excerpt.slice(0, 140)}` : ""}
                       </>
                     }
-                    action={
-                      c.documentId || c.excerpt ? (
-                        <button
-                          type="button"
-                          className="cite"
-                          onClick={() =>
+                    onOpen={
+                      c.documentId || c.excerpt
+                        ? () =>
                             openCite({
                               display: doc?.filename ?? "Ask citation",
                               documentId: c.documentId ?? undefined,
                               sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
                               excerpt: c.excerpt,
                             })
-                          }
-                        >
-                          Cite
-                        </button>
-                      ) : (
-                        <span className="lede">unresolved</span>
-                      )
+                        : undefined
                     }
+                    action={!c.documentId && !c.excerpt ? <span className="lede">unresolved</span> : undefined}
                   />
                 );
               })}

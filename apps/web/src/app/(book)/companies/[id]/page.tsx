@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { FLAG_CATALOG, formatDualDisplay } from "@venture-os/core";
-import { formatOwnership, PageHead, PageTabs, Panel } from "@/components/BookUI";
+import { FLAG_CATALOG, formatDualDisplay, metricByKey } from "@venture-os/core";
+import { formatOwnership, Miss, PageHead, PageTabs, Panel } from "@/components/BookUI";
 import { CompanyMetricHistoryChart } from "@/components/BookCharts";
 import { useCite } from "@/components/Cite";
 import { Fact, useBookSession } from "@/components/Shell";
 import { api, downloadAuthed, sourcePathFor } from "@/lib/api";
+import { titleCaseKind } from "@/lib/format";
 import { bookErrorMessage } from "@/lib/wake";
 
 type Data = {
@@ -95,7 +96,11 @@ const TABS = [
 ] as const;
 
 function flagLabel(key: string) {
-  return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
+  return FLAG_CATALOG.find((c) => c.key === key)?.label ?? titleCaseKind(key);
+}
+
+function metricLabel(key: string) {
+  return metricByKey(key)?.label ?? titleCaseKind(key);
 }
 
 function runwayAccent(display?: string) {
@@ -128,7 +133,7 @@ function evidenceLine(ev: Record<string, unknown> | undefined) {
   if (!ev) return "";
   return Object.entries(ev)
     .filter(([k]) => k !== "sourceRefIds")
-    .map(([k, v]) => `${k.replaceAll("_", " ")}: ${v == null ? "—" : String(v)}`)
+    .map(([k, v]) => (v == null || v === "" ? titleCaseKind(k) : `${titleCaseKind(k)}: ${String(v)}`))
     .join(" · ");
 }
 
@@ -148,7 +153,7 @@ export default function CompanyPage() {
   const [periodEnd, setPeriodEnd] = useState("");
   const [editing, setEditing] = useState(false);
   const [draftMsg, setDraftMsg] = useState("");
-  const [vaultKind, setVaultKind] = useState("");
+  const [sourceKind, setSourceKind] = useState("");
   const [mapMsg, setMapMsg] = useState("");
   const [pullMsg, setPullMsg] = useState("");
 
@@ -249,7 +254,7 @@ export default function CompanyPage() {
           periodEnd: periodEnd || last?.periodEnd,
         }),
       });
-      setDraftMsg(`${targetLane} draft queued in Confirm — review before book write.`);
+      setDraftMsg(`${titleCaseKind(targetLane)} draft queued in Confirm. Review before book write.`);
       router.push("/confirm");
     } catch (e) {
       setDraftMsg(e instanceof Error ? e.message : "Draft failed");
@@ -331,9 +336,9 @@ export default function CompanyPage() {
     return {
       id: ref.id,
       source: doc?.filename ?? "Source file",
-      kind: (doc?.kind ?? "other").replaceAll("_", " "),
-      date: doc?.createdAt ? new Date(doc.createdAt).toLocaleDateString() : (doc?.periodEnd ?? "—"),
-      cite: loc || "locator",
+      kind: titleCaseKind(doc?.kind ?? "other"),
+      date: doc?.createdAt ? new Date(doc.createdAt).toLocaleDateString() : (doc?.periodEnd ?? ""),
+      cite: loc,
       documentId: ref.documentId,
       excerpt: ref.excerpt,
       locator: ref.locator,
@@ -371,10 +376,10 @@ export default function CompanyPage() {
             </Link>
             {canWrite && (
               <>
-                <button type="button" className="chip" onClick={() => { setTab("links"); setEditing((v) => !v); }}>
+                <button type="button" className="btn ghost sm" onClick={() => { setTab("links"); setEditing((v) => !v); }}>
                   {editing ? "Close editor" : "Edit profile"}
                 </button>
-                <button type="button" className="chip" onClick={draftOnePager}>
+                <button type="button" className="btn ghost sm" onClick={draftOnePager}>
                   Draft one-pager
                 </button>
               </>
@@ -418,10 +423,9 @@ export default function CompanyPage() {
                     cite={citeFor(data, data.kpi.cash.sourceRefId)}
                   />
                 ) : (
-                  <span className="chip unfact">—</span>
+                  <Miss />
                 )}
               </div>
-              <div className="meta">Booked · objective</div>
             </div>
             <div className="kpi">
               <div className="k">Burn</div>
@@ -434,10 +438,9 @@ export default function CompanyPage() {
                     cite={citeFor(data, data.kpi.burn.sourceRefId)}
                   />
                 ) : (
-                  <span className="chip unfact">—</span>
+                  <Miss />
                 )}
               </div>
-              <div className="meta">Monthly</div>
             </div>
             <div className={`kpi${runwayAccent(data.kpi?.runway.display)}`}>
               <div className="k">Runway</div>
@@ -449,10 +452,9 @@ export default function CompanyPage() {
                     cite={citeFor(data, data.kpi.runway.sourceRefId)}
                   />
                 ) : (
-                  <span className="chip unfact">—</span>
+                  <Miss />
                 )}
               </div>
-              <div className="meta">3-mo burn</div>
             </div>
             <div className="kpi">
               <div className="k">Net revenue</div>
@@ -466,22 +468,20 @@ export default function CompanyPage() {
                     cite={citeFor(data, revenue?.sourceRefId)}
                   />
                 ) : (
-                  <span className="chip unfact">—</span>
+                  <Miss />
                 )}
               </div>
-              <div className="meta">
-                {data.flags.length > 0 ? (
+              {data.flags.length > 0 ? (
+                <div className="meta">
                   <button type="button" className="linkish" onClick={() => setTab("flags")}>
                     {data.flags.length} open flag{data.flags.length === 1 ? "" : "s"}
                   </button>
-                ) : (
-                  "Latest booked"
-                )}
-              </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
-          <Panel title="Booked trend" kicker="Cash · burn · revenue by period">
+          <Panel title="Booked trend">
             <CompanyMetricHistoryChart points={historyPoints} />
           </Panel>
 
@@ -507,10 +507,10 @@ export default function CompanyPage() {
                       <td>{formatOwnership(p.ownershipPct)}</td>
                       <td>
                         {p.costBasis == null
-                          ? "—"
+                          ? ""
                           : `${p.costBasis.toLocaleString("en-IN")} ${p.costCurrency}`}
                       </td>
-                      <td>{p.investedAt ?? "—"}</td>
+                      <td>{p.investedAt ?? ""}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -519,56 +519,63 @@ export default function CompanyPage() {
           </Panel>
 
           <div className="grid-2" style={{ marginBottom: 16 }}>
-            <Panel title="Evidence trail" kicker="Provenance">
+            <Panel title="Evidence trail">
               {evidence.length === 0 ? (
                 <p className="lede" style={{ margin: 0 }}>
-                  No citations. <Link href="/confirm">Confirm</Link> an extract.
+                  No citations yet. <Link href="/confirm">Confirm</Link> an extract.
                 </p>
               ) : (
-                <table>
+                <table className="table-hover">
                   <thead>
                     <tr>
                       <th>Source</th>
                       <th>Type</th>
                       <th>Date</th>
-                      <th>Cite</th>
+                      <th>Locator</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {evidence.map((e) => (
-                      <tr key={e.id}>
-                        <td>{e.source}</td>
-                        <td className="lede">{e.kind}</td>
-                        <td className="lede">{e.date}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="cite"
-                            onClick={() =>
-                              openCite({
-                                display: e.source,
-                                filename: e.source,
-                                documentId: e.documentId,
-                                sourcePath: `/api/documents/${e.documentId}/file`,
-                                locator: e.locator,
-                                excerpt: e.excerpt,
-                                periodStart: e.periodStart,
-                                periodEnd: e.periodEnd,
-                                confirmedBy: e.confirmedBy,
-                                confirmedAt: e.confirmedAt,
-                              })
+                    {evidence.map((e) => {
+                      const open = () =>
+                        openCite({
+                          display: e.source,
+                          filename: e.source,
+                          documentId: e.documentId,
+                          sourcePath: `/api/documents/${e.documentId}/file`,
+                          locator: e.locator,
+                          excerpt: e.excerpt,
+                          periodStart: e.periodStart,
+                          periodEnd: e.periodEnd,
+                          confirmedBy: e.confirmedBy,
+                          confirmedAt: e.confirmedAt,
+                        });
+                      return (
+                        <tr
+                          key={e.id}
+                          className="cite-row"
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`Open source ${e.source}`}
+                          onClick={open}
+                          onKeyDown={(ev) => {
+                            if (ev.key === "Enter" || ev.key === " ") {
+                              ev.preventDefault();
+                              open();
                             }
-                          >
-                            {e.cite}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          }}
+                        >
+                          <td>{e.source}</td>
+                          <td className="lede">{e.kind}</td>
+                          <td className="lede">{e.date}</td>
+                          <td className="lede">{e.cite || <Miss />}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
             </Panel>
-            <Panel title="Required docs" kicker="Coverage">
+            <Panel title="Required docs">
               <ul className="doc-req">
                 {required.map((r) => (
                   <li key={r.key} className="doc-row">
@@ -621,7 +628,7 @@ export default function CompanyPage() {
                   });
                   return (
                     <tr key={m.id}>
-                      <td>{m.metricKey}</td>
+                      <td>{metricLabel(m.metricKey)}</td>
                       <td>
                         <Fact
                           display={dual.display}
@@ -636,10 +643,10 @@ export default function CompanyPage() {
                         {loc?.sheet} {loc?.cell}
                         {ref?.excerpt ? ` · ${ref.excerpt}` : ""}
                       </td>
-                      <td>{m.lane}</td>
+                      <td>{titleCaseKind(m.lane)}</td>
                       <td>{m.version}</td>
                       <td className="lede">
-                        {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : "—"}
+                        {m.confirmedAt ? new Date(m.confirmedAt).toLocaleDateString() : <Miss />}
                         {m.confirmedBy ? ` · ${m.confirmedBy.slice(0, 8)}` : ""}
                       </td>
                     </tr>
@@ -663,7 +670,7 @@ export default function CompanyPage() {
                   {n.body}
                 </p>
               ))}
-              {data.commentary.filter((n) => n.lane === "objective").length === 0 && <p className="lede">—</p>}
+              {data.commentary.filter((n) => n.lane === "objective").length === 0 && <p className="lede">No objective notes.</p>}
             </div>
             <div className="lane-sub">
               <h3>Subjective <span className="lane-chip sub">judgement</span></h3>
@@ -674,7 +681,7 @@ export default function CompanyPage() {
                   {n.body}
                 </p>
               ))}
-              {data.commentary.filter((n) => n.lane === "subjective").length === 0 && <p className="lede">—</p>}
+              {data.commentary.filter((n) => n.lane === "subjective").length === 0 && <p className="lede">No subjective notes.</p>}
             </div>
           </div>
 
@@ -730,27 +737,27 @@ export default function CompanyPage() {
       )}
 
       {tab === "sources" && (
-        <Panel title="Vault">
+        <Panel title="Sources">
           <label className="field" style={{ maxWidth: 220 }}>
             Kind
-            <select value={vaultKind} onChange={(e) => setVaultKind(e.target.value)} aria-label="Vault kind">
+            <select value={sourceKind} onChange={(e) => setSourceKind(e.target.value)} aria-label="Source kind">
               <option value="">All kinds</option>
               {[...new Set(data.documents.map((d) => d.kind))].map((k) => (
                 <option key={k} value={k}>
-                  {k.replaceAll("_", " ")}
+                  {titleCaseKind(k)}
                 </option>
               ))}
             </select>
           </label>
           <ul>
             {data.documents
-              .filter((d) => !vaultKind || d.kind === vaultKind)
+              .filter((d) => !sourceKind || d.kind === sourceKind)
               .map((d) => (
               <li key={d.id}>
-                <button type="button" className="chip" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
+                <button type="button" className="btn ghost sm" onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}>
                   {d.filename}
                 </button>{" "}
-                · {d.kind}
+                · {titleCaseKind(d.kind)}
                 {d.periodEnd ? ` · period ${d.periodEnd}` : ""}
                 {d.createdAt ? ` · ${new Date(d.createdAt).toLocaleString()}` : ""}
                 {d.sha256 ? ` · sha ${d.sha256.slice(0, 10)}` : ""}
@@ -929,7 +936,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
         `/api/documents/${documentId}`,
       ).catch(() => null);
       const st = r?.parse?.status ?? "queued";
-      setMsg(`Parse ${st}${r?.parse?.error ? ` — ${r.parse.error}` : ""}.`);
+      setMsg(`Parse ${st}${r?.parse?.error ? `: ${r.parse.error}` : ""}.`);
       if (st === "done" || st === "error") return;
       await new Promise((ok) => setTimeout(ok, 800));
     }
@@ -946,8 +953,8 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
       );
       setMsg(
         res.duplicateOf
-          ? "Same SHA already in vault. Confirm extracts."
-          : "Queued. Confirm extracts — nothing auto-posts.",
+          ? "Same SHA already stored. Confirm extracts."
+          : "Queued. Confirm extracts; nothing auto-posts.",
       );
       if (res.document?.id) await pollParse(res.document.id);
       onDone();
@@ -971,7 +978,7 @@ function Upload({ companyId, onDone }: { companyId: string; onDone: () => void }
       </select>
       <input type="file" name="file" required accept=".xlsx,.xls,.csv,.pdf" aria-label="File" />
       <button className="btn sm" type="submit" disabled={busy}>
-        {busy ? "Uploading…" : "Upload to vault"}
+        {busy ? "Uploading…" : "Upload"}
       </button>
       {msg && (
         <span className="lede">

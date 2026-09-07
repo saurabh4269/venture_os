@@ -131,7 +131,7 @@ function AskPanel({ companyId: initialCompanyId, onClose }: { companyId?: string
               {busy ? "…" : "Ask"}
             </button>
           </div>
-          {busy ? <BusyDots label="Searching the book…" className="ask-busy" /> : null}
+          {busy ? <BusyDots label="Searching confirmed facts…" className="ask-busy" /> : null}
         </form>
         {err ? (
           <p className="sev-high" role="alert">
@@ -140,7 +140,7 @@ function AskPanel({ companyId: initialCompanyId, onClose }: { companyId?: string
         ) : null}
         {res && refused ? (
           <div className="ask-answer" data-testid="ask-refused" role="status">
-            <p className="body">{res.answer}</p>
+            <p className="body">{res.answer || "Not enough confirmed evidence to answer."}</p>
           </div>
         ) : null}
         {res && !refused ? (
@@ -151,29 +151,26 @@ function AskPanel({ companyId: initialCompanyId, onClose }: { companyId?: string
                 {res.citations.map((c, i) => (
                   <li key={`${c.documentId}-${i}`}>
                     <ContextCard
-                      kicker={`Cite ${i + 1}`}
+                      kicker={`Source ${i + 1}`}
                       body={c.excerpt || "Source excerpt"}
-                      action={
-                        <button
-                          type="button"
-                          className="cite"
-                          onClick={() =>
-                            openCite({
-                              display: c.excerpt?.slice(0, 80) || "Source",
-                              documentId: c.documentId ?? undefined,
-                              sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
-                              excerpt: c.excerpt,
-                            })
-                          }
-                        >
-                          Open source
-                        </button>
+                      onOpen={
+                        c.documentId || c.excerpt
+                          ? () =>
+                              openCite({
+                                display: c.excerpt?.slice(0, 80) || "Source",
+                                documentId: c.documentId ?? undefined,
+                                sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
+                                excerpt: c.excerpt,
+                              })
+                          : undefined
                       }
                     />
                   </li>
                 ))}
               </ul>
-            ) : null}
+            ) : (
+              <p className="lede">No citations returned.</p>
+            )}
           </div>
         ) : null}
       </motion.aside>

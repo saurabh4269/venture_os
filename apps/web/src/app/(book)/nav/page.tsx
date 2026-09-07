@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { defaultPriorAsOf, lastCalendarQuarterEnd } from "@venture-os/core";
 import { CompanyMark, formatOwnership, PageHead, Panel } from "@/components/BookUI";
@@ -79,12 +79,12 @@ const MARK_METHODS = [
 ];
 
 function inr(n: number | null | undefined) {
-  if (n == null) return "—";
+  if (n == null) return "";
   return n.toLocaleString("en-IN");
 }
 
 function pctIrr(n: number | null | undefined) {
-  if (n == null) return "—";
+  if (n == null) return "";
   return `${(n * 100).toFixed(1)}%`;
 }
 
@@ -118,6 +118,8 @@ type Period = {
   snapshotAt?: string | null;
 };
 
+type RowFilter = "all" | "unmarked" | "changed";
+
 export default function NavPage() {
   const { canWrite, canLock } = useBookSession();
   const [asOf, setAsOf] = useState(lastCalendarQuarterEnd());
@@ -125,6 +127,9 @@ export default function NavPage() {
   const [fundId, setFundId] = useState("");
   const [form, setForm] = useState(emptyForm);
   const [clearMark, setClearMark] = useState(false);
+  const [showFx, setShowFx] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false);
+  const [rowFilter, setRowFilter] = useState<RowFilter>("all");
   const [actionErr, setActionErr] = useState("");
   const [unlockReason, setUnlockReason] = useState("");
   const [lockBusy, setLockBusy] = useState(false);
@@ -136,11 +141,6 @@ export default function NavPage() {
   }, [asOf, priorAsOf, fundId]);
 
   const { data, error, mutate } = useSWR<(Nav & { period?: Period }) | null>(`/api/nav?${qs}`, bookFetcher);
-  const { data: cosData } = useSWR<{ companies: { id: string; name: string; stage: string | null }[] }>(
-    "/api/companies",
-    bookFetcher,
-  );
-  const cos = cosData?.companies ?? [];
   const err = actionErr || (error ? bookErrorMessage(error instanceof Error ? error.message : String(error)) : "");
 
   function load() {
@@ -148,15 +148,41 @@ export default function NavPage() {
     void mutate();
   }
 
-  const stageById = useMemo(() => new Map(cos.map((c) => [c.id, c.stage])), [cos]);
   const unmarked = data?.rollup.unmarked ?? [];
   const unprovenanced = data?.rollup.unprovenanced ?? [];
   const unofficial = data?.period?.status !== "locked";
+  const locked = data?.period?.status === "locked";
+
+  const bridgeByCompany = useMemo(() => {
+    const m = new Map<string, Nav["bridge"]["lines"][number]>();
+    for (const line of data?.bridge.lines ?? []) m.set(line.companyName, line);
+    return m;
+  }, [data?.bridge.lines]);
+
+  const visiblePositions = useMemo(() => {
+    const rows = data?.positions ?? [];
+    if (rowFilter === "unmarked") return rows.filter((p) => p.mark == null);
+    if (rowFilter === "changed") {
+      return rows.filter((p) => {
+        const b = bridgeByCompany.get(p.companyName);
+        return b?.delta != null && b.delta !== 0;
+      });
+    }
+    return rows;
+  }, [data?.positions, rowFilter, bridgeByCompany]);
+
+  const positionOptions = useMemo(() => {
+    const rows = data?.positions ?? [];
+    const unmarkedIds = new Set(unmarked.map((u) => u.positionId).filter(Boolean));
+    const pending = rows.filter((p) => unmarkedIds.has(p.position.id) || p.mark == null);
+    const rest = rows.filter((p) => !pending.includes(p));
+    return [...pending, ...rest];
+  }, [data?.positions, unmarked]);
 
   async function addMark(e: React.FormEvent) {
     e.preventDefault();
     if (form.value === "" && !clearMark) {
-      setActionErr("Enter a mark value, or confirm clear to store a null mark. We will not silently wipe NAV.");
+      setActionErr("Enter a mark value, or confirm clear to store a null mark.");
       return;
     }
     const triple = form.fxRate && form.fxDate && form.fxSource;
@@ -176,67 +202,96 @@ export default function NavPage() {
     });
     setForm(emptyForm);
     setClearMark(false);
+    setShowFx(false);
     load();
   }
 
+  function pickUnmarked(positionId: string) {
+    if (!positionId) return;
+    setForm({ ...emptyForm, positionId });
+    setRowFilter("unmarked");
+    document.getElementById("nav-mark-form")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   return (
-    <><PageHead
+    <>
+      <PageHead
         title="NAV"
         testId="nav-ready"
-        kicker={
-          <span className="row" style={{ gap: 8 }}>
-            <span className="badge">Institutional book</span>
-            <span className={`badge${unofficial ? " status-unofficial" : ""}`}>
-              Status: {unofficial ? "unofficial" : "locked"}
-            </span>
-          </span>
-        }
-        lede={
-          <>
-            Quarterly marks · {quarterLabel(asOf)} · as of {asOf}. Deterministic from positions and marks. Missing is —.
-            MOIC is blank unless the rollup is complete. IRR appears only when every sourced mark has an{" "}
-            <code>investedAt</code>. Dual EUR only with a complete FX triple.
-          </>
-        }
+        kicker={`${quarterLabel(asOf)} · ${unofficial ? "Unofficial" : "Locked"}`}
         actions={
-          canLock && unofficial ? (
-            <button
-              type="button"
-              className="btn"
-              data-testid="nav-lock"
-              disabled={lockBusy}
-              onClick={async () => {
-                setLockBusy(true);
-                setActionErr("");
-                try {
-                  await api("/api/nav/lock", { method: "POST", body: JSON.stringify({ asOf }) });
-                  load();
-                } catch (e) {
-                  setActionErr(e instanceof Error ? e.message : "Lock failed");
-                } finally {
-                  setLockBusy(false);
-                }
-              }}
-            >
-              <span className="row" style={{ gap: 6 }}>
-                <IconLock />
-                {lockBusy ? "Locking…" : "Lock marks"}
-              </span>
-            </button>
-          ) : undefined
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            {canLock && unofficial ? (
+              <button
+                type="button"
+                className="btn"
+                data-testid="nav-lock"
+                disabled={lockBusy}
+                onClick={async () => {
+                  setLockBusy(true);
+                  setActionErr("");
+                  try {
+                    await api("/api/nav/lock", { method: "POST", body: JSON.stringify({ asOf }) });
+                    load();
+                  } catch (e) {
+                    setActionErr(e instanceof Error ? e.message : "Lock failed");
+                  } finally {
+                    setLockBusy(false);
+                  }
+                }}
+              >
+                <span className="row" style={{ gap: 6 }}>
+                  <IconLock />
+                  {lockBusy ? "Locking…" : "Lock"}
+                </span>
+              </button>
+            ) : null}
+            {canLock && locked ? (
+              <button type="button" className="btn ghost sm" onClick={() => setShowUnlock((v) => !v)}>
+                Unlock…
+              </button>
+            ) : null}
+            {canLock && data?.period?.snapshotSha256 ? (
+              <button
+                type="button"
+                className="btn ghost sm"
+                data-testid="nav-snapshot"
+                onClick={async () => {
+                  try {
+                    const pack = await api<{ snapshot: { asOf: string } }>(`/api/nav/snapshot?asOf=${asOf}`);
+                    const blob = new Blob([JSON.stringify(pack.snapshot, null, 2)], { type: "application/json" });
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `nav-pack-${asOf}.json`;
+                    a.click();
+                  } catch (e) {
+                    setActionErr(e instanceof Error ? e.message : "Snapshot missing");
+                  }
+                }}
+              >
+                Pack
+              </button>
+            ) : null}
+          </div>
         }
       />
-      <div className="row" style={{ flexWrap: "wrap" }}>
-        <label className="field" style={{ maxWidth: 200 }}>
-          As-of
-          <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} />
+
+      <div className="table-tools nav-period-bar">
+        <label className="field table-tools-field">
+          <span className="sr-only">As-of</span>
+          <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} aria-label="As-of" />
         </label>
-        <label className="field" style={{ maxWidth: 200 }}>
-          Prior as-of
-          <input type="date" value={priorAsOf} onChange={(e) => setPriorAsOf(e.target.value)} />
+        <label className="field table-tools-field">
+          <span className="sr-only">Prior as-of</span>
+          <input
+            type="date"
+            value={priorAsOf}
+            onChange={(e) => setPriorAsOf(e.target.value)}
+            aria-label="Prior as-of"
+          />
         </label>
-        <label className="field" style={{ maxWidth: 220 }}>
-          Fund
+        <label className="field table-tools-field">
+          <span className="sr-only">Fund</span>
           <select value={fundId} onChange={(e) => setFundId(e.target.value)} aria-label="Fund">
             <option value="">All funds</option>
             {(data?.funds ?? []).map((f) => (
@@ -246,336 +301,355 @@ export default function NavPage() {
             ))}
           </select>
         </label>
+        <label className="field table-tools-field">
+          <span className="sr-only">Show</span>
+          <select
+            value={rowFilter}
+            onChange={(e) => setRowFilter(e.target.value as RowFilter)}
+            aria-label="Filter marks"
+          >
+            <option value="all">All positions</option>
+            <option value="unmarked">Unmarked only</option>
+            <option value="changed">Changed only</option>
+          </select>
+        </label>
       </div>
-      {data?.period && (
-        <p className="lede" role="status">
-          As-of {asOf} is{" "}
-          <strong>{data.period.status === "locked" ? "locked (official)" : "unofficial"}</strong>
-          {data.period.snapshotSha256
-            ? ` · pack frozen ${data.period.snapshotSha256.slice(0, 12)}…`
-            : ""}
-          {data.period.unlockReason ? ` · last unlock: ${data.period.unlockReason}` : ""}.
-        </p>
-      )}
-      {canLock && (
-        <div className="row" style={{ marginBottom: 12 }}>
-          {data?.period?.status === "locked" && (
-            <>
-              <label className="field" style={{ maxWidth: 320 }}>
-                Unlock reason
-                <input
-                  value={unlockReason}
-                  onChange={(e) => setUnlockReason(e.target.value)}
-                  placeholder="Why reopen this quarter?"
-                  required
-                />
-              </label>
-              <button
-                type="button"
-                className="btn ghost sm"
-                data-testid="nav-unlock"
-                disabled={lockBusy || unlockReason.trim().length < 3}
-                onClick={async () => {
-                  setLockBusy(true);
-                  setActionErr("");
-                  try {
-                    await api("/api/nav/unlock", {
-                      method: "POST",
-                      body: JSON.stringify({ asOf, reason: unlockReason }),
-                    });
-                    setUnlockReason("");
-                    load();
-                  } catch (e) {
-                    setActionErr(e instanceof Error ? e.message : "Unlock failed");
-                  } finally {
-                    setLockBusy(false);
-                  }
-                }}
-              >
-                Unlock
-              </button>
-            </>
-          )}
-          {data?.period?.snapshotSha256 && (
-            <button
-              type="button"
-              className="btn ghost sm"
-              data-testid="nav-snapshot"
-              onClick={async () => {
-                try {
-                  const pack = await api<{ snapshot: { asOf: string } }>(`/api/nav/snapshot?asOf=${asOf}`);
-                  const blob = new Blob([JSON.stringify(pack.snapshot, null, 2)], { type: "application/json" });
-                  const a = document.createElement("a");
-                  a.href = URL.createObjectURL(blob);
-                  a.download = `nav-pack-${asOf}.json`;
-                  a.click();
-                } catch (e) {
-                  setActionErr(e instanceof Error ? e.message : "Snapshot missing");
-                }
-              }}
-            >
-              Download official pack
-            </button>
-          )}
+
+      {canLock && locked && showUnlock ? (
+        <div className="nav-unlock-bar">
+          <label className="field" style={{ flex: "1 1 240px", margin: 0 }}>
+            <span className="sr-only">Unlock reason</span>
+            <input
+              value={unlockReason}
+              onChange={(e) => setUnlockReason(e.target.value)}
+              placeholder="Why reopen this quarter?"
+              required
+            />
+          </label>
+          <button
+            type="button"
+            className="btn ghost sm"
+            data-testid="nav-unlock"
+            disabled={lockBusy || unlockReason.trim().length < 3}
+            onClick={async () => {
+              setLockBusy(true);
+              setActionErr("");
+              try {
+                await api("/api/nav/unlock", {
+                  method: "POST",
+                  body: JSON.stringify({ asOf, reason: unlockReason }),
+                });
+                setUnlockReason("");
+                setShowUnlock(false);
+                load();
+              } catch (e) {
+                setActionErr(e instanceof Error ? e.message : "Unlock failed");
+              } finally {
+                setLockBusy(false);
+              }
+            }}
+          >
+            Confirm unlock
+          </button>
         </div>
-      )}
+      ) : null}
+
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      {!data && !err && <p className="lede">Loading the book…</p>}
-      {data && (
+      {!data && !err && <p className="lede">Loading…</p>}
+
+      {data ? (
         <>
-          <div className="notice-split">
-            <div className="notice">
-              <strong>Unmarked companies: {unmarked.length}</strong>
-              <p className="lede">
-                {unmarked.length === 0
-                  ? "Every position on this as-of has a mark — or there are no positions yet."
-                  : "Needs a booked mark. We will not invent a figure."}{" "}
-                {unmarked.map((u) => (
-                  <button
-                    key={`${u.companyName}-${u.positionId ?? ""}`}
-                    type="button"
-                    className="chip"
-                    onClick={() => u.positionId && setForm({ ...emptyForm, positionId: u.positionId })}
-                  >
-                    {u.companyName}
-                  </button>
-                ))}
-              </p>
-            </div>
-            <div className={`notice${unprovenanced.length ? " warn" : ""}`}>
-              <strong>Unprovenanced figures: {unprovenanced.length}</strong>
-              <p className="lede">
-                {unprovenanced.length === 0
-                  ? "No cited-less marks on this as-of."
-                  : "Missing citations. Headline NAV excludes them — attach a memo to include."}{" "}
-                {unprovenanced.map((u) => u.companyName).join(", ")}
-              </p>
-            </div>
-          </div>
           <div className="cards cards-4">
             <div className="kpi">
               <div className="k">Cost</div>
               <div className="v">{inr(data.rollup.cost.total)}</div>
-              {!data.rollup.cost.complete && <div className="meta">Incomplete</div>}
+              {!data.rollup.cost.complete ? <div className="meta">Incomplete</div> : null}
             </div>
             <div className={`kpi${!data.rollup.nav.complete ? " accent-warn" : " accent-forest"}`}>
               <div className="k">NAV</div>
               <div className="v">{inr(data.rollup.nav.total)}</div>
               <div className="meta">
-                {data.eur?.conversionRefused
-                  ? "EUR — (no FX triple)"
-                  : data.eur?.total != null
+                {[
+                  data.eur?.total != null
                     ? `EUR ${data.eur.total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
-                    : "EUR —"}
-                {!data.rollup.nav.complete ? ` · incomplete · ${data.rollup.nav.missing} missing` : ""}
+                    : null,
+                  !data.rollup.nav.complete ? `${data.rollup.nav.missing} missing` : null,
+                  data.bridge.deltaNav != null ? `vs prior ${inr(data.bridge.deltaNav)}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || null}
               </div>
             </div>
             <div className="kpi">
               <div className="k">MOIC</div>
-              <div className="v">{data.rollup.moic == null ? "—" : `${data.rollup.moic.toFixed(2)}x`}</div>
+              <div className="v">{data.rollup.moic == null ? "" : `${data.rollup.moic.toFixed(2)}x`}</div>
             </div>
             <div className="kpi">
               <div className="k">IRR</div>
               <div className="v">{pctIrr(data.irr)}</div>
-              {data.irr == null && <div className="meta">Needs investedAt on every sourced mark</div>}
             </div>
           </div>
-          <p className="lede" style={{ marginTop: -8, marginBottom: 16 }}>
-            Bridge Δ {data.bridge.deltaNav == null ? "—" : inr(data.bridge.deltaNav)} vs {data.priorAsOf}.
-          </p>
-        </>
-      )}
-      {data && data.positions.length === 0 && (
-        <div className="empty">
-          No positions on the book. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
-        </div>
-      )}
-      {data && data.positions.length > 0 && (
-        <>
-          {data.bridge.unexplained.length > 0 && (
+
+          {(unmarked.length > 0 || unprovenanced.length > 0) && (
+            <div className="nav-attention">
+              {unmarked.length > 0 ? (
+                <label className="field nav-attention-field">
+                  <span className="page-kicker">Unmarked · {unmarked.length}</span>
+                  <select
+                    defaultValue=""
+                    aria-label="Pick unmarked company"
+                    onChange={(e) => {
+                      pickUnmarked(e.target.value);
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">Select company to mark…</option>
+                    {unmarked.map((u) => (
+                      <option key={`${u.companyName}-${u.positionId ?? ""}`} value={u.positionId ?? ""}>
+                        {u.companyName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <p className="lede" style={{ margin: 0 }}>
+                  All positions marked for this as-of.
+                </p>
+              )}
+              {unprovenanced.length > 0 ? (
+                <p className="lede" style={{ margin: 0 }}>
+                  No citation · {unprovenanced.length} excluded from headline NAV
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {data.bridge.unexplained.length > 0 ? (
             <p className="lede">
               Unexplained bridge:{" "}
               {data.bridge.unexplained.map((u) => `${u.companyName} (${u.reason.replaceAll("_", " ")})`).join(", ")}
             </p>
-          )}
-          {data.bridge.lines.length > 0 && (
-            <>
-              <Panel title="Period bridge" flush>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Company</th>
-                    <th>Prior</th>
-                    <th>Prior as-of</th>
-                    <th>Current</th>
-                    <th>Current as-of</th>
-                    <th>Δ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.bridge.lines.map((l) => (
-                    <tr key={`${l.companyName}-${l.currentAsOf}`}>
-                      <td>{l.companyName}</td>
-                      <td>{l.priorMark == null ? "—" : inr(l.priorMark)}</td>
-                      <td>{l.priorAsOf ?? "—"}</td>
-                      <td>{l.currentMark == null ? "—" : inr(l.currentMark)}</td>
-                      <td>{l.currentAsOf ?? "—"}</td>
-                      <td>{l.delta == null ? "—" : inr(l.delta)}</td>
+          ) : null}
+
+          {data.positions.length === 0 ? (
+            <div className="empty">
+              No positions. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
+            </div>
+          ) : (
+            <Panel
+              title="Marks"
+              kicker={`${visiblePositions.length} of ${data.positions.length}`}
+              flush
+            >
+              <div className="table-scroll">
+                <table className="table-hover">
+                  <thead>
+                    <tr>
+                      <th>Company</th>
+                      <th>Cost</th>
+                      <th>Mark</th>
+                      <th>Δ</th>
+                      <th>MOIC</th>
+                      <th>As-of</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              </Panel>
-            </>
+                  </thead>
+                  <tbody>
+                    {visiblePositions.map((p) => {
+                      const unmarkedRow = p.mark == null;
+                      const moic = positionMoic(p.mark, p.cost);
+                      const bridge = bridgeByCompany.get(p.companyName);
+                      return (
+                        <tr
+                          key={p.position.id}
+                          className={unmarkedRow ? "row-flag" : undefined}
+                          onClick={() => {
+                            if (canWrite && !locked && unmarkedRow) {
+                              setForm({ ...emptyForm, positionId: p.position.id });
+                            }
+                          }}
+                          style={canWrite && !locked && unmarkedRow ? { cursor: "pointer" } : undefined}
+                        >
+                          <td>
+                            <div className="company-cell">
+                              {unmarkedRow ? (
+                                <IconWarn className="nav-ico look-ico" />
+                              ) : (
+                                <CompanyMark name={p.companyName} />
+                              )}
+                              <div>
+                                {p.position.companyId ? (
+                                  <Link
+                                    className="company-link"
+                                    href={`/companies/${p.position.companyId}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {p.companyName}
+                                  </Link>
+                                ) : (
+                                  p.companyName
+                                )}
+                                <div className="lede">
+                                  {p.fundName} · {formatOwnership(p.position.ownershipPct)}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="num">{p.cost == null ? "" : inr(p.cost)}</td>
+                          <td>
+                            <Fact
+                              display={p.markDisplay?.display ?? (p.mark == null ? "" : inr(p.mark))}
+                              isFact={Boolean(p.sourceRefId && p.mark != null)}
+                              note={p.markDisplay?.fxNote ?? null}
+                              sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)}
+                            />
+                          </td>
+                          <td className="num">{bridge?.delta == null ? "" : inr(bridge.delta)}</td>
+                          <td className="num">{moic == null ? "" : `${moic.toFixed(2)}x`}</td>
+                          <td className="num">{p.markAsOf ?? ""}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {visiblePositions.length === 0 ? (
+                <p className="table-foot">No rows match this filter.</p>
+              ) : null}
+            </Panel>
           )}
-          <Panel title="Company marks" flush>
-          <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Company</th>
-                <th>Stage</th>
-                <th>Cost</th>
-                <th>NAV</th>
-                <th>MOIC</th>
-                <th>IRR</th>
-                <th>Mark date</th>
-                <th>Provenance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.positions.map((p) => {
-                const unmarkedRow = p.mark == null;
-                const moic = positionMoic(p.mark, p.cost);
-                return (
-                  <tr key={p.position.id}>
-                    <td>
-                      <div className="company-cell">
-                        {unmarkedRow ? <IconWarn className="nav-ico look-ico" /> : <CompanyMark name={p.companyName} />}
-                        <div>
-                          {p.position.companyId ? (
-                            <Link className="company-link" href={`/companies/${p.position.companyId}`}>
-                              {p.companyName}
-                            </Link>
-                          ) : (
-                            p.companyName
-                          )}
-                          <div className="lede">{p.fundName} · {formatOwnership(p.position.ownershipPct)}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{stageById.get(p.position.companyId ?? "") ?? "—"}</td>
-                    <td className="num">{p.cost == null ? "—" : inr(p.cost)}</td>
-                    <td>
-                      <Fact
-                        display={p.markDisplay?.display ?? (p.mark == null ? "—" : inr(p.mark))}
-                        isFact={Boolean(p.sourceRefId && p.mark != null)}
-                        note={p.markDisplay?.fxNote ?? null}
-                        sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)}
+
+          {canWrite && locked ? (
+            <p className="lede">Locked. Unlock before changing marks.</p>
+          ) : null}
+
+          {canWrite && !locked && data.positions.length > 0 ? (
+            <Panel id="nav-mark-form" title="Add mark" kicker={quarterLabel(asOf)}>
+              <form onSubmit={addMark} className="nav-mark-form">
+                <label className="field">
+                  Company
+                  <select
+                    value={form.positionId}
+                    onChange={(e) => setForm({ ...form, positionId: e.target.value })}
+                    required
+                  >
+                    <option value="">Select position…</option>
+                    {positionOptions.map((p) => (
+                      <option key={p.position.id} value={p.position.id}>
+                        {p.mark == null ? "○ " : ""}
+                        {p.companyName}
+                        {p.fundName ? ` · ${p.fundName}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Value
+                  <input
+                    placeholder="Mark value"
+                    value={form.value}
+                    onChange={(e) => setForm({ ...form, value: e.target.value })}
+                    disabled={clearMark}
+                  />
+                </label>
+                <label className="field">
+                  Method
+                  <select
+                    value={form.method}
+                    onChange={(e) => setForm({ ...form, method: e.target.value })}
+                    aria-label="Mark method"
+                  >
+                    {MARK_METHODS.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Rationale
+                  <input
+                    placeholder="Short rationale"
+                    value={form.rationale}
+                    onChange={(e) => setForm({ ...form, rationale: e.target.value })}
+                  />
+                </label>
+                <label className="field">
+                  Memo
+                  <select
+                    value={form.documentId}
+                    onChange={(e) => setForm({ ...form, documentId: e.target.value })}
+                    aria-label="Mark memo"
+                  >
+                    <option value="">Optional source file</option>
+                    {(data.documents ?? [])
+                      .filter((d) => {
+                        const pos = data.positions.find((p) => p.position.id === form.positionId);
+                        return !pos?.position.companyId || d.companyId === pos.position.companyId;
+                      })
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.filename}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <div className="nav-mark-extras">
+                  <button type="button" className="linkish" onClick={() => setShowFx((v) => !v)}>
+                    {showFx ? "Hide FX" : "FX conversion (optional)"}
+                  </button>
+                  <label className="lede" style={{ margin: 0 }}>
+                    <input type="checkbox" checked={clearMark} onChange={(e) => setClearMark(e.target.checked)} />{" "}
+                    Clear mark
+                  </label>
+                </div>
+
+                {showFx ? (
+                  <div className="nav-mark-fx">
+                    <label className="field">
+                      Rate
+                      <input
+                        placeholder="FX rate"
+                        value={form.fxRate}
+                        onChange={(e) => setForm({ ...form, fxRate: e.target.value })}
+                        aria-label="FX rate"
                       />
-                    </td>
-                    <td className="num">{moic == null ? "—" : `${moic.toFixed(2)}x`}</td>
-                    <td className="num">{pctIrr(p.irr)}</td>
-                    <td className="num">{p.markAsOf ?? "—"}</td>
-                    <td>
-                      {p.sourceRefId ? (
-                        <Fact display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, p.sourceRefId)} />
-                      ) : (
-                        <span className="badge">{unmarkedRow ? "Pending" : "—"}</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          </div>
-          </Panel>
-          {canWrite && data.period?.status === "locked" && (
-            <p className="lede">This as-of is locked. Unlock with a reason before changing marks.</p>
-          )}
-          {canWrite && data.period?.status !== "locked" && (
-            <form onSubmit={addMark} className="row" style={{ marginTop: 16, flexWrap: "wrap" }}>
-              <select value={form.positionId} onChange={(e) => setForm({ ...form, positionId: e.target.value })} required>
-                <option value="">Position</option>
-                {data.positions.map((p) => (
-                  <option key={p.position.id} value={p.position.id}>
-                    {p.fundName} · {p.companyName}
-                  </option>
-                ))}
-              </select>
-              <input
-                placeholder="Mark value"
-                value={form.value}
-                onChange={(e) => setForm({ ...form, value: e.target.value })}
-              />
-              <select
-                value={form.method}
-                onChange={(e) => setForm({ ...form, method: e.target.value })}
-                aria-label="Mark method"
-              >
-                {MARK_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-              <input
-                placeholder="Rationale"
-                value={form.rationale}
-                onChange={(e) => setForm({ ...form, rationale: e.target.value })}
-              />
-              <input
-                placeholder="FX rate"
-                value={form.fxRate}
-                onChange={(e) => setForm({ ...form, fxRate: e.target.value })}
-                aria-label="FX rate"
-              />
-              <input
-                type="date"
-                value={form.fxDate}
-                onChange={(e) => setForm({ ...form, fxDate: e.target.value })}
-                aria-label="FX date"
-              />
-              <input
-                placeholder="FX source"
-                value={form.fxSource}
-                onChange={(e) => setForm({ ...form, fxSource: e.target.value })}
-                aria-label="FX source"
-              />
-              <select
-                value={form.documentId}
-                onChange={(e) => setForm({ ...form, documentId: e.target.value })}
-                aria-label="Mark memo"
-              >
-                <option value="">Memo (optional — chip stays — without a file)</option>
-                {(data.documents ?? [])
-                  .filter((d) => {
-                    const pos = data.positions.find((p) => p.position.id === form.positionId);
-                    return !pos?.position.companyId || d.companyId === pos.position.companyId;
-                  })
-                  .map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.filename} ({d.kind.replaceAll("_", " ")})
-                    </option>
-                  ))}
-              </select>
-              <label className="lede">
-                <input type="checkbox" checked={clearMark} onChange={(e) => setClearMark(e.target.checked)} /> Confirm
-                clear (null mark)
-              </label>
-              <button className="btn sm">Add mark</button>
-            </form>
-          )}
-          {canWrite && (
-            <p className="lede">EUR conversion is stored only when rate, date, and source are all set. Incomplete triples are refused, not invented.</p>
-          )}
+                    </label>
+                    <label className="field">
+                      Date
+                      <input
+                        type="date"
+                        value={form.fxDate}
+                        onChange={(e) => setForm({ ...form, fxDate: e.target.value })}
+                        aria-label="FX date"
+                      />
+                    </label>
+                    <label className="field">
+                      Source
+                      <input
+                        placeholder="e.g. RBI"
+                        value={form.fxSource}
+                        onChange={(e) => setForm({ ...form, fxSource: e.target.value })}
+                        aria-label="FX source"
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                <div className="nav-mark-actions">
+                  <button className="btn" type="submit">
+                    Save mark
+                  </button>
+                </div>
+              </form>
+            </Panel>
+          ) : null}
         </>
-      )}
+      ) : null}
     </>
   );
 }

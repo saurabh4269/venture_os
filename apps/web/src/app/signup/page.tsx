@@ -79,7 +79,7 @@ function SignupForm() {
           friendlyAuthError(
             ex instanceof Error
               ? ex.message
-              : "User created but organisation failed — finish setup on the next screen.",
+              : "User created but organisation failed. Finish setup on the next screen.",
           ),
         );
         router.push("/onboard");
@@ -97,7 +97,7 @@ function SignupForm() {
         {inviteId ? (
           <p className="lede">Create your user, then accept the invite. You join as the role you were offered.</p>
         ) : (
-          <p className="lede">You will be Org Admin. The book starts empty — we will not seed illustrative NAV.</p>
+          <p className="lede">You will be Org Admin. The book starts empty; we will not seed illustrative NAV.</p>
         )}
         <label className="field" htmlFor="name">
           Full name
@@ -128,7 +128,7 @@ function SignupForm() {
           <span className="field-hint">
             Password
             <span className="lede">
-              {MIN_PASSWORD_LENGTH}–{MAX_PASSWORD_LENGTH} characters
+              {MIN_PASSWORD_LENGTH} to {MAX_PASSWORD_LENGTH} characters
             </span>
           </span>
           <input

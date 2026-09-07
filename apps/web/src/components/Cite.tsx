@@ -61,7 +61,7 @@ export function CiteProvider({ children }: { children: ReactNode }) {
   const loc = locatorLine(cite?.locator);
   const period =
     cite?.periodStart || cite?.periodEnd
-      ? [cite.periodStart, cite.periodEnd].filter(Boolean).join(" – ")
+      ? [cite.periodStart, cite.periodEnd].filter(Boolean).join(" · ")
       : null;
   const documentId = cite?.documentId ?? documentIdFromPath(cite?.sourcePath);
   const gate = canHighlightSource(cite?.locator ?? null);
@@ -104,11 +104,11 @@ export function CiteProvider({ children }: { children: ReactNode }) {
               <dl className="cite-dl">
                 <div>
                   <dt>Source file</dt>
-                  <dd>{cite.filename ?? (cite.sourcePath ? "Vault file" : "—")}</dd>
+                  <dd>{cite.filename ?? (cite.sourcePath ? "Source file" : "")}</dd>
                 </div>
                 <div>
                   <dt>Locator</dt>
-                  <dd>{loc ?? "—"}</dd>
+                  <dd>{loc ?? ""}</dd>
                 </div>
                 <div>
                   <dt>Jump</dt>
@@ -119,13 +119,13 @@ export function CiteProvider({ children }: { children: ReactNode }) {
                   <dd>
                     {(() => {
                       const text = cite.excerpt?.trim() || cite.locator?.excerpt?.trim();
-                      return text ? <div className="cite-excerpt-card">{text}</div> : "—";
+                      return text ? <div className="cite-excerpt-card">{text}</div> : "";
                     })()}
                   </dd>
                 </div>
                 <div>
                   <dt>Period</dt>
-                  <dd>{period ?? "—"}</dd>
+                  <dd>{period ?? ""}</dd>
                 </div>
                 <div>
                   <dt>Confirmed</dt>
@@ -137,7 +137,7 @@ export function CiteProvider({ children }: { children: ReactNode }) {
                         ]
                           .filter(Boolean)
                           .join(" · ")
-                      : "—"}
+                      : ""}
                   </dd>
                 </div>
               </dl>
@@ -146,7 +146,7 @@ export function CiteProvider({ children }: { children: ReactNode }) {
                 <SourceViewer documentId={documentId} locator={cite.locator} />
               ) : (
                 <p className="lede" style={{ marginTop: 12 }}>
-                  No document id on this citation — download only.
+                  No document id on this citation. Download only.
                 </p>
               )}
 

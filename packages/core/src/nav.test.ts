@@ -114,6 +114,6 @@ describe("rollupEur", () => {
     ]);
     expect(r.total).toBeNull();
     expect(r.conversionRefused).toBe(true);
-    expect(r.fxNote).toBe("EUR — (no FX triple)");
+    expect(r.fxNote).toBeNull();
   });
 });

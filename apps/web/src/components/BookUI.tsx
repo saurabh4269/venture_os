@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { IconChevronDown, IconSearch } from "@/components/Icons";
 import { formatOwnership } from "@/lib/format";
 import { SPRING_INDICATOR } from "@/lib/motion-ease";
 
@@ -198,25 +199,36 @@ export function FilterChips({
   );
 }
 
-/** Retrieved-knowledge style tile for Ask / cite excerpts. */
+/** Retrieved-knowledge style tile for Ask / cite excerpts. Click opens source when onOpen is set. */
 export function ContextCard({
   kicker,
   body,
   action,
+  onOpen,
 }: {
   kicker?: ReactNode;
   body: ReactNode;
   action?: ReactNode;
+  onOpen?: () => void;
 }) {
-  return (
-    <div className="context-card">
+  const inner = (
+    <>
       {kicker ? <div className="context-card-kicker">{kicker}</div> : null}
       <div className="context-card-body">{body}</div>
       {action ? <div className="context-card-action">{action}</div> : null}
-    </div>
+    </>
   );
+  if (onOpen) {
+    return (
+      <button type="button" className="context-card context-card-btn" onClick={onOpen} aria-label="Open source">
+        {inner}
+      </button>
+    );
+  }
+  return <div className="context-card">{inner}</div>;
 }
 
+/** @deprecated Prefer clickable Fact / ContextCard / cite-entry — kept for rare explicit actions. */
 export function CiteChip({
   onOpen,
   label = "Cite",
@@ -249,6 +261,127 @@ export function Pipeline({ current }: { current?: "source" | "proposed" | "revie
         </span>
       ))}
     </p>
+  );
+}
+
+/** Searchable company jump/filter — dropdown list for table toolbars. */
+export function CompanyCombobox({
+  companies,
+  value,
+  onChange,
+  onPick,
+  id = "co-search",
+  placeholder = "Search companies…",
+}: {
+  companies: { id: string; name: string; stage?: string | null }[];
+  value: string;
+  onChange: (q: string) => void;
+  onPick?: (company: { id: string; name: string }) => void;
+  id?: string;
+  placeholder?: string;
+}) {
+  const listId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const matches = useMemo(() => {
+    const needle = value.trim().toLowerCase();
+    const list = !needle
+      ? companies
+      : companies.filter(
+          (c) =>
+            c.name.toLowerCase().includes(needle) ||
+            (c.stage ?? "").toLowerCase().includes(needle),
+        );
+    return list.slice(0, 8);
+  }, [companies, value]);
+
+  useEffect(() => {
+    setHi(0);
+  }, [value, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  function pick(c: { id: string; name: string }) {
+    onChange(c.name);
+    setOpen(false);
+    onPick?.(c);
+  }
+
+  return (
+    <div className="company-combobox" ref={rootRef}>
+      <label className="sr-only" htmlFor={id}>
+        Search companies
+      </label>
+      <div className="company-combobox-field">
+        <IconSearch className="company-combobox-ico" />
+        <input
+          id={id}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={open && matches[hi] ? `${listId}-${matches[hi]!.id}` : undefined}
+          className="company-combobox-input"
+          placeholder={placeholder}
+          value={value}
+          autoComplete="off"
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setOpen(true);
+              setHi((i) => Math.min(i + 1, Math.max(matches.length - 1, 0)));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setHi((i) => Math.max(i - 1, 0));
+            } else if (e.key === "Enter" && open && matches[hi]) {
+              e.preventDefault();
+              pick(matches[hi]!);
+            } else if (e.key === "Escape") {
+              setOpen(false);
+            }
+          }}
+        />
+        <IconChevronDown className="company-combobox-chev" />
+      </div>
+      {open && matches.length > 0 ? (
+        <ul id={listId} className="company-combobox-menu" role="listbox">
+          {matches.map((c, i) => (
+            <li key={c.id} role="presentation">
+              <button
+                type="button"
+                id={`${listId}-${c.id}`}
+                role="option"
+                aria-selected={i === hi}
+                className={`company-combobox-option${i === hi ? " is-on" : ""}`}
+                onMouseEnter={() => setHi(i)}
+                onClick={() => pick(c)}
+              >
+                <span className="company-combobox-name">{c.name}</span>
+                <span className="company-combobox-meta">{c.stage ?? ""}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {open && value.trim() && matches.length === 0 ? (
+        <div className="company-combobox-menu company-combobox-empty" role="status">
+          No companies match
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -290,7 +423,12 @@ export function AuthFrame({
   );
 }
 
-export const EM = "—";
+export const EM = "";
+
+/** Invisible missing marker — prefer blank cells over dash placeholders. */
+export function Miss({ label = "Not reported" }: { label?: string }) {
+  return <span className="fact-miss" aria-label={label} />;
+}
 
 export function CompanyMark({ name }: { name: string }) {
   const initial = (name.trim()[0] || "?").toUpperCase();

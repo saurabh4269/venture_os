@@ -163,7 +163,7 @@ export function PortfolioSeriesChart({
           <Tooltip
             contentStyle={tipStyle}
             formatter={(v, name, p) => {
-              if (v == null) return ["—", String(name)];
+              if (v == null) return ["", String(name)];
               const n =
                 name === "cash"
                   ? (p?.payload as { cashN?: number })?.cashN
@@ -179,7 +179,7 @@ export function PortfolioSeriesChart({
           <Line type="monotone" dataKey="burn" name="Burn Σ" stroke={WARN} strokeWidth={2} dot={false} connectNulls={false} />
         </AreaChart>
       </ResponsiveContainer>
-      <p className="chart-foot">Sums only include companies with a booked value that period — missing is not zero.</p>
+      <p className="chart-foot">Sums only include companies with a booked value that period. Missing is not zero.</p>
     </div>
   );
 }
@@ -206,7 +206,7 @@ export function CompanyMetricHistoryChart({
           <YAxis tick={{ fill: MUTED, fontSize: 11 }} tickFormatter={fmtNum} width={56} />
           <Tooltip
             contentStyle={tipStyle}
-            formatter={(v, name) => [v == null ? "—" : fmtNum(Number(v)), String(name)]}
+            formatter={(v, name) => [v == null ? "" : fmtNum(Number(v)), String(name)]}
           />
           <Legend iconType="circle" />
           <Line type="monotone" dataKey="cash" name="Cash" stroke={FOREST} strokeWidth={2.2} dot={{ r: 3 }} connectNulls={false} />
@@ -240,13 +240,66 @@ export function FundRollupBars({
           <CartesianGrid stroke={RULE} strokeDasharray="3 3" />
           <XAxis dataKey="name" tick={{ fill: MUTED, fontSize: 11 }} />
           <YAxis tick={{ fill: MUTED, fontSize: 11 }} tickFormatter={fmtNum} width={56} />
-          <Tooltip contentStyle={tipStyle} formatter={(v, name) => [v == null ? "—" : fmtNum(Number(v)), String(name)]} />
+          <Tooltip contentStyle={tipStyle} formatter={(v, name) => [v == null ? "" : fmtNum(Number(v)), String(name)]} />
           <Legend iconType="circle" />
           <Bar dataKey="cash" name="Cash Σ" fill={FOREST} radius={[4, 4, 0, 0]} maxBarSize={28} />
           <Bar dataKey="revenue" name="Revenue Σ" fill={FOREST_SOFT} radius={[4, 4, 0, 0]} maxBarSize={28} />
           <Bar dataKey="burn" name="Burn Σ" fill={WARN} radius={[4, 4, 0, 0]} maxBarSize={28} />
         </BarChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Peer bars for Compare: booked numeric facts only (absent values stay off chart). */
+export function ComparePeerBars({
+  rows,
+  metricLabel,
+  unitHint,
+}: {
+  rows: { name: string; value: number; periodEnd?: string | null }[];
+  metricLabel: string;
+  unitHint?: string;
+}) {
+  if (rows.length === 0) {
+    return <ChartEmpty label={`No booked ${metricLabel.toLowerCase()} among selected peers.`} />;
+  }
+  const data = [...rows]
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 12)
+    .map((r) => ({
+      name: r.name.length > 14 ? `${r.name.slice(0, 12)}..` : r.name,
+      full: r.name,
+      value: r.value,
+      period: r.periodEnd ? fmtPeriod(r.periodEnd) : null,
+    }));
+  const height = Math.max(200, data.length * 28 + 48);
+  return (
+    <div className="chart-frame" aria-label={`${metricLabel} by peer`}>
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
+          <CartesianGrid stroke={RULE} strokeDasharray="3 3" horizontal={false} />
+          <XAxis type="number" tick={{ fill: MUTED, fontSize: 11 }} tickFormatter={fmtNum} />
+          <YAxis type="category" dataKey="name" width={100} tick={{ fill: MUTED, fontSize: 11 }} />
+          <Tooltip
+            contentStyle={tipStyle}
+            formatter={(v) => [
+              `${fmtNum(Number(v))}${unitHint ? ` ${unitHint}` : ""}`,
+              metricLabel,
+            ]}
+            labelFormatter={(_, payload) => {
+              const row = payload?.[0]?.payload as { full?: string; period?: string | null } | undefined;
+              const who = row?.full ?? metricLabel;
+              return row?.period ? `${who} (${row.period})` : who;
+            }}
+          />
+          <Bar dataKey="value" fill={FOREST} radius={[0, 6, 6, 0]} maxBarSize={16} />
+        </BarChart>
+      </ResponsiveContainer>
+      <p className="chart-foot">
+        Booked facts only
+        {rows.length > 12 ? ` (showing 12 of ${rows.length})` : ""}. Absent values stay off the chart.
+      </p>
     </div>
   );
 }

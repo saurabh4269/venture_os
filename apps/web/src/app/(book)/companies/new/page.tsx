@@ -95,7 +95,7 @@ export default function NewCompanyPage() {
         { method: "POST", body: fd },
       );
       if (res.duplicateOf) {
-        setMsg("This file matches a vault object already stored (same SHA). Extract still queued — confirm Inbox, do not treat as a new source.");
+        setMsg("This file matches a source already stored (same SHA). Extract still queued; confirm in Confirm, do not treat as a new source.");
       }
       setStep(3);
       await api(`/api/parse/${res.document.id}`, { method: "POST", body: "{}" }).catch(() => null);
@@ -113,11 +113,11 @@ export default function NewCompanyPage() {
         `/api/documents/${documentId}`,
       ).catch(() => null);
       const st = r?.parse?.status ?? "queued";
-      setParseStatus(st + (r?.parse?.error ? ` — ${r.parse.error}` : ""));
+      setParseStatus(st + (r?.parse?.error ? `: ${r.parse.error}` : ""));
       if (st === "done" || st === "error") return;
       await new Promise((ok) => setTimeout(ok, 1000));
     }
-    setParseStatus("still running — open the company page to retry extract if this stays queued");
+    setParseStatus("still running; open the company page to retry extract if this stays queued");
   }
 
   if (!canWrite) {
@@ -139,8 +139,8 @@ export default function NewCompanyPage() {
       )}
       <ol className="steps">
         <li className={step === 1 ? "on" : undefined}>1 · Profile</li>
-        <li className={step === 2 ? "on" : undefined}>2 · Vault</li>
-        <li className={step === 3 ? "on" : undefined}>3 · Confirm inbox</li>
+        <li className={step === 2 ? "on" : undefined}>2 · Sources</li>
+        <li className={step === 3 ? "on" : undefined}>3 · Confirm</li>
       </ol>
 
       {step === 1 && (

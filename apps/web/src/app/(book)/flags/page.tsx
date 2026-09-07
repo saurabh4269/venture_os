@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import useSWR, { mutate as swrMutate } from "swr";
 import { FLAG_CATALOG } from "@venture-os/core";
-import { FilterChips, PageHead, Panel } from "@/components/BookUI";
+import { Miss, PageHead, Panel } from "@/components/BookUI";
 import { Fact, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -12,6 +12,13 @@ import { bookErrorMessage } from "@/lib/wake";
 
 function flagLabel(key: string) {
   return FLAG_CATALOG.find((c) => c.key === key)?.label ?? key.replaceAll("_", " ");
+}
+
+function sevLabel(severity: string) {
+  if (severity === "high") return "High";
+  if (severity === "med") return "Med";
+  if (severity === "low") return "Low";
+  return severity;
 }
 
 type Flag = {
@@ -159,72 +166,87 @@ export default function FlagsPage() {
   }
 
   return (
-    <><div className="page-toolbar">
-        <label className="sr-only" htmlFor="flag-search">
-          Search flags
-        </label>
-        <input
-          id="flag-search"
-          className="look-search"
-          placeholder="Search companies, flags, citations…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <div className="toolbar-actions">
-          {visible.length > 0 && (
-            <button type="button" className="btn ghost sm" onClick={() => exportFlags(visible, status)}>
-              Export
-            </button>
-          )}
-          {canWrite ? (
-            <button className="btn ghost sm" onClick={recompute} disabled={busy}>
-              {busy ? "Recomputing…" : "Recompute"}
-            </button>
-          ) : null}
-        </div>
-      </div>
+    <>
       <PageHead
         title="Flags"
         testId="flags-ready"
+        actions={
+          <div className="row" style={{ gap: 8 }}>
+            {visible.length > 0 && (
+              <button type="button" className="btn ghost sm" onClick={() => exportFlags(visible, status)}>
+                Export
+              </button>
+            )}
+            {canWrite ? (
+              <button className="btn ghost sm" onClick={recompute} disabled={busy}>
+                {busy ? "Recomputing…" : "Recompute"}
+              </button>
+            ) : null}
+          </div>
+        }
       />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
-      <FilterChips
-        label="Status"
-        value={status}
-        onChange={(id) => setStatus(id as (typeof TABS)[number])}
-        options={TABS.map((s) => ({
-          id: s,
-          label: s === "open" ? "Open" : s === "snoozed" ? "Snoozed" : "Muted",
-          testId: `flags-status-${s}`,
-        }))}
-      />
-      <div className="filter-bar">
-        <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
-          <option value="">Severity</option>
-          <option value="high">high</option>
-          <option value="med">med</option>
-          <option value="low">low</option>
-        </select>
-        <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
-          <option value="">Company</option>
-          {(data.companies ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select value={flagKey} onChange={(e) => setFlagKey(e.target.value)} aria-label="Flag">
-          <option value="">All flags</option>
-          {(data.catalog ?? FLAG_CATALOG).map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+      <div className="table-tools">
+        <label className="field table-tools-field">
+          <span className="sr-only">Status</span>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as (typeof TABS)[number])}
+            aria-label="Status"
+            data-testid="flags-status"
+          >
+            {TABS.map((s) => (
+              <option key={s} value={s} data-testid={`flags-status-${s}`}>
+                {s === "open" ? "Open" : s === "snoozed" ? "Snoozed" : "Muted"}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field table-tools-field">
+          <span className="sr-only">Severity</span>
+          <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
+            <option value="">Severity</option>
+            <option value="high">High</option>
+            <option value="med">Med</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+        <label className="field table-tools-field">
+          <span className="sr-only">Company</span>
+          <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
+            <option value="">Company</option>
+            {(data.companies ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field table-tools-field">
+          <span className="sr-only">Flag</span>
+          <select value={flagKey} onChange={(e) => setFlagKey(e.target.value)} aria-label="Flag">
+            <option value="">All flags</option>
+            {(data.catalog ?? FLAG_CATALOG).map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="sr-only" htmlFor="flag-search">
+          Search flags
+        </label>
+        <input
+          id="flag-search"
+          className="look-search"
+          placeholder="Search companies, flags…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
         <span className="queue-count push">
           {visible.length} {visible.length === 1 ? "item" : "items"}
         </span>
@@ -248,13 +270,10 @@ export default function FlagsPage() {
                     <th>Severity</th>
                     <th>Company</th>
                     <th>Reason</th>
-                    <th className="hide-sm">Cite</th>
-                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visible.map((f) => {
-                    const cites = f.sourceRefIds ?? [];
                     return (
                       <tr
                         key={f.id}
@@ -265,33 +284,19 @@ export default function FlagsPage() {
                         <td>
                           <span className={`sev-dot ${sevClass(f.severity)}`}>
                             <i />
-                            {f.severity}
+                            {sevLabel(f.severity)}
                           </span>
                         </td>
                         <td>
                           {f.companyId ? (
                             <Link className="company-link" href={`/companies/${f.companyId}`} onClick={(e) => e.stopPropagation()}>
-                              {f.companyName ?? "—"}
+                              {f.companyName || <Miss />}
                             </Link>
                           ) : (
-                            f.companyName ?? "—"
+                            f.companyName || <Miss />
                           )}
                         </td>
                         <td>{flagLabel(f.flagKey)}</td>
-                        <td className="hide-sm">
-                          {cites.length === 0 ? (
-                            <span className="lede">—</span>
-                          ) : (
-                            <div className="row" onClick={(e) => e.stopPropagation()}>
-                              {cites.map((id) => (
-                                <Fact key={id} display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, id)} />
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td>
-                          <span className="badge">{status}</span>
-                        </td>
                       </tr>
                     );
                   })}
@@ -304,25 +309,25 @@ export default function FlagsPage() {
             kicker={
               selected ? (
                 <span className={`flag-kicker ${sevClass(selected.severity)}`}>
-                  {selected.severity} flag
+                  {sevLabel(selected.severity)} flag
                 </span>
               ) : (
                 "Evidence"
               )
             }
-            title={selected ? (selected.companyName ?? "—") : "Inspect a row"}
+            title={selected ? (selected.companyName || <Miss />) : "Inspect a row"}
           >
             <div data-testid="flags-detail">
               {!selected ? (
-                <p className="lede">Select a row to inspect detector evidence. Nothing here is generated commentary.</p>
+                <p className="lede">Select a row for evidence.</p>
               ) : (
                 <>
                   <p className="look-title">{flagLabel(selected.flagKey)}</p>
-                  <p className="lede" style={{ marginTop: 6 }}>
-                    {selected.detectedAt
-                      ? `Detected ${new Date(selected.detectedAt).toLocaleString()}`
-                      : "Detected time —"}
-                  </p>
+                  {selected.detectedAt ? (
+                    <p className="lede" style={{ marginTop: 6 }}>
+                      Detected {new Date(selected.detectedAt).toLocaleString()}
+                    </p>
+                  ) : null}
                   {canWrite && (
                     <div className="flag-actions">
                       {status === "open" ? (
@@ -349,19 +354,26 @@ export default function FlagsPage() {
                   <div className="lane-obj">
                     <div className="page-kicker">Objective fact</div>
                     {evidenceEntries(selected.evidence ?? {}).length === 0 ? (
-                      <p className="lede">No evidence fields on this row.</p>
+                      <p className="lede">No evidence fields.</p>
                     ) : (
                       evidenceEntries(selected.evidence ?? {}).map(([k, v]) => (
                         <div className="metric-row" key={k}>
                           <span>{k.replaceAll("_", " ")}</span>
-                          <strong className="num">{v == null ? "—" : String(v)}</strong>
+                          <strong className="num">{v == null ? <Miss /> : String(v)}</strong>
                         </div>
                       ))
                     )}
                     {(selected.sourceRefIds ?? []).length > 0 && (
                       <div className="row" style={{ marginTop: 10 }}>
-                        {(selected.sourceRefIds ?? []).map((id) => (
-                          <Fact key={id} display="Cite" isFact sourcePath={sourcePathFor(data.sourceRefs, id)} />
+                        {(selected.sourceRefIds ?? []).map((id, i) => (
+                          <Fact
+                            key={id}
+                            display={
+                              (selected.sourceRefIds ?? []).length > 1 ? `Source ${i + 1}` : "Source"
+                            }
+                            isFact
+                            sourcePath={sourcePathFor(data.sourceRefs, id)}
+                          />
                         ))}
                       </div>
                     )}
@@ -371,7 +383,7 @@ export default function FlagsPage() {
                     {take ? (
                       <p>{take.body}</p>
                     ) : (
-                      <p className="lede">No partner take on the book. We will not invent analysis from a detector.</p>
+                      <p className="lede">No partner take on file.</p>
                     )}
                   </div>
                   {selected.note ? (

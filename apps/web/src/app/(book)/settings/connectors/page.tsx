@@ -237,17 +237,18 @@ function ConnectorCards() {
       onedrive:
         "Azure app: Files.Read.All + offline_access (delegated) or Files.Read.All (app-only). Redirect URI must be this site’s /api/connectors/onedrive/callback.",
       affinity:
-        "Paste an Affinity v2 API key (Settings → Manage Apps). Use Load Affinity fields, then set an ownership field id — we never invent CRM fields. Map numeric company ids per company.",
+        "Paste an Affinity v2 API key (Settings → Manage Apps). Load Affinity fields, then set an ownership field id. We never invent CRM fields.",
       granola:
-        "Granola Business/Enterprise key (grn_…). Map each company to a note id not_…. Transcripts become subjective Confirm proposals only — never objective metric cells.",
+        "Granola Business/Enterprise key (grn_…). Map each company to a note id (not_…). Transcripts become subjective Confirm proposals only, never objective metric cells.",
     }),
     [],
   );
 
   return (
     <><PageHead
-        kicker="Settings · Connectors / API vault"
+        kicker="Settings"
         title="Connectors"
+        lede="Not connected until a real health check passes."
         badge={
           isAdmin ? (
             <span className="badge">
@@ -257,7 +258,6 @@ function ConnectorCards() {
             <span className="badge">Read only</span>
           )
         }
-        lede={undefined}
       />
       <SettingsSubnav current="connectors" />
       {oauthNote && (
@@ -315,7 +315,7 @@ function ConnectorCards() {
                 </p>
               )}
               <p className="lede">
-                Last successful sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "—"}
+                Last successful sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : ""}
               </p>
 
               {isAdmin ? (
@@ -437,7 +437,7 @@ function ConnectorCards() {
                       {affinityFieldsErr ? <p className="error">{affinityFieldsErr}</p> : null}
                       {affinityFields.length > 0 ? (
                         <p className="muted">
-                          {affinityFields.length} field{affinityFields.length === 1 ? "" : "s"} loaded — pick an id for
+                          {affinityFields.length} field{affinityFields.length === 1 ? "" : "s"} loaded. Pick an id for
                           ownership, or paste one.
                         </p>
                       ) : null}
@@ -512,22 +512,21 @@ function ConnectorCards() {
         })}
       </div>
       <p className="lede" style={{ marginTop: 16 }}>
-        Map a OneDrive folder, Affinity company id, or Granola note id on each{" "}
-        <Link href="/companies">company</Link>. Then sync pulls into the same parse / inbox path as upload.
+        Map OneDrive, Affinity, or Granola ids on each <Link href="/companies">company</Link>, then sync into Confirm.
       </p>
-      <Panel title="Vault architecture & permissions" className="vault-card-panel">
+      <Panel title="How keys are stored">
         <div className="vault-card" style={{ marginTop: 0 }}>
           <div className="vault-ico" aria-hidden>
             <IconLock />
           </div>
           <div>
             <p style={{ margin: "0 0 8px" }}>
-              Org keys are sealed with AES-256-GCM. Postgres holds ciphertext, nonce, and key version — never the
-              envelope key. After save, this form clears client secret, API key, client id, and tenant id from memory.
+              Org keys are sealed with AES-256-GCM. Postgres holds ciphertext, nonce, and key version, never the
+              envelope key. After save, this form clears secrets from memory.
             </p>
             <p className="lede" style={{ margin: 0 }}>
-              Only Org Admin can paste or rotate. Partners lock NAV; they do not hold vendor keys. Disconnect nulls
-              the envelope. Status is never marked connected without a real health check.
+              Only Org Admin can paste or rotate. Disconnect clears the envelope. Status stays not connected without a
+              real health check.
             </p>
           </div>
         </div>

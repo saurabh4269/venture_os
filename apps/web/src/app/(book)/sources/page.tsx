@@ -1,9 +1,10 @@
 "use client";
 
 import useSWR from "swr";
-import { PageHead, Panel } from "@/components/BookUI";
+import { Miss, PageHead, Panel } from "@/components/BookUI";
 import { downloadAuthed } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
+import { titleCaseKind } from "@/lib/format";
 import { bookErrorMessage } from "@/lib/wake";
 
 type Doc = {
@@ -25,7 +26,7 @@ export default function SourcesPage() {
 
   return (
     <>
-      <PageHead title="Sources" />
+      <PageHead title="Sources" kicker="MIS, board packs, transcripts" />
       {err && (
         <p className="sev-high" role="alert">
           {err}
@@ -33,7 +34,8 @@ export default function SourcesPage() {
       )}
       {docs.length === 0 ? (
         <div className="empty">
-          <strong>No files</strong>
+          <strong>No documents</strong>
+          Open a company and upload. Confirm rows before they enter the book.
         </div>
       ) : (
         <Panel flush>
@@ -52,20 +54,24 @@ export default function SourcesPage() {
                   <td>
                     <button
                       type="button"
-                      className="chip"
+                      className="btn ghost sm"
                       onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}
                     >
                       {d.filename}
                     </button>
                   </td>
-                  <td>{d.companyName ?? "—"}</td>
-                  <td>{d.kind}</td>
+                  <td>{d.companyName || <Miss />}</td>
+                  <td>{titleCaseKind(d.kind)}</td>
                   <td>
-                    <span className={`parse-phase parse-phase-${d.parsePhase ?? "unknown"}`}>
-                      {d.parsePhaseLabel ?? d.parseStatus ?? "—"}
-                    </span>
+                    {d.parsePhaseLabel || d.parseStatus ? (
+                      <span className={`parse-phase parse-phase-${d.parsePhase ?? "unknown"}`}>
+                        {d.parsePhaseLabel ?? d.parseStatus}
+                      </span>
+                    ) : (
+                      <Miss />
+                    )}
                     {d.parsePhase === "stalled" ? (
-                      <div className="lede">Running &gt;10m with no finish — check worker / Redis.</div>
+                      <div className="lede">Running over 10 minutes with no finish. Check worker and Redis.</div>
                     ) : null}
                     {d.parseError ? <div className="sev-high">{d.parseError}</div> : null}
                   </td>

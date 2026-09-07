@@ -70,19 +70,35 @@ async function main() {
     const uh = unitHeader(co.unit, co.currency);
     const headers = ["Metric", ...MONTHS.map((m) => `FY26 M${m} (${uh})`)];
     const rev = series(co.seed, 6, 0.045, 0.02);
-    const cash = series(co.seed * 1.4, 6, -0.03, 0.015).map((v, i) =>
+    let cash = series(co.seed * 1.4, 6, -0.03, 0.015).map((v, i) =>
       Math.round((v + (5 - i) * co.seed * 0.02) * 100) / 100,
     );
-    const burn = series(co.seed * 0.12, 6, -0.02, 0.04);
+    let burn = series(co.seed * 0.12, 6, -0.02, 0.04);
+    // Flag-path packs: invented stress so Confirm → Flags has real detectors to fire.
+    if (co.slug === "salad-days") {
+      cash = [3.2, 2.8, 2.2, 1.7, 1.2, 0.85];
+      burn = [0.28, 0.3, 0.32, 0.38, 0.42, 0.48];
+      rev[4] = 1.9;
+      rev[5] = 1.7;
+    }
+    if (co.slug === "deconstruct") {
+      cash = [2.4, 2.2, 2.0, 1.8, 1.6, "—"];
+    }
+    if (co.slug === "hosteller") {
+      burn = [0.22, 0.24, 0.25, 0.28, 0.35, 0.48];
+    }
     const gm = [48, 49, 50, 51, 50, 52];
     const opex = series(co.seed * 0.35, 6, 0.02, 0.01);
     const ebitda = rev.map((r, i) => Math.round((r * (gm[i] / 100) - opex[i]) * 100) / 100);
     const hc = series(40 + co.seed * 2, 6, 0.02, 0.01).map((v) => Math.round(v));
     const customers = series(20000 + co.seed * 1000, 6, 0.03, 0.01).map((v) => Math.round(v));
 
+    const plan = rev.map((r, i) => Math.round(r * (co.slug === "salad-days" ? 1.45 : 1.05) * 100) / 100);
+
     const rows = [
       headers,
       ["Net revenue", ...rev],
+      ["Plan revenue", ...plan],
       ["Gross margin %", ...gm],
       ["OpEx", ...opex],
       ["EBITDA", ...ebitda],

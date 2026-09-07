@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { canHighlightSource, evidenceStatusOf } from "@venture-os/core";
-import { FilterChips, PageHead } from "@/components/BookUI";
+import { PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { RejectConfirm } from "@/components/RejectConfirm";
 import { useBookSession } from "@/components/Shell";
@@ -34,22 +34,35 @@ type Item = {
 };
 
 const STATUSES = ["pending", "confirmed", "edited", "rejected"] as const;
+const STATUS_LABELS: Record<(typeof STATUSES)[number], string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  edited: "Edited",
+  rejected: "Rejected",
+};
 type KindFilter = "all" | "flags" | "docs";
 
-function severityOf(item: Item): "urgent" | "warning" | "info" {
-  if (item.kind === "unit_ambiguity" || item.proposed.unit === "unknown") return "urgent";
-  if (item.confidence < 0.5) return "warning";
-  return "info";
+function severityOf(item: Item): { className: "urgent" | "warning" | "info"; label: string } {
+  if (item.kind === "unit_ambiguity" || item.proposed.unit === "unknown") {
+    return { className: "urgent", label: "Unit" };
+  }
+  if (item.confidence < 0.5) return { className: "warning", label: "Low conf" };
+  return { className: "info", label: "Ready" };
 }
 
 function relTime(iso?: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "";
   const ms = Date.now() - new Date(iso).getTime();
-  if (!Number.isFinite(ms) || ms < 0) return "—";
+  if (!Number.isFinite(ms) || ms < 0) return "";
   const h = Math.floor(ms / 3_600_000);
   if (h < 1) return `${Math.max(1, Math.floor(ms / 60_000))}m`;
   if (h < 48) return `${h}h`;
   return `${Math.floor(h / 24)}d`;
+}
+
+function periodRange(start?: string, end?: string) {
+  if (start && end) return `${start} to ${end}`;
+  return start || end || "";
 }
 
 export default function InboxPage() {
@@ -89,7 +102,7 @@ export default function InboxPage() {
   async function confirm(item: Item) {
     const unit = unitEdits[item.id] || item.proposed.unit;
     if ((item.kind === "unit_ambiguity" || unit === "unknown") && !unitEdits[item.id]) {
-      setActionErr("Set the unit before confirming — we will not guess lakh vs crore.");
+      setActionErr("Set the unit before confirming. We will not guess lakh vs crore.");
       return;
     }
     const raw = valueEdits[item.id];
@@ -146,27 +159,41 @@ export default function InboxPage() {
           ? items.filter((i) => i.kind !== "unit_ambiguity" && i.proposed.unit !== "unknown")
           : items;
     const rank = { urgent: 0, warning: 1, info: 2 };
-    return [...rows].sort((a, b) => rank[severityOf(a)] - rank[severityOf(b)]);
+    return [...rows].sort((a, b) => rank[severityOf(a).className] - rank[severityOf(b).className]);
   }, [items, kindFilter]);
 
   return (
-    <><PageHead title="Confirm" testId="confirm-ready" />
-      <FilterChips
-        label="Status"
-        value={status}
-        onChange={(id) => setStatus(id as (typeof STATUSES)[number])}
-        options={STATUSES.map((s) => ({ id: s, label: s, testId: `inbox-tab-${s}` }))}
-      />
-      <FilterChips
-        label="Kind filter"
-        value={kindFilter}
-        onChange={(id) => setKindFilter(id as KindFilter)}
-        options={[
-          { id: "all", label: "All", count: String(items.length) },
-          { id: "flags", label: "Flags", count: String(flagsCount) },
-          { id: "docs", label: "Docs", count: String(docsCount) },
-        ]}
-      />
+    <>
+      <PageHead title="Confirm" testId="confirm-ready" />
+      <div className="table-tools">
+        <label className="field table-tools-field">
+          <span className="sr-only">Status</span>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as (typeof STATUSES)[number])}
+            aria-label="Status"
+            data-testid="inbox-status"
+          >
+            {STATUSES.map((s) => (
+              <option key={s} value={s} data-testid={`inbox-tab-${s}`}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field table-tools-field">
+          <span className="sr-only">Kind</span>
+          <select
+            value={kindFilter}
+            onChange={(e) => setKindFilter(e.target.value as KindFilter)}
+            aria-label="Kind"
+          >
+            <option value="all">All kinds ({items.length})</option>
+            <option value="flags">Flags ({flagsCount})</option>
+            <option value="docs">Docs ({docsCount})</option>
+          </select>
+        </label>
+      </div>
       {err && (
         <p className="sev-high" role="alert">
           {err}
@@ -179,7 +206,7 @@ export default function InboxPage() {
       )}
       {items.length === 0 ? (
         <div className="empty" data-testid="inbox-empty">
-          <strong>{status === "pending" ? "Nothing pending" : `No ${status}`}</strong>
+          <strong>{status === "pending" ? "Nothing pending" : `No ${STATUS_LABELS[status].toLowerCase()}`}</strong>
         </div>
       ) : visible.length === 0 ? (
         <div className="empty">No rows</div>
@@ -207,9 +234,9 @@ export default function InboxPage() {
             return (
               <article className="triage-row" key={i.id} data-testid="inbox-row">
                 <div>
-                  <span className={`sev-pill ${sev}`}>{sev}</span>
+                  <span className={`sev-pill ${sev.className}`}>{sev.label}</span>
                 </div>
-                <div className="look-title">{i.companyName ?? "—"}</div>
+                <div className="look-title">{i.companyName ?? ""}</div>
                 <div>
                   <div>
                     {i.proposed.metricKey ?? i.proposed.label ?? i.kind.replaceAll("_", " ")}{" "}
@@ -222,7 +249,7 @@ export default function InboxPage() {
                       />
                     ) : (
                       <strong>
-                        {i.proposed.valueNumeric == null ? "—" : i.proposed.valueNumeric} {i.proposed.unit}{" "}
+                        {i.proposed.valueNumeric == null ? "" : i.proposed.valueNumeric} {i.proposed.unit}{" "}
                         {i.proposed.currency}
                       </strong>
                     )}
@@ -259,9 +286,7 @@ export default function InboxPage() {
                       />
                     </div>
                   ) : (
-                    <div className="lede">
-                      {i.proposed.periodStart} – {i.proposed.periodEnd}
-                    </div>
+                    <div className="lede">{periodRange(i.proposed.periodStart, i.proposed.periodEnd)}</div>
                   )}
                   {(i.kind === "unit_ambiguity" || !i.proposed.unit || i.proposed.unit === "unknown") &&
                     status === "pending" &&
@@ -290,13 +315,12 @@ export default function InboxPage() {
                   )}
                 </div>
                 <div className="hide-sm">
-                  <span className={`evidence-pill evidence-${evidence}`} title="Unverifiable is not wrong — missing stays —">
-                    {evidence}
-                  </span>
                   {loc || i.locator.excerpt || i.proposed.excerpt || i.documentId ? (
                     <button
                       type="button"
-                      className="cite"
+                      className="cite-entry"
+                      title="Open source"
+                      aria-label="Open source for this proposal"
                       onClick={() =>
                         openCite({
                           display: i.proposed.metricKey ?? i.proposed.label ?? i.kind,
@@ -309,10 +333,15 @@ export default function InboxPage() {
                         })
                       }
                     >
-                      {loc || "Cite"}
+                      <span className={`evidence-pill evidence-${evidence}`} title="Unverifiable is not wrong; missing stays blank">
+                        {evidence}
+                      </span>
+                      {loc ? <span className="cite-entry-loc">{loc}</span> : null}
                     </button>
                   ) : (
-                    <span className="lede">—</span>
+                    <span className={`evidence-pill evidence-${evidence}`} title="Unverifiable is not wrong; missing stays blank">
+                      {evidence}
+                    </span>
                   )}
                 </div>
                 <div className="hide-sm num">{relTime(i.createdAt)}</div>

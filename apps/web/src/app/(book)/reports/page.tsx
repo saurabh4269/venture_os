@@ -56,36 +56,40 @@ export default function ReportsPage() {
   }
 
   return (
-    <><PageHead
-        title="Reports"
-        testId="reports-ready"
-      />
+    <>
+      <PageHead title="Reports" testId="reports-ready" kicker="Packs from the book" />
       {err && (
         <p className="sev-high" role="alert">
           {err}
         </p>
       )}
       {canWrite && (
-      <div className="row">
-        <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period end" />
-        <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
-          <option value="">Select company (required for one-pager)</option>
-          {cos.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <button className="btn" onClick={() => draft("one_pager")} disabled={Boolean(busy)}>
-          {busy === "one_pager" ? "Drafting…" : "Draft one-pager"}
-        </button>
-        <button className="btn ghost" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
-          {busy === "portfolio" ? "Drafting…" : "Draft portfolio"}
-        </button>
-        <button className="btn ghost" onClick={() => draft("monthly_pack")} disabled={Boolean(busy)}>
-          {busy === "monthly_pack" ? "Drafting…" : "Draft monthly pack"}
-        </button>
-      </div>
+        <div className="table-tools">
+          <label className="field table-tools-field">
+            <span className="sr-only">Period end</span>
+            <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period end" />
+          </label>
+          <label className="field table-tools-field">
+            <span className="sr-only">Company</span>
+            <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
+              <option value="">Select company (required for one-pager)</option>
+              {cos.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="btn" onClick={() => draft("one_pager")} disabled={Boolean(busy)}>
+            {busy === "one_pager" ? "Drafting…" : "Draft one-pager"}
+          </button>
+          <button className="btn ghost" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
+            {busy === "portfolio" ? "Drafting…" : "Draft portfolio"}
+          </button>
+          <button className="btn ghost" onClick={() => draft("monthly_pack")} disabled={Boolean(busy)}>
+            {busy === "monthly_pack" ? "Drafting…" : "Draft monthly pack"}
+          </button>
+        </div>
       )}
       {loading && !err && <p className="lede">Loading the book…</p>}
       {!loading && rows.length === 0 ? (
@@ -95,37 +99,37 @@ export default function ReportsPage() {
         </div>
       ) : !loading ? (
         <Panel flush>
-        <table>
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Kind</th>
-              <th>Created</th>
-              <th>Export</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td>{r.title}</td>
-                <td>{KIND_LABEL[r.kind] ?? r.kind}</td>
-                <td className="lede">{new Date(r.createdAt).toLocaleString()}</td>
-                <td className="row">
-                  {(["pdf", "pptx", "xlsx"] as const).map((fmt) => (
-                    <button
-                      key={fmt}
-                      type="button"
-                      className="chip"
-                      onClick={() => downloadAuthed(`/api/reports/${r.id}/export/${fmt}`)}
-                    >
-                      {fmt.toUpperCase()}
-                    </button>
-                  ))}
-                </td>
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Kind</th>
+                <th>Created</th>
+                <th>Export</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.title}</td>
+                  <td>{KIND_LABEL[r.kind] ?? r.kind}</td>
+                  <td className="lede">{new Date(r.createdAt).toLocaleString()}</td>
+                  <td className="row">
+                    {(["pdf", "pptx", "xlsx"] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        className="btn ghost sm"
+                        onClick={() => downloadAuthed(`/api/reports/${r.id}/export/${fmt}`)}
+                      >
+                        {fmt.toUpperCase()}
+                      </button>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </Panel>
       ) : null}
     </>

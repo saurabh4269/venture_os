@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { FLAG_CATALOG, FLAG_THRESHOLD_BOUNDS, METRIC_CATALOG } from "@venture-os/core";
-import { PageHead, Panel, SettingsSubnav, type SettingsTab } from "@/components/BookUI";
+import { Miss, PageHead, Panel, SettingsSubnav, type SettingsTab } from "@/components/BookUI";
 import { useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
-import { MONTH_NAMES, monthName } from "@/lib/format";
+import { MONTH_NAMES, monthName, titleCaseKind } from "@/lib/format";
 import { friendlyAuthError, ROLE_LABEL, ROLES, roleLabel } from "@/lib/roles";
 import { bookErrorMessage } from "@/lib/wake";
 
@@ -164,7 +164,7 @@ function SettingsInner() {
   const pending = invites.filter((i) => i.status === "pending");
 
   return (
-    <><PageHead title="Settings" />
+    <><PageHead title="Settings" lede="Firm defaults, people, and flag policy." />
       <SettingsSubnav current={tab} />
       {loadErr && (
         <p className="sev-high" role="alert">
@@ -266,8 +266,8 @@ function SettingsInner() {
         <table>
           <thead>
             <tr>
-              <th>Key</th>
               <th>Label</th>
+              <th>Key</th>
               <th>Family</th>
               <th>Default unit</th>
             </tr>
@@ -275,9 +275,9 @@ function SettingsInner() {
           <tbody>
             {METRIC_CATALOG.map((m) => (
               <tr key={m.key}>
-                <td>{m.key}</td>
                 <td>{m.label}</td>
-                <td>{m.unitFamily}</td>
+                <td className="lede">{titleCaseKind(m.key)}</td>
+                <td>{titleCaseKind(m.unitFamily)}</td>
                 <td>{m.defaultUnit}</td>
               </tr>
             ))}
@@ -305,8 +305,8 @@ function SettingsInner() {
           <tbody>
             {members.map((m) => (
               <tr key={m.id}>
-                <td>{m.name ?? "—"}</td>
-                <td>{m.email ?? "—"}</td>
+                <td>{m.name || <Miss />}</td>
+                <td>{m.email || <Miss />}</td>
                 <td>
                   {isAdmin ? (
                     <select
@@ -444,9 +444,9 @@ function SettingsInner() {
           {(data?.connectors ?? []).map((c) => (
             <tr key={c.kind}>
               <td>{connectorLabel(c.kind)}</td>
-              <td>{c.status === "not_connected" ? "not connected" : c.status.replaceAll("_", " ")}</td>
-              <td>{c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : "—"}</td>
-              <td className="lede">{c.lastError ?? "—"}</td>
+              <td>{c.status === "not_connected" ? "not connected" : titleCaseKind(c.status)}</td>
+              <td>{c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : <Miss />}</td>
+              <td className="lede">{c.lastError || <Miss />}</td>
             </tr>
           ))}
         </tbody>
@@ -518,7 +518,7 @@ function SettingsInner() {
                 <td>{f.label}</td>
                 <td>{f.defaultThreshold}</td>
                 <td className="lede">
-                  {f.min ?? 0}-{f.max ?? "—"} {f.unit ?? ""}
+                  {f.min ?? 0} to {f.max ?? ""} {f.unit ?? ""}
                 </td>
                 <td>
                   {isAdmin ? (
@@ -573,7 +573,7 @@ function SettingsInner() {
               {data!.flagPolicyAudits!.map((a) => (
                 <tr key={a.id}>
                   <td className="lede">{new Date(a.changedAt).toLocaleString()}</td>
-                  <td>{a.changedByName ?? a.changedByEmail ?? "—"}</td>
+                  <td>{a.changedByName ?? a.changedByEmail ?? <Miss />}</td>
                   <td className="lede">{JSON.stringify(a.after)}</td>
                 </tr>
               ))}
@@ -603,9 +603,9 @@ function SettingsInner() {
             {funds.map((f) => (
               <tr key={f.id}>
                 <td>{f.name}</td>
-                <td>{f.vintage ?? "—"}</td>
+                <td>{f.vintage ?? <Miss />}</td>
                 <td>{f.currency ?? "INR"}</td>
-                <td>{f.committedCapital == null ? "—" : f.committedCapital.toLocaleString("en-IN")}</td>
+                <td>{f.committedCapital == null ? <Miss /> : f.committedCapital.toLocaleString("en-IN")}</td>
               </tr>
             ))}
           </tbody>

@@ -86,7 +86,7 @@ function LoginForm() {
           <span className="field-hint">
             Password
             <span className="lede">
-              {MIN_PASSWORD_LENGTH}–{MAX_PASSWORD_LENGTH} characters
+              {MIN_PASSWORD_LENGTH} to {MAX_PASSWORD_LENGTH} characters
             </span>
           </span>
           <input

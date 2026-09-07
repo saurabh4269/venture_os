@@ -529,28 +529,23 @@ export function Fact({
         }
       : undefined;
   const open = payload ? () => openCite(payload) : undefined;
+  const tip = note?.trim() && !/^EUR\s*[—-]/.test(note.trim()) && !/no FX triple/i.test(note) ? note.trim() : undefined;
   const value = !isFact ? (
-    <span className="chip unfact">—</span>
+    <span className="fact-miss" aria-label="Not reported" />
   ) : open ? (
-    <button type="button" className="chip" title="Open citation" aria-label={`${display} citation`} onClick={open}>
+    <button
+      type="button"
+      className="fact-cite"
+      title={tip ?? "Open source"}
+      aria-label={`Open source for ${display}`}
+      onClick={open}
+    >
       {display}
     </button>
   ) : (
-    <span className="chip">{display}</span>
-  );
-  return (
-    <span className="fact">
-      {value}
-      {isFact && open ? (
-        <button type="button" className="cite" onClick={open} aria-label="Open citation">
-          Cite
-        </button>
-      ) : null}
-      {note ? (
-        <span className="lede" style={{ display: "block", width: "100%", marginTop: 2 }}>
-          {note}
-        </span>
-      ) : null}
+    <span className="fact-value" title={tip}>
+      {display}
     </span>
   );
+  return <span className="fact">{value}</span>;
 }
