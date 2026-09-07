@@ -50,4 +50,20 @@ describe("extract", () => {
     expect(cash).toBeTruthy();
     expect(cash!.confidence).toBeLessThanOrEqual(0.55);
   });
+
+  it("assigns distinct periods per month column", () => {
+    const out = extractFromRows(
+      [
+        ["Metric", "FY26 M4 (INR Cr)", "FY26 M5 (INR Cr)", "FY26 M6 (INR Cr)"],
+        ["Closing cash", 6.4, 5.9, 5.4],
+        ["Monthly burn", 0.55, 0.5, 0.48],
+      ],
+      "MIS",
+    );
+    const cash = out.filter((p) => p.metricKey === "cash");
+    expect(cash).toHaveLength(3);
+    const ends = cash.map((p) => p.periodEnd);
+    expect(new Set(ends).size).toBe(3);
+    expect(ends[0]).not.toBe(ends[1]);
+  });
 });

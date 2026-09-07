@@ -92,7 +92,8 @@
       "slug": "creme-castle",
       "files": [
         "FIXTURE_ONLY-creme-castle-FY26-M4-M5.xlsx",
-        "FIXTURE_ONLY-creme-castle-FY26-M3.csv"
+        "FIXTURE_ONLY-creme-castle-FY26-M3.csv",
+        "FIXTURE_ONLY-creme-castle-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "standard_inr_crore_multi_month_plus_prior_csv",
       "expects": [
@@ -107,7 +108,8 @@
       "company": "The Hosteller",
       "slug": "hosteller",
       "files": [
-        "FIXTURE_ONLY-hosteller-Aug2025-lakhs.xlsx"
+        "FIXTURE_ONLY-hosteller-Aug2025-lakhs.xlsx",
+        "FIXTURE_ONLY-hosteller-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "lakh_units_financials_sheet",
       "expects": [
@@ -122,7 +124,8 @@
       "company": "Ugaoo",
       "slug": "ugaoo",
       "files": [
-        "FIXTURE_ONLY-ugaoo-FY26-Q1.xlsx"
+        "FIXTURE_ONLY-ugaoo-FY26-Q1.xlsx",
+        "FIXTURE_ONLY-ugaoo-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "wide_month_columns_plan_vs_actual",
       "expects": [
@@ -137,7 +140,8 @@
       "company": "Wild",
       "slug": "wild",
       "files": [
-        "FIXTURE_ONLY-wild-2025-Q2-USD.xlsx"
+        "FIXTURE_ONLY-wild-2025-Q2-USD.xlsx",
+        "FIXTURE_ONLY-wild-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "usd_thousands_management_accounts",
       "expects": [
@@ -152,7 +156,8 @@
       "company": "Holy",
       "slug": "holy",
       "files": [
-        "FIXTURE_ONLY-holy-H1-2025-EUR.xlsx"
+        "FIXTURE_ONLY-holy-H1-2025-EUR.xlsx",
+        "FIXTURE_ONLY-holy-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "eur_millions_turnover_alias",
       "expects": [
@@ -167,7 +172,8 @@
       "company": "Yepoda",
       "slug": "yepoda",
       "files": [
-        "FIXTURE_ONLY-yepoda-May2025.xlsx"
+        "FIXTURE_ONLY-yepoda-May2025.xlsx",
+        "FIXTURE_ONLY-yepoda-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "gross_vs_net_plan_extra_sheet",
       "expects": [
@@ -182,7 +188,8 @@
       "company": "Go Zero",
       "slug": "go-zero",
       "files": [
-        "FIXTURE_ONLY-go-zero-ambiguous-units.xlsx"
+        "FIXTURE_ONLY-go-zero-ambiguous-units.xlsx",
+        "FIXTURE_ONLY-go-zero-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "ambiguous_units_hitl",
       "expects": [
@@ -193,7 +200,8 @@
       "company": "KatKin",
       "slug": "katkin",
       "files": [
-        "FIXTURE_ONLY-katkin-2025-05-GBP.xlsx"
+        "FIXTURE_ONLY-katkin-2025-05-GBP.xlsx",
+        "FIXTURE_ONLY-katkin-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "gbp_absolute_amounts_subscribers",
       "expects": [
@@ -208,7 +216,8 @@
       "company": "Deconstruct",
       "slug": "deconstruct",
       "files": [
-        "FIXTURE_ONLY-deconstruct-missing-cash.xlsx"
+        "FIXTURE_ONLY-deconstruct-missing-cash.xlsx",
+        "FIXTURE_ONLY-deconstruct-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "missing_cash_not_zero",
       "expects": [
@@ -224,7 +233,8 @@
       "company": "Salad Days",
       "slug": "salad-days",
       "files": [
-        "FIXTURE_ONLY-salad-days-below-plan.xlsx"
+        "FIXTURE_ONLY-salad-days-below-plan.xlsx",
+        "FIXTURE_ONLY-salad-days-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "below_plan_revenue_for_flags",
       "expects": [
@@ -238,7 +248,8 @@
       "company": "CAVA Athleisure",
       "slug": "cava",
       "files": [
-        "FIXTURE_ONLY-cava-2025-H1.csv"
+        "FIXTURE_ONLY-cava-2025-H1.csv",
+        "FIXTURE_ONLY-cava-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "csv_calendar_months_sales_alias",
       "expects": [
@@ -253,7 +264,8 @@
       "company": "Lightfury Games",
       "slug": "lightfury-games",
       "files": [
-        "FIXTURE_ONLY-lightfury-Jul2025.xlsx"
+        "FIXTURE_ONLY-lightfury-Jul2025.xlsx",
+        "FIXTURE_ONLY-lightfury-games-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "split_pnl_and_cash_tabs",
       "expects": [
@@ -268,7 +280,8 @@
       "company": "SuperYou",
       "slug": "superyou",
       "files": [
-        "FIXTURE_ONLY-superyou-fuzzy-labels.xlsx"
+        "FIXTURE_ONLY-superyou-fuzzy-labels.xlsx",
+        "FIXTURE_ONLY-superyou-FY26-M1-M6-history.xlsx"
       ],
       "challenge": "fuzzy_typo_labels",
       "expects": [
@@ -291,5 +304,73 @@
       "NAV / MOIC / IRR (marks + positions)",
       "subjective commentary (Granola)"
     ]
-  }
+  },
+  "historyGeneratedAt": "2026-09-07",
+  "history": [
+    {
+      "company": "Creme Castle",
+      "slug": "creme-castle",
+      "file": "FIXTURE_ONLY-creme-castle-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "The Hosteller",
+      "slug": "hosteller",
+      "file": "FIXTURE_ONLY-hosteller-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Ugaoo",
+      "slug": "ugaoo",
+      "file": "FIXTURE_ONLY-ugaoo-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Wild",
+      "slug": "wild",
+      "file": "FIXTURE_ONLY-wild-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Holy",
+      "slug": "holy",
+      "file": "FIXTURE_ONLY-holy-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Yepoda",
+      "slug": "yepoda",
+      "file": "FIXTURE_ONLY-yepoda-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Go Zero",
+      "slug": "go-zero",
+      "file": "FIXTURE_ONLY-go-zero-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "KatKin",
+      "slug": "katkin",
+      "file": "FIXTURE_ONLY-katkin-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Deconstruct",
+      "slug": "deconstruct",
+      "file": "FIXTURE_ONLY-deconstruct-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Salad Days",
+      "slug": "salad-days",
+      "file": "FIXTURE_ONLY-salad-days-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "CAVA Athleisure",
+      "slug": "cava",
+      "file": "FIXTURE_ONLY-cava-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "Lightfury Games",
+      "slug": "lightfury-games",
+      "file": "FIXTURE_ONLY-lightfury-games-FY26-M1-M6-history.xlsx"
+    },
+    {
+      "company": "SuperYou",
+      "slug": "superyou",
+      "file": "FIXTURE_ONLY-superyou-FY26-M1-M6-history.xlsx"
+    }
+  ]
 }

@@ -81,5 +81,13 @@ export function parsePeriodHint(text: string, fyStart = DEFAULT_FY_START) {
   if (ym) {
     return { ...monthBounds(Number(ym[1]), Number(ym[2])), grain: "month" as const };
   }
+  const monNames = "Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec";
+  const mon = text.match(new RegExp(`\\b(${monNames})[a-z]*[-\\s]+'?(\\d{2,4})\\b`, "i"));
+  if (mon) {
+    const idx = monNames.split("|").findIndex((m) => m.toLowerCase() === mon[1]!.slice(0, 3).toLowerCase());
+    let year = Number(mon[2]);
+    if (year < 100) year += 2000;
+    if (idx >= 0) return { ...monthBounds(year, idx + 1), grain: "month" as const };
+  }
   return null;
 }
