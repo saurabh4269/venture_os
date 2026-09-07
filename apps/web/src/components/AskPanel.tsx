@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ContextCard } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { IconAsk } from "@/components/Icons";
+import { BusyDots } from "@/components/motion/BusyDots";
 import { api } from "@/lib/api";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion-ease";
 import { bookErrorMessage } from "@/lib/wake";
 
 type Res = {
@@ -27,13 +31,14 @@ export function AskFab({ companyId }: { companyId?: string }) {
       >
         <IconAsk className="ask-fab-ico" />
       </button>
-      {open ? <AskPanel companyId={companyId} onClose={() => setOpen(false)} /> : null}
+      <AnimatePresence>{open ? <AskPanel companyId={companyId} onClose={() => setOpen(false)} /> : null}</AnimatePresence>
     </>
   );
 }
 
 function AskPanel({ companyId: initialCompanyId, onClose }: { companyId?: string; onClose: () => void }) {
   const openCite = useCite();
+  const reduce = useReducedMotion();
   const [q, setQ] = useState("");
   const [res, setRes] = useState<Res | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,14 +74,26 @@ function AskPanel({ companyId: initialCompanyId, onClose }: { companyId?: string
   const refused = Boolean(res && (res.refused || /will not guess/i.test(res.answer)));
 
   return (
-    <div className="ask-panel-layer" role="presentation" onClick={onClose}>
-      <aside
+    <motion.div
+      className="ask-panel-layer"
+      role="presentation"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: reduce ? 0.12 : 0.2, ease: EASE_OUT }}
+    >
+      <motion.aside
         id="ask-panel"
         className="ask-panel"
         role="dialog"
         aria-label="Ask"
         data-testid="ask-ready"
         onClick={(e) => e.stopPropagation()}
+        initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
+        animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
+        transition={reduce ? { duration: 0.15 } : SPRING_PANEL}
       >
         <header className="ask-panel-head">
           <strong>Ask</strong>
@@ -114,6 +131,7 @@ function AskPanel({ companyId: initialCompanyId, onClose }: { companyId?: string
               {busy ? "…" : "Ask"}
             </button>
           </div>
+          {busy ? <BusyDots label="Searching the book…" className="ask-busy" /> : null}
         </form>
         {err ? (
           <p className="sev-high" role="alert">
@@ -132,28 +150,33 @@ function AskPanel({ companyId: initialCompanyId, onClose }: { companyId?: string
               <ul className="ask-cites">
                 {res.citations.map((c, i) => (
                   <li key={`${c.documentId}-${i}`}>
-                    <button
-                      type="button"
-                      className="cite"
-                      onClick={() =>
-                        openCite({
-                          display: c.excerpt?.slice(0, 80) || "Source",
-                          documentId: c.documentId ?? undefined,
-                          sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
-                          excerpt: c.excerpt,
-                        })
+                    <ContextCard
+                      kicker={`Cite ${i + 1}`}
+                      body={c.excerpt || "Source excerpt"}
+                      action={
+                        <button
+                          type="button"
+                          className="cite"
+                          onClick={() =>
+                            openCite({
+                              display: c.excerpt?.slice(0, 80) || "Source",
+                              documentId: c.documentId ?? undefined,
+                              sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
+                              excerpt: c.excerpt,
+                            })
+                          }
+                        >
+                          Open source
+                        </button>
                       }
-                    >
-                      Cite {i + 1}
-                    </button>
-                    <span className="lede">{c.excerpt}</span>
+                    />
                   </li>
                 ))}
               </ul>
             ) : null}
           </div>
         ) : null}
-      </aside>
-    </div>
+      </motion.aside>
+    </motion.div>
   );
 }

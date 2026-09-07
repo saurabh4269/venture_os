@@ -17,6 +17,7 @@
     "@venture-os/schema": "workspace:*",
     "@venture-os/ui": "workspace:*",
     "better-auth": "^1.3.7",
+    "motion": "^13.2.0",
     "next": "^15.5.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PageHead } from "@/components/BookUI";
+import { ContextCard, PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
+import { BusyDots } from "@/components/motion/BusyDots";
 
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -95,6 +96,7 @@ export default function AskPage() {
               {busy ? "…" : "Ask"}
             </button>
           </div>
+          {busy ? <BusyDots label="Searching the book…" className="ask-busy" /> : null}
         </form>
       </div>
       {err && (
@@ -117,34 +119,37 @@ export default function AskPage() {
               {res.citations.map((c, i) => {
                 const doc = c.documentId ? docs.find((d) => d.id === c.documentId) : undefined;
                 return (
-                  <article key={`${c.documentId ?? "x"}-${i}`}>
-                    {c.documentId || c.excerpt ? (
-                      <button
-                        type="button"
-                        className="cite"
-                        onClick={() =>
-                          openCite({
-                            display: doc?.filename ?? "Ask citation",
-                            documentId: c.documentId ?? undefined,
-                            sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
-                            excerpt: c.excerpt,
-                          })
-                        }
-                      >
-                        Cite
-                      </button>
-                    ) : (
-                      <span className="lede">unresolved</span>
-                    )}
-                    <div className="look-title" style={{ marginTop: 8 }}>
-                      {doc?.filename ?? "Source file"}
-                    </div>
-                    <p className="lede">
-                      {doc?.companyName ? `${doc.companyName} · ` : ""}
-                      {doc?.kind ? doc.kind.replaceAll("_", " ") : "—"}
-                      {c.excerpt ? ` · ${c.excerpt.slice(0, 140)}` : ""}
-                    </p>
-                  </article>
+                  <ContextCard
+                    key={`${c.documentId ?? "x"}-${i}`}
+                    kicker={doc?.filename ?? "Source file"}
+                    body={
+                      <>
+                        {doc?.companyName ? `${doc.companyName} · ` : ""}
+                        {doc?.kind ? doc.kind.replaceAll("_", " ") : "—"}
+                        {c.excerpt ? ` · ${c.excerpt.slice(0, 140)}` : ""}
+                      </>
+                    }
+                    action={
+                      c.documentId || c.excerpt ? (
+                        <button
+                          type="button"
+                          className="cite"
+                          onClick={() =>
+                            openCite({
+                              display: doc?.filename ?? "Ask citation",
+                              documentId: c.documentId ?? undefined,
+                              sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
+                              excerpt: c.excerpt,
+                            })
+                          }
+                        >
+                          Cite
+                        </button>
+                      ) : (
+                        <span className="lede">unresolved</span>
+                      )
+                    }
+                  />
                 );
               })}
             </div>

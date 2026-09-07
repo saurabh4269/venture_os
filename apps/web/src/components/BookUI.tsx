@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { useId, type ReactNode } from "react";
 import { formatOwnership } from "@/lib/format";
+import { SPRING_INDICATOR } from "@/lib/motion-ease";
 
 export { formatOwnership };
 
@@ -70,6 +74,8 @@ export function Panel({
 export type SettingsTab = "formula" | "flags" | "connectors" | "firm" | "funds" | "people";
 
 export function SettingsSubnav({ current }: { current: SettingsTab }) {
+  const layoutId = useId();
+  const reduce = useReducedMotion();
   const tabs: { id: SettingsTab; href: string; label: string }[] = [
     { id: "formula", href: "/settings?tab=formula", label: "Formula book" },
     { id: "flags", href: "/settings?tab=flags", label: "Flag policy" },
@@ -80,16 +86,26 @@ export function SettingsSubnav({ current }: { current: SettingsTab }) {
   ];
   return (
     <nav className="settings-subnav" aria-label="Settings">
-      {tabs.map((t) => (
-        <Link
-          key={t.id}
-          href={t.href}
-          className={current === t.id ? "on" : undefined}
-          aria-current={current === t.id ? "page" : undefined}
-        >
-          {t.label}
-        </Link>
-      ))}
+      {tabs.map((t) => {
+        const on = current === t.id;
+        return (
+          <Link
+            key={t.id}
+            href={t.href}
+            className={on ? "on" : undefined}
+            aria-current={on ? "page" : undefined}
+          >
+            {on ? (
+              <motion.span
+                layoutId={`settings-tab-${layoutId}`}
+                className="settings-tab-indicator"
+                transition={reduce ? { duration: 0 } : SPRING_INDICATOR}
+              />
+            ) : null}
+            <span className="settings-tab-label">{t.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -103,20 +119,100 @@ export function PageTabs({
   current: string;
   onChange: (id: string) => void;
 }) {
+  const layoutId = useId();
+  const reduce = useReducedMotion();
   return (
     <div className="page-tabs" role="tablist">
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={current === t.id}
-          className={`page-tab${current === t.id ? " on" : ""}`}
-          onClick={() => onChange(t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
+      {tabs.map((t) => {
+        const on = current === t.id;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            className={`page-tab${on ? " on" : ""}`}
+            onClick={() => onChange(t.id)}
+          >
+            {on ? (
+              <motion.span
+                layoutId={`page-tab-${layoutId}`}
+                className="page-tab-indicator"
+                transition={reduce ? { duration: 0 } : SPRING_INDICATOR}
+              />
+            ) : null}
+            <span className="page-tab-label">{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Status / kind chip row.
+ * Structure from Beautiful UI filter tables; spring layoutId indicator from beUI Tabs
+ * (gliding pill reads clearer than a hard color swap).
+ */
+export function FilterChips({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { id: string; label: string; count?: string | number; testId?: string }[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const layoutId = useId();
+  const reduce = useReducedMotion();
+  return (
+    <div className="tabs filter-pills" role="group" aria-label={label}>
+      {options.map((o) => {
+        const on = o.id === value;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            className={`filter-pill${on ? " on" : ""}`}
+            data-testid={o.testId}
+            aria-pressed={on}
+            onClick={() => onChange(o.id)}
+          >
+            {on ? (
+              <motion.span
+                layoutId={`filter-pill-${layoutId}`}
+                className="filter-pill-indicator"
+                transition={reduce ? { duration: 0 } : SPRING_INDICATOR}
+              />
+            ) : null}
+            <span className="filter-pill-label">
+              {o.label}
+              {o.count != null ? <span className="filter-count">{o.count}</span> : null}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Retrieved-knowledge style tile for Ask / cite excerpts. */
+export function ContextCard({
+  kicker,
+  body,
+  action,
+}: {
+  kicker?: ReactNode;
+  body: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="context-card">
+      {kicker ? <div className="context-card-kicker">{kicker}</div> : null}
+      <div className="context-card-body">{body}</div>
+      {action ? <div className="context-card-action">{action}</div> : null}
     </div>
   );
 }

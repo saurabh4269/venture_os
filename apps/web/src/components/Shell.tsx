@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import useSWR, { mutate as swrMutate } from "swr";
 import { AskFab } from "@/components/AskPanel";
 import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
@@ -24,6 +25,7 @@ import { WakingBook } from "@/components/WakingBook";
 import { api, UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
 import { BOOK_KEEPALIVE_MS, bookFetcher, prefetchBookApis } from "@/lib/book-data";
+import { SPRING_INDICATOR } from "@/lib/motion-ease";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
 import { isWakeError, WAKING_COPY } from "@/lib/wake";
 
@@ -127,6 +129,7 @@ function NavLink({
   nested?: boolean;
 }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   return (
     <Link
       href={href}
@@ -142,8 +145,15 @@ function NavLink({
         prefetchBookApis(href);
       }}
     >
+      {active ? (
+        <motion.span
+          layoutId="rail-active"
+          className="nav-active-pill"
+          transition={reduce ? { duration: 0 } : SPRING_INDICATOR}
+        />
+      ) : null}
       <Icon className="nav-ico" />
-      {label}
+      <span className="nav-label">{label}</span>
     </Link>
   );
 }

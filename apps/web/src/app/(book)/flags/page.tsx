@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { FLAG_CATALOG } from "@venture-os/core";
-import { PageHead, Panel } from "@/components/BookUI";
+import { FilterChips, PageHead, Panel } from "@/components/BookUI";
 import { Fact, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -191,23 +191,22 @@ export default function FlagsPage() {
           {err}
         </p>
       )}
+      <FilterChips
+        label="Status"
+        value={status}
+        onChange={(id) => setStatus(id as (typeof TABS)[number])}
+        options={TABS.map((s) => ({
+          id: s,
+          label: s === "open" ? "Open" : s === "snoozed" ? "Snoozed" : "Muted",
+          testId: `flags-status-${s}`,
+        }))}
+      />
       <div className="filter-bar">
         <select value={severity} onChange={(e) => setSeverity(e.target.value)} aria-label="Severity">
           <option value="">Severity</option>
           <option value="high">high</option>
           <option value="med">med</option>
           <option value="low">low</option>
-        </select>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as (typeof TABS)[number])}
-          aria-label="Status"
-        >
-          {TABS.map((s) => (
-            <option key={s} value={s}>
-              Status: {s}
-            </option>
-          ))}
         </select>
         <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
           <option value="">Company</option>
@@ -242,7 +241,7 @@ export default function FlagsPage() {
         <div className="flags-split">
           <Panel flush>
             <div className="table-scroll">
-              <table>
+              <table className="table-hover">
                 <thead>
                   <tr>
                     <th>Severity</th>

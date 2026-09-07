@@ -1,3 +1,5 @@
+import { BusyDots } from "@/components/motion/BusyDots";
+
 export function WakingBook({
   message,
   detail,
@@ -15,7 +17,7 @@ export function WakingBook({
     <div className="auth-shell">
       <div className="auth" role="status" aria-busy={busy} data-testid={testId}>
         <div className="auth-mark">Venture OS · the book</div>
-        <p className="lede">{message}</p>
+        {busy ? <BusyDots label={message} /> : <p className="lede">{message}</p>}
         {detail ? <p className="lede">{detail}</p> : null}
         {onRetry ? (
           <button className="btn" type="button" onClick={onRetry} disabled={busy} style={{ marginTop: 16 }}>

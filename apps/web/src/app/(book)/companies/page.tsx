@@ -192,7 +192,7 @@ export default function CompaniesPage() {
       ) : (
         <Panel flush>
           <div className="table-scroll">
-            <table>
+            <table className="table-hover">
               <thead>
                 <tr>
                   <th>Company</th>

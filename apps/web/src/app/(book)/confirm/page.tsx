@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { canHighlightSource, evidenceStatusOf } from "@venture-os/core";
-import { PageHead } from "@/components/BookUI";
+import { FilterChips, PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
@@ -147,38 +147,22 @@ export default function InboxPage() {
 
   return (
     <><PageHead title="Confirm" testId="confirm-ready" />
-      <div className="tabs filter-pills" aria-label="Status">
-        {STATUSES.map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={`filter-pill${s === status ? " on" : ""}`}
-            data-testid={`inbox-tab-${s}`}
-            onClick={() => setStatus(s)}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-      <div className="tabs filter-pills" aria-label="Kind filter">
-        {(
-          [
-            ["all", "All", String(items.length)] as const,
-            ["flags", "Flags", String(flagsCount)] as const,
-            ["docs", "Docs", String(docsCount)] as const,
-          ]
-        ).map(([k, label, count]) => (
-          <button
-            key={k}
-            type="button"
-            className={`filter-pill${k === kindFilter ? " on" : ""}`}
-            onClick={() => setKindFilter(k)}
-          >
-            {label}
-            <span className="filter-count">{count}</span>
-          </button>
-        ))}
-      </div>
+      <FilterChips
+        label="Status"
+        value={status}
+        onChange={(id) => setStatus(id as (typeof STATUSES)[number])}
+        options={STATUSES.map((s) => ({ id: s, label: s, testId: `inbox-tab-${s}` }))}
+      />
+      <FilterChips
+        label="Kind filter"
+        value={kindFilter}
+        onChange={(id) => setKindFilter(id as KindFilter)}
+        options={[
+          { id: "all", label: "All", count: String(items.length) },
+          { id: "flags", label: "Flags", count: String(flagsCount) },
+          { id: "docs", label: "Docs", count: String(docsCount) },
+        ]}
+      />
       {err && (
         <p className="sev-high" role="alert">
           {err}

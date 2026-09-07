@@ -6,6 +6,8 @@ import useSWR from "swr";
 import { FLAG_CATALOG } from "@venture-os/core";
 import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
 import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
+import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
+import { FadeIn } from "@/components/motion/FadeIn";
 import { Fact, useBookSession } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -238,21 +240,27 @@ export default function CommandPage() {
           <div className="cards cards-4">
             <div className="kpi">
               <div className="k">Companies</div>
-              <div className="v">{data.pulse.companies}</div>
+              <div className="v">
+                <AnimatedNumber value={data.pulse.companies} />
+              </div>
             </div>
             <div className={`kpi${data.pulse.openFlags > 0 ? " accent-warn" : ""}`}>
               <div className="k">Open flags</div>
-              <div className="v">{data.pulse.openFlags}</div>
+              <div className="v">
+                <AnimatedNumber value={data.pulse.openFlags} />
+              </div>
               {data.pulse.openFlags > 0 ? <div className="meta">Requires review</div> : null}
             </div>
             <div className={`kpi${gaps > 0 ? " accent-danger" : ""}`}>
               <div className="k">Coverage gaps</div>
-              <div className="v">{gaps}</div>
+              <div className="v">
+                <AnimatedNumber value={gaps} />
+              </div>
               <div className="meta">{gaps > 0 ? "No booked MIS" : "Names with no booked MIS period"}</div>
             </div>
             <div className="kpi">
               <div className="k">Uncited figures</div>
-              <div className="v">{uncited == null ? EM : uncited}</div>
+              <div className="v">{uncited == null ? EM : <AnimatedNumber value={uncited} />}</div>
               <div className="meta">Cite-or-refuse · shown values without provenance</div>
             </div>
           </div>
@@ -290,8 +298,8 @@ export default function CommandPage() {
                 </div>
               ) : (
                 <div className="look-list">
-                  {look.map((item) => (
-                    <div className="look-item" key={item.id}>
+                  {look.map((item, i) => (
+                    <FadeIn key={item.id} delay={Math.min(i, 6) * 0.04} className="look-item">
                       {item.severity === "high" ? (
                         <IconWarn className="nav-ico look-ico high" />
                       ) : (
@@ -304,12 +312,15 @@ export default function CommandPage() {
                         <div className="look-copy">{item.copy}</div>
                         <div className="look-chips">
                           {item.lane === "obj" ? <span className="lane-chip obj">Objective</span> : null}
+                          <span className={`status-chip ${item.severity === "high" ? "gap" : "review"}`}>
+                            {item.severity === "high" ? "High" : item.severity === "med" ? "Med" : "Look"}
+                          </span>
                         </div>
                       </div>
                       <Link className="cite" href={item.citeHref}>
                         Open
                       </Link>
-                    </div>
+                    </FadeIn>
                   ))}
                 </div>
               )}
@@ -322,7 +333,7 @@ export default function CommandPage() {
                   </div>
                 </div>
               ) : (
-                <table>
+                <table className="table-hover">
                   <thead>
                     <tr>
                       <th>Company</th>
