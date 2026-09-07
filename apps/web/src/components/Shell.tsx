@@ -24,10 +24,12 @@ import {
 import { WakingBook } from "@/components/WakingBook";
 import { api, UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
-import { BOOK_KEEPALIVE_MS, bookFetcher, prefetchBookApis } from "@/lib/book-data";
+import { BOOK_KEEPALIVE_MS, bookFetcher, bookSwrOptions, prefetchBookApis } from "@/lib/book-data";
 import { SPRING_INDICATOR } from "@/lib/motion-ease";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
 import { isWakeError, WAKING_COPY } from "@/lib/wake";
+
+type PulseLite = { pulse: { inboxPending: number; openFlags: number } };
 
 type BookSession = { me: Me | null; canWrite: boolean; isAdmin: boolean; canLock: boolean; ready: boolean };
 const BookSessionContext = createContext<BookSession>({
@@ -120,6 +122,7 @@ function NavLink({
   active,
   onClick,
   nested,
+  badge,
 }: {
   href: string;
   label: string;
@@ -127,14 +130,17 @@ function NavLink({
   active: boolean;
   onClick: () => void;
   nested?: boolean;
+  badge?: number | null;
 }) {
   const router = useRouter();
   const reduce = useReducedMotion();
+  const showBadge = badge != null && badge > 0;
   return (
     <Link
       href={href}
       className={`${nested ? "nav-sub" : ""}${active ? " active" : ""}`}
       aria-current={active ? "page" : undefined}
+      aria-label={showBadge ? `${label}, ${badge}` : undefined}
       onClick={onClick}
       onMouseEnter={() => {
         router.prefetch(href);
@@ -154,6 +160,11 @@ function NavLink({
       ) : null}
       <Icon className="nav-ico" />
       <span className="nav-label">{label}</span>
+      {showBadge ? (
+        <span className="nav-badge" aria-hidden>
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -189,6 +200,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const orgs = orgsData?.orgs ?? [];
   const ready = Boolean(me?.user && me.orgId && !me.needsOrg);
   const sessionPending = meLoading && !me;
+  const { data: pulseLite } = useSWR<PulseLite>(ready ? "/api/command" : null, bookFetcher, {
+    ...bookSwrOptions,
+    dedupingInterval: 15_000,
+  });
+  const confirmBadge = pulseLite?.pulse.inboxPending ?? null;
+  const flagsBadge = pulseLite?.pulse.openFlags ?? null;
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
@@ -340,6 +357,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     Icon={g.items[0].Icon}
                     active={pathActive(path, g.items[0])}
                     onClick={() => setNavOpen(false)}
+                    badge={
+                      g.items[0].href === "/confirm"
+                        ? confirmBadge
+                        : g.items[0].href === "/flags"
+                          ? flagsBadge
+                          : null
+                    }
                   />
                 ) : (
                   <>
@@ -364,6 +388,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
                             nested
                             active={pathActive(path, n)}
                             onClick={() => setNavOpen(false)}
+                            badge={
+                              n.href === "/confirm" ? confirmBadge : n.href === "/flags" ? flagsBadge : null
+                            }
                           />
                         ))
                       : null}

@@ -5,10 +5,12 @@ import useSWR from "swr";
 import { canHighlightSource, evidenceStatusOf } from "@venture-os/core";
 import { FilterChips, PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
+import { RejectConfirm } from "@/components/RejectConfirm";
 import { useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
 import { bookErrorMessage } from "@/lib/wake";
+import { mutate as swrMutate } from "swr";
 
 type Item = {
   id: string;
@@ -113,6 +115,7 @@ export default function InboxPage() {
         }),
       });
       load();
+      void swrMutate("/api/command");
     } catch (e) {
       setActionErr(e instanceof Error ? e.message : "Confirm failed");
     } finally {
@@ -125,6 +128,7 @@ export default function InboxPage() {
     try {
       await api(`/api/inbox/${id}/reject`, { method: "POST", body: "{}" });
       load();
+      void swrMutate("/api/command");
     } catch (e) {
       setActionErr(e instanceof Error ? e.message : "Reject failed");
     } finally {
@@ -323,14 +327,7 @@ export default function InboxPage() {
                       >
                         Confirm
                       </button>
-                      <button
-                        className="btn ghost sm"
-                        disabled={busy === i.id}
-                        onClick={() => reject(i.id)}
-                        data-testid="inbox-reject"
-                      >
-                        Reject
-                      </button>
+                      <RejectConfirm busy={busy === i.id} onReject={() => reject(i.id)} />
                     </>
                   )}
                 </div>

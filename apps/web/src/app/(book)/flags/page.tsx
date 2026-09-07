@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
+import useSWR, { mutate as swrMutate } from "swr";
 import { FLAG_CATALOG } from "@venture-os/core";
 import { FilterChips, PageHead, Panel } from "@/components/BookUI";
 import { Fact, useBookSession } from "@/components/Shell";

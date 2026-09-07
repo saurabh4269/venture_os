@@ -152,7 +152,27 @@ button { cursor: pointer; }
   z-index: 1;
   transition: color 140ms ease, opacity 140ms ease;
 }
-.nav a .nav-label { position: relative; z-index: 1; }
+.nav a .nav-label { position: relative; z-index: 1; flex: 1; min-width: 0; }
+.nav-badge {
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--lime-ink);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.nav a.active .nav-badge {
+  background: var(--lime);
+  color: var(--lime-ink);
+}
 .nav-active-pill {
   position: absolute;
   inset: 0;
@@ -538,7 +558,28 @@ tr.parse-stalled td { background: color-mix(in srgb, var(--danger) 6%, transpare
 .status-chip { border-color: var(--rule); background: var(--paper); color: var(--muted); }
 .status-chip.booked { background: var(--forest-soft); color: var(--forest); border-color: transparent; }
 .status-chip.review { background: var(--subjective-soft); color: var(--subjective); border-color: transparent; }
-.status-chip.gap { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.status-chip.gap {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: transparent;
+  animation: status-soft-pulse 2.4s ease-in-out infinite;
+}
+@keyframes status-soft-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger-soft) 80%, transparent); }
+}
+
+.reject-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.reject-confirm-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 550;
+}
 .cite {
   border: 1px solid var(--rule);
   background: var(--paper);
