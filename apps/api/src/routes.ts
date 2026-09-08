@@ -63,6 +63,7 @@ import {
   CreateCompanySchema,
   CreateFundSchema,
   FlagPolicySchema,
+  UpdatePositionSchema,
   LockNavPeriodSchema,
   MarkMethodSchema,
   ReportKindSchema,
@@ -446,6 +447,29 @@ routes.post("/api/funds", async (c) => {
       .returning(),
   );
   return c.json({ fund: row });
+});
+
+routes.patch("/api/positions/:id", async (c) => {
+  const s = requireWrite(c);
+  const id = c.req.param("id");
+  const body = UpdatePositionSchema.parse(await c.req.json());
+  const row = await withOrg(s.orgId, async (tx) => {
+    const [existing] = await tx.select().from(positions).where(eq(positions.id, id));
+    if (!existing) return null;
+    const [updated] = await tx
+      .update(positions)
+      .set({
+        costBasis: body.costBasis === undefined ? existing.costBasis : body.costBasis,
+        costCurrency: body.costCurrency ?? existing.costCurrency,
+        ownershipPct: body.ownershipPct === undefined ? existing.ownershipPct : body.ownershipPct,
+        investedAt: body.investedAt === undefined ? existing.investedAt : body.investedAt,
+      })
+      .where(eq(positions.id, id))
+      .returning();
+    return updated;
+  });
+  if (!row) throw new HttpError(404, "position_not_found");
+  return c.json({ position: row });
 });
 
 routes.get("/api/companies", async (c) => {

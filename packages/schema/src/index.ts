@@ -215,6 +215,14 @@ export const CreateFundSchema = z.object({
   committedCapital: z.number().nonnegative().optional(),
 });
 
+/** Cost / ownership on a fund position — not MIS facts; written by the firm. */
+export const UpdatePositionSchema = z.object({
+  costBasis: z.number().finite().nonnegative().nullable().optional(),
+  costCurrency: CurrencySchema.optional(),
+  ownershipPct: z.number().min(0).max(1).nullable().optional(),
+  investedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+});
+
 export const MARK_METHODS = ["last_round", "dcf", "bid", "write_down", "other"] as const;
 export const MarkMethodSchema = z.enum(MARK_METHODS);
 export type MarkMethod = z.infer<typeof MarkMethodSchema>;
