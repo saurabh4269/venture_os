@@ -305,12 +305,30 @@ button { cursor: pointer; }
   align-self: center;
 }
 .app.rail-collapsed .nav a {
+  position: relative;
   justify-content: center;
   padding-left: 0;
   padding-right: 0;
 }
 .app.rail-collapsed .nav a.nav-sub {
   padding-left: 0;
+}
+.app.rail-collapsed .nav a:hover::after,
+.app.rail-collapsed .nav a:focus-visible::after {
+  content: attr(aria-label);
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 8;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--rail-bg);
+  color: var(--rail-ink);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow);
 }
 .app.rail-collapsed .nav-badge {
   position: absolute;
@@ -563,6 +581,14 @@ button { cursor: pointer; }
 .report-template-card.is-on {
   border-color: color-mix(in srgb, var(--forest) 55%, var(--rule));
   box-shadow: var(--shadow), inset 3px 0 0 var(--lime-deep, #9ccc2e);
+}
+.report-template-cta {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--forest);
 }
 .report-compose-layer {
   position: fixed;
@@ -1219,6 +1245,19 @@ button { cursor: pointer; }
   font-size: 1.25rem;
   letter-spacing: -0.02em;
   margin-bottom: 6px;
+}
+.ask-history {
+  width: 100%;
+  text-align: left;
+  margin: 8px 0 4px;
+}
+.ask-history ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .ask-starters {
   display: flex;
@@ -2733,6 +2772,28 @@ input[type="date"], input[type="file"], select, textarea {
   color: var(--ink);
   box-shadow: inset 0 -2px 0 var(--ink);
 }
+.password-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 6px;
+}
+.password-field input {
+  min-width: 0;
+}
+.password-toggle {
+  border: 1px solid var(--rule);
+  background: var(--chip);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.password-toggle[aria-pressed="true"] {
+  color: var(--ink);
+}
 .auth-principles {
   margin: 18px 0 0;
   font-size: 10px;
@@ -3684,6 +3745,16 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .flag-actions { grid-template-columns: 1fr; }
   .ask-bar { grid-template-columns: 1fr; }
   .triage-row { grid-template-columns: 1fr; }
+  .triage-head { display: none; }
+  .triage-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: 4px -14px -12px;
+    padding: 10px 14px 12px;
+    background: color-mix(in srgb, var(--chip) 94%, var(--paper));
+    border-top: 1px solid var(--rule);
+  }
   h1 { font-size: 28px; }
   .auth { padding: 0 18px 20px; }
   .auth-tabs { margin: 0 -18px 16px; }

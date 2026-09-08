@@ -99,6 +99,7 @@ function SettingsInner() {
   const [policyMsg, setPolicyMsg] = useState("");
   const [policyFields, setPolicyFields] = useState<Record<string, string>>({});
   const [formulaDraft, setFormulaDraft] = useState<Record<string, FormulaDraftRow>>({});
+  const [formulaBaseline, setFormulaBaseline] = useState("");
   const [formulaMsg, setFormulaMsg] = useState("");
   const [formulaFields, setFormulaFields] = useState<Record<string, string>>({});
   const [formulaOpen, setFormulaOpen] = useState<string | null>(null);
@@ -130,6 +131,7 @@ function SettingsInner() {
       };
     }
     setFormulaDraft(next);
+    setFormulaBaseline(JSON.stringify(next));
   }
 
   function load() {
@@ -311,9 +313,25 @@ function SettingsInner() {
       {tab === "formula" && (
       <Panel
         title="Formula book"
-        kicker="Firm metric dictionary"
+        kicker={formulaBaseline && JSON.stringify(formulaDraft) !== formulaBaseline ? "Unsaved changes" : "Firm metric dictionary"}
         actions={
           isAdmin ? (
+            <div className="row" style={{ gap: 8 }}>
+            {formulaBaseline && JSON.stringify(formulaDraft) !== formulaBaseline ? (
+              <button
+                type="button"
+                className="btn ghost sm"
+                disabled={busy}
+                onClick={() => {
+                  if (!window.confirm("Discard unsaved formula book changes?")) return;
+                  seedFormulaDraft(data?.formulaBook);
+                  setFormulaMsg("");
+                  setFormulaFields({});
+                }}
+              >
+                Discard
+              </button>
+            ) : null}
             <button
               type="button"
               className="btn sm"
@@ -376,6 +394,7 @@ function SettingsInner() {
             >
               {busy ? "Saving…" : "Save formula book"}
             </button>
+            </div>
           ) : null
         }
       >

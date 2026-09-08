@@ -171,22 +171,30 @@ export default function CommandPage() {
   const look = useMemo(() => {
     if (!data) return [];
     const inboxByCompany = new Map<string, { count: number; kinds: string[] }>();
+    const kindLabel = (k: string) =>
+      k === "unit_ambiguity" ? "Unit unclear" : k === "metric" ? "Metric" : k === "commentary" ? "Commentary" : k.replaceAll("_", " ");
     for (const i of data.needsALook.inbox) {
       const cur = inboxByCompany.get(i.companyName) ?? { count: 0, kinds: [] };
       cur.count += 1;
-      if (cur.kinds.length < 3) cur.kinds.push(i.kind.replaceAll("_", " "));
+      const label = kindLabel(i.kind);
+      if (!cur.kinds.includes(label)) cur.kinds.push(label);
       inboxByCompany.set(i.companyName, cur);
     }
-    const inboxRows = [...inboxByCompany.entries()].map(([company, { count, kinds }]) => ({
-      id: `inbox-${company}`,
-      href: "/confirm",
-      company,
-      copy:
-        count > 1
-          ? `${count} rows ready to confirm${kinds.length ? ` · ${kinds.join(", ")}` : ""}.`
-          : `${kinds[0] ?? "row"} pending confirm.`,
-      severity: "med" as const,
-    }));
+    const inboxRows = [...inboxByCompany.entries()].map(([company, { count, kinds }]) => {
+      const shown = kinds.slice(0, 3);
+      const extra = kinds.length - shown.length;
+      const kindText = extra > 0 ? `${shown.join(", ")} +${extra} more` : shown.join(", ");
+      return {
+        id: `inbox-${company}`,
+        href: "/confirm",
+        company,
+        copy:
+          count > 1
+            ? `${count} rows ready to confirm${kindText ? ` · ${kindText}` : ""}.`
+            : `${kindText || "row"} pending confirm.`,
+        severity: "med" as const,
+      };
+    });
     return [
       ...inboxRows,
       ...data.needsALook.flags.map((f) => ({
@@ -248,7 +256,13 @@ export default function CommandPage() {
           <>
             <span className="lede">
               {refreshedAt
-                ? refreshedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                ? `Updated · ${refreshedAt.toLocaleString(undefined, {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}`
                 : ""}
             </span>
             <button className="btn ghost sm" type="button" onClick={load} disabled={busy}>
@@ -359,7 +373,7 @@ export default function CommandPage() {
               </div>
               <div className="meta">{gaps > 0 ? "No booked MIS" : "All names have a period"}</div>
             </div>
-            <div className={`kpi kpi-with-spark${!data.pulse.nav.nav.complete ? " accent-warn" : " accent-forest"}`}>
+            <div className={`kpi kpi-with-spark${!data.pulse.nav.nav.complete ? " accent-warn" : " accent-forest"}`} title="Net asset value of booked marks">
               <Link className="kpi-link" href="/nav">
                 <div className="kpi-body">
                   <div className="k">NAV</div>
@@ -373,7 +387,7 @@ export default function CommandPage() {
                 <KpiSparkline values={(data.charts?.portfolioSeries ?? []).map((r) => r.cashSum)} />
               </Link>
             </div>
-            <div className="kpi kpi-with-spark">
+            <div className="kpi kpi-with-spark" title="Multiple on invested capital from booked cost and NAV">
               <div className="kpi-body">
                 <div className="k">MOIC</div>
                 <div className="v">{data.pulse.moic == null ? "" : `${data.pulse.moic.toFixed(2)}x`}</div>

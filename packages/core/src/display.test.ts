@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { formatDualDisplay } from "./display.js";
+import { formatDualDisplay, formatRunwayMonths } from "./display.js";
+
+describe("formatRunwayMonths", () => {
+  it("rounds to one decimal and labels months", () => {
+    expect(formatRunwayMonths(4.504615384615385)).toBe("4.5 mo");
+    expect(formatRunwayMonths(6)).toBe("6 mo");
+    expect(formatRunwayMonths(null)).toBe("");
+  });
+});
 
 describe("dual currency display", () => {
   it("shows EUR only when the FX triple is complete", () => {

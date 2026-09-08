@@ -50,6 +50,21 @@ function evidenceEntries(ev: Record<string, unknown>) {
   return Object.entries(ev).filter(([k]) => k !== "sourceRefIds");
 }
 
+function formatEvidenceValue(v: unknown): string {
+  if (v == null) return "";
+  if (typeof v === "number" && Number.isFinite(v)) {
+    const abs = Math.abs(v);
+    if (Number.isInteger(v)) return String(v);
+    if (abs >= 100) return v.toFixed(1);
+    return (Math.round(v * 100) / 100).toString();
+  }
+  if (typeof v === "string" && /^-?\d+(?:\.\d+)?$/.test(v)) {
+    const n = Number(v);
+    if (Number.isFinite(n)) return formatEvidenceValue(n);
+  }
+  return String(v);
+}
+
 function sevClass(severity: string) {
   if (severity === "high") return "urgent";
   if (severity === "med") return "warning";
@@ -359,7 +374,9 @@ export default function FlagsPage() {
                       evidenceEntries(selected.evidence ?? {}).map(([k, v]) => (
                         <div className="metric-row" key={k}>
                           <span>{k.replaceAll("_", " ")}</span>
-                          <strong className="num">{v == null ? <Miss /> : String(v)}</strong>
+                          <strong className="num" title={v == null ? undefined : String(v)}>
+                            {v == null ? <Miss /> : formatEvidenceValue(v)}
+                          </strong>
                         </div>
                       ))
                     )}

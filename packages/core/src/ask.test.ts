@@ -7,6 +7,8 @@ describe("Ask refuse", () => {
     expect(d.ok).toBe(false);
     if (!d.ok) expect(d.reason).toBe("empty_corpus");
     expect(ASK_REFUSAL).toMatch(/will not guess/i);
+    expect(ASK_REFUSAL).toMatch(/Confirm/);
+    expect(ASK_REFUSAL).not.toMatch(/Inbox/);
   });
 
   it("refuses when retrieved text does not overlap the question tokens", () => {
@@ -71,5 +73,15 @@ describe("Ask refuse", () => {
     );
     expect(gate.ok).toBe(false);
     if (!gate.ok) expect(gate.invented).toEqual(expect.arrayContaining(["888", "2099"]));
+  });
+
+  it("refuses a suggested digit that is not in booked evidence", () => {
+    const gate = refuseUnsourcedDigits(
+      "From the book:\nrunway 4.5 mo",
+      "runway 4.5 mo cash 12 crore",
+      "Which companies have runway under 6 months?",
+    );
+    expect(gate.ok).toBe(false);
+    if (!gate.ok) expect(gate.invented).toContain("6");
   });
 });

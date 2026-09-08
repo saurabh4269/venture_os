@@ -80,7 +80,7 @@ export function inventedNumbers(answer: string, evidenceText: string): string[] 
 }
 
 export const ASK_REFUSAL =
-  "Not in the book / corpus — I will not guess. Upload a source or confirm the figure in Inbox.";
+  "Not in the book / corpus. I will not guess. Upload a source or confirm the figure in Confirm.";
 
 export function evidenceText(evidence: AskEvidence): string {
   return [...evidence.facts.map((f) => f.excerpt), ...evidence.chunks.map((c) => c.excerpt)].join("\n");

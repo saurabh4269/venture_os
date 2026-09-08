@@ -159,6 +159,7 @@ export default function SourcesPage() {
                   <button
                     type="button"
                     className="source-card-title"
+                    title={d.filename}
                     onClick={() => downloadAuthed(`/api/documents/${d.id}/file`, d.filename)}
                   >
                     {d.filename}

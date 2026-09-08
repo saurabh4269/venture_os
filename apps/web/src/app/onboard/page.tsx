@@ -17,6 +17,7 @@ export default function OnboardPage() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [userName, setUserName] = useState("");
+  const [alreadyOnboarded, setAlreadyOnboarded] = useState(false);
   const [wake, setWake] = useState<"ok" | "loading" | "error">("loading");
 
   function loadMe() {
@@ -29,7 +30,7 @@ export default function OnboardPage() {
         }
         setUserName(m.user.name);
         setWake("ok");
-        if (m.orgId && !m.needsOrg) router.replace("/command");
+        if (m.orgId && !m.needsOrg) setAlreadyOnboarded(true);
       })
       .catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : UPSTREAM_UNAVAILABLE_MESSAGE;
@@ -71,6 +72,22 @@ export default function OnboardPage() {
         busy={wake === "loading"}
         testId="onboard-busy"
       />
+    );
+  }
+
+  if (alreadyOnboarded) {
+    return (
+      <AuthFrame>
+        <h1>Already onboarded</h1>
+        <p className="lede">
+          {userName ? `${userName}, you` : "You"} already have a firm book. Command is the next step.
+        </p>
+        <p style={{ marginTop: 20 }}>
+          <Link href="/command" className="btn">
+            Open Command
+          </Link>
+        </p>
+      </AuthFrame>
     );
   }
 

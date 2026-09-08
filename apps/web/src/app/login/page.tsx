@@ -17,6 +17,7 @@ function LoginForm() {
   const next = safeNextPath(params.get("next"));
   const [email, setEmail] = useState(params.get("email") ?? "");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -89,18 +90,28 @@ function LoginForm() {
               {MIN_PASSWORD_LENGTH} to {MAX_PASSWORD_LENGTH} characters
             </span>
           </span>
-          <input
-            id="password"
-            name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            minLength={MIN_PASSWORD_LENGTH}
-            maxLength={MAX_PASSWORD_LENGTH}
-            data-testid="login-password"
-            required
-          />
+          <span className="password-field">
+            <input
+              id="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              minLength={MIN_PASSWORD_LENGTH}
+              maxLength={MAX_PASSWORD_LENGTH}
+              data-testid="login-password"
+              required
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </span>
         </label>
         {err && (
           <div className="sev-high" role="alert">

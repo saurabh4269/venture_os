@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import useSWR from "swr";
-import { canHighlightSource, evidenceStatusOf } from "@venture-os/core";
+import { canHighlightSource, evidenceStatusOf, metricByKey } from "@venture-os/core";
 import { PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
 import { RejectConfirm } from "@/components/RejectConfirm";
@@ -65,7 +66,13 @@ function periodRange(start?: string, end?: string) {
   return start || end || "";
 }
 
+function metricLabel(key?: string, fallback?: string) {
+  if (!key) return fallback ?? "";
+  return metricByKey(key)?.label ?? fallback ?? key.replaceAll("_", " ");
+}
+
 export default function InboxPage() {
+  const path = usePathname();
   const { canWrite, ready: sessionReady } = useBookSession();
   const openCite = useCite();
   const [periodEdits, setPeriodEdits] = useState<Record<string, { start: string; end: string }>>({});
@@ -165,6 +172,9 @@ export default function InboxPage() {
   return (
     <>
       <PageHead title="Confirm" testId="confirm-ready" />
+      {path.startsWith("/inbox") ? (
+        <p className="lede">Confirm is the pending queue. /inbox opens this same list.</p>
+      ) : null}
       <div className="table-tools">
         <label className="field table-tools-field">
           <span className="sr-only">Status</span>
@@ -239,7 +249,7 @@ export default function InboxPage() {
                 <div className="look-title">{i.companyName ?? ""}</div>
                 <div>
                   <div>
-                    {i.proposed.metricKey ?? i.proposed.label ?? i.kind.replaceAll("_", " ")}{" "}
+                    {metricLabel(i.proposed.metricKey, i.proposed.label ?? i.kind.replaceAll("_", " "))}{" "}
                     {status === "pending" && canWrite ? (
                       <input
                         aria-label="Value"
@@ -345,7 +355,7 @@ export default function InboxPage() {
                   )}
                 </div>
                 <div className="hide-sm num">{relTime(i.createdAt)}</div>
-                <div className="row">
+                <div className="row triage-actions">
                   {status === "pending" && canWrite && (
                     <>
                       <button

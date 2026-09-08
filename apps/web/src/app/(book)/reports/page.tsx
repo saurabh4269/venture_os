@@ -134,6 +134,7 @@ export default function ReportsPage() {
           >
             <h3>{t.title}</h3>
             <p className="report-template-meta">{t.sections.join(", ")}</p>
+            <span className="report-template-cta">Generate</span>
           </button>
         ))}
       </section>
@@ -162,7 +163,13 @@ export default function ReportsPage() {
                   <td>
                     <span className="report-kind-pill">{REPORT_KIND_LABEL[r.kind] ?? r.kind}</span>
                   </td>
-                  <td className="lede">{new Date(r.createdAt).toLocaleString()}</td>
+                  <td className="lede">
+                    {new Date(r.createdAt).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </td>
                 </tr>
               ))}
             </tbody>

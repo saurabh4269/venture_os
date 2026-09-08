@@ -129,8 +129,10 @@ export default function NavPage() {
   const [clearMark, setClearMark] = useState(false);
   const [showFx, setShowFx] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
+  const [showLockConfirm, setShowLockConfirm] = useState(false);
   const [rowFilter, setRowFilter] = useState<RowFilter>("all");
   const [actionErr, setActionErr] = useState("");
+  const [markMsg, setMarkMsg] = useState("");
   const [unlockReason, setUnlockReason] = useState("");
   const [lockBusy, setLockBusy] = useState(false);
 
@@ -186,24 +188,31 @@ export default function NavPage() {
       return;
     }
     const triple = form.fxRate && form.fxDate && form.fxSource;
-    await api("/api/nav/marks", {
-      method: "POST",
-      body: JSON.stringify({
-        positionId: form.positionId,
-        asOf,
-        method: form.method,
-        value: form.value === "" ? null : Number(form.value),
-        rationale: form.rationale,
-        fxRate: triple ? Number(form.fxRate) : undefined,
-        fxDate: triple ? form.fxDate : undefined,
-        fxSource: triple ? form.fxSource : undefined,
-        documentId: form.documentId || undefined,
-      }),
-    });
-    setForm(emptyForm);
-    setClearMark(false);
-    setShowFx(false);
-    load();
+    setActionErr("");
+    setMarkMsg("");
+    try {
+      await api("/api/nav/marks", {
+        method: "POST",
+        body: JSON.stringify({
+          positionId: form.positionId,
+          asOf,
+          method: form.method,
+          value: form.value === "" ? null : Number(form.value),
+          rationale: form.rationale,
+          fxRate: triple ? Number(form.fxRate) : undefined,
+          fxDate: triple ? form.fxDate : undefined,
+          fxSource: triple ? form.fxSource : undefined,
+          documentId: form.documentId || undefined,
+        }),
+      });
+      setForm(emptyForm);
+      setClearMark(false);
+      setShowFx(false);
+      setMarkMsg(clearMark ? "Mark cleared" : "Mark saved");
+      load();
+    } catch (ex) {
+      setActionErr(ex instanceof Error ? ex.message : "Could not save mark");
+    }
   }
 
   function pickUnmarked(positionId: string) {
@@ -227,27 +236,26 @@ export default function NavPage() {
                 className="btn"
                 data-testid="nav-lock"
                 disabled={lockBusy}
-                onClick={async () => {
-                  setLockBusy(true);
-                  setActionErr("");
-                  try {
-                    await api("/api/nav/lock", { method: "POST", body: JSON.stringify({ asOf }) });
-                    load();
-                  } catch (e) {
-                    setActionErr(e instanceof Error ? e.message : "Lock failed");
-                  } finally {
-                    setLockBusy(false);
-                  }
+                onClick={() => {
+                  setShowUnlock(false);
+                  setShowLockConfirm(true);
                 }}
               >
                 <span className="row" style={{ gap: 6 }}>
                   <IconLock />
-                  {lockBusy ? "Locking…" : "Lock"}
+                  Lock
                 </span>
               </button>
             ) : null}
             {canLock && locked ? (
-              <button type="button" className="btn ghost sm" onClick={() => setShowUnlock((v) => !v)}>
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() => {
+                  setShowLockConfirm(false);
+                  setShowUnlock((v) => !v);
+                }}
+              >
                 Unlock…
               </button>
             ) : null}
@@ -278,16 +286,16 @@ export default function NavPage() {
 
       <div className="table-tools nav-period-bar">
         <label className="field table-tools-field">
-          <span className="sr-only">As-of</span>
-          <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} aria-label="As-of" />
+          <span>As of</span>
+          <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} aria-label="As of" />
         </label>
         <label className="field table-tools-field">
-          <span className="sr-only">Prior as-of</span>
+          <span>Prior</span>
           <input
             type="date"
             value={priorAsOf}
             onChange={(e) => setPriorAsOf(e.target.value)}
-            aria-label="Prior as-of"
+            aria-label="Prior as of"
           />
         </label>
         <label className="field table-tools-field">
@@ -314,6 +322,43 @@ export default function NavPage() {
           </select>
         </label>
       </div>
+
+      {canLock && unofficial && showLockConfirm ? (
+        <div className="nav-unlock-bar" role="alertdialog" aria-label="Confirm lock">
+          <p className="lede" style={{ margin: 0, flex: "1 1 220px" }}>
+            Lock {quarterLabel(asOf)}? Marks cannot change until someone unlocks.
+          </p>
+          <button
+            type="button"
+            className="btn sm"
+            data-testid="nav-lock-confirm"
+            disabled={lockBusy}
+            onClick={async () => {
+              setLockBusy(true);
+              setActionErr("");
+              try {
+                await api("/api/nav/lock", { method: "POST", body: JSON.stringify({ asOf }) });
+                setShowLockConfirm(false);
+                load();
+              } catch (e) {
+                setActionErr(e instanceof Error ? e.message : "Lock failed");
+              } finally {
+                setLockBusy(false);
+              }
+            }}
+          >
+            {lockBusy ? "Locking…" : "Confirm lock"}
+          </button>
+          <button
+            type="button"
+            className="btn ghost sm"
+            disabled={lockBusy}
+            onClick={() => setShowLockConfirm(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : null}
 
       {canLock && locked && showUnlock ? (
         <div className="nav-unlock-bar">
@@ -642,6 +687,11 @@ export default function NavPage() {
                 ) : null}
 
                 <div className="nav-mark-actions">
+                  {markMsg ? (
+                    <p className="lede" role="status" style={{ margin: 0, marginRight: "auto" }}>
+                      {markMsg}
+                    </p>
+                  ) : null}
                   <button className="btn" type="submit">
                     Save mark
                   </button>

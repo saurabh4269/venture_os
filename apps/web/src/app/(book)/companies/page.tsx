@@ -133,7 +133,7 @@ export default function CompaniesPage() {
           >
             <div className="k">Booked</div>
             <div className="v">{stats.booked}</div>
-            <div className="meta">MIS period on book</div>
+            <div className="meta">MIS period on book, no open flags</div>
           </button>
           <button
             type="button"
@@ -326,7 +326,20 @@ export default function CompaniesPage() {
                           ) : null}
                         </td>
                         <td className={`cover-plain cover-${kind}`}>
-                          {kind === "booked" ? "Booked" : kind === "gap" ? "Gap" : "Review"}
+                          {kind === "booked" ? (
+                            <span title="Latest MIS period is on the book">Booked</span>
+                          ) : kind === "gap" ? (
+                            <Link href="/confirm" title="No booked MIS period">
+                              Gap
+                            </Link>
+                          ) : (
+                            <Link
+                              href={cov?.openFlags ? "/flags" : "/confirm"}
+                              title={cov?.openFlags ? "Open flags" : "Rows waiting in Confirm"}
+                            >
+                              Review
+                            </Link>
+                          )}
                         </td>
                       </tr>
                     );

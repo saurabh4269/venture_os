@@ -32,7 +32,7 @@ type Turn = {
 
 const STARTERS = [
   "What is the latest confirmed cash?",
-  "Which companies have runway under 6 months?",
+  "Which companies have short runway?",
   "Summarise open flags with evidence.",
 ];
 
@@ -47,11 +47,15 @@ export default function AskPage() {
   const [companyId, setCompanyId] = useState("");
   const [followKey, setFollowKey] = useState(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [history, setHistory] = useState<{ id: string; question: string; refused: boolean }[]>([]);
 
   useEffect(() => {
     api<{ companies: { id: string; name: string }[] }>("/api/companies")
       .then((r) => setCos(r.companies ?? []))
       .catch(() => setCos([]));
+    api<{ queries: { id: string; question: string; refused: boolean }[] }>("/api/ask/history")
+      .then((r) => setHistory(r.queries ?? []))
+      .catch(() => setHistory([]));
     const fromUrl = new URLSearchParams(window.location.search).get("companyId");
     if (fromUrl) setCompanyId(fromUrl);
   }, []);
@@ -143,6 +147,26 @@ export default function AskPage() {
               <p className="lede">
                 Confirmed metrics only. Missing evidence returns a refusal, never a guess.
               </p>
+              {history.length > 0 ? (
+                <div className="ask-history" aria-label="Recent questions">
+                  <p className="page-kicker">Recent</p>
+                  <ul>
+                    {history.slice(0, 8).map((h) => (
+                      <li key={h.id}>
+                        <button
+                          type="button"
+                          className="ask-starter"
+                          disabled={busy}
+                          onClick={() => void ask(h.question)}
+                        >
+                          <span className="ask-starter-label">{h.question}</span>
+                          {h.refused ? <span className="lede">Refused</span> : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <div className="ask-starters" role="list">
                 {STARTERS.map((s, i) => (
                   <motion.button

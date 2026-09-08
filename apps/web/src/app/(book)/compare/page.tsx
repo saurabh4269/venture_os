@@ -336,7 +336,7 @@ export default function ComparePage() {
       <PageHead
         title="Compare"
         kicker="Peer book"
-        lede="Toggle peers to reshape the radar, columns, and scatter. Charts only include names you leave on."
+        lede="Toggle peers to reshape the radar, columns, and scatter. Charts only include names you leave on that have values for the selected metrics."
         actions={
           <button className="btn ghost sm" type="button" onClick={exportCsv} disabled={!visible.length}>
             Export
@@ -541,7 +541,7 @@ export default function ComparePage() {
         <div className="compare-stack">
           <Panel
             title="Peer fingerprints"
-            kicker={peerCount > 6 ? `6 of ${peerCount}` : `${peerCount} peers`}
+            kicker={peerCount > 6 ? `6 of ${peerCount} with complete metrics` : `${peerCount} peers`}
           >
             <ComparePeerRadar
               peers={radarPeers}

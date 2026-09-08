@@ -2,15 +2,26 @@ import type { Currency, Unit } from "@venture-os/schema";
 import { formatMissing, isPresent, type Num } from "./nulls.js";
 import { formatMoney } from "./units.js";
 
+export function formatRunwayMonths(n: Num): string {
+  if (!isPresent(n)) return "";
+  const rounded = Math.round(n * 10) / 10;
+  const label = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${label} mo`;
+}
+
 export function factOrDash(args: {
   value: Num;
   sourceRefId?: string | null;
   unit?: Unit;
   currency?: Currency;
+  format?: (v: number) => string;
 }): { display: string; isFact: boolean; sourceRefId: string | null } {
   const sourceRefId = args.sourceRefId ?? null;
   if (!args.sourceRefId) return { display: "—", isFact: false, sourceRefId };
   if (!isPresent(args.value)) return { display: "—", isFact: false, sourceRefId };
+  if (args.format) {
+    return { display: args.format(args.value), isFact: true, sourceRefId };
+  }
   if (args.unit && args.currency) {
     return { display: formatMoney(args.value, args.unit, args.currency), isFact: true, sourceRefId };
   }

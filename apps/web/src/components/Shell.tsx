@@ -110,6 +110,18 @@ const NAV: NavGroup[] = [
       { href: "/ask", label: "Ask", Icon: IconAsk, match: (p) => p.startsWith("/ask") },
     ],
   },
+  {
+    id: "firm",
+    title: "Firm",
+    items: [
+      {
+        href: "/settings",
+        label: "Settings",
+        Icon: IconSettings,
+        match: (p) => p.startsWith("/settings"),
+      },
+    ],
+  },
 ];
 
 const RAIL_COLLAPSED_KEY = "vos.railCollapsed";

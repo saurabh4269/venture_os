@@ -12,6 +12,7 @@ import {
   decideAsk,
   documentKindToCommentarySource,
   factOrDash,
+  formatRunwayMonths,
   FLAG_CATALOG,
   FLAG_THRESHOLD_BOUNDS,
   formatDualDisplay,
@@ -580,6 +581,7 @@ routes.get("/api/companies/:id", async (c) => {
       runway: factOrDash({
         value: r,
         sourceRefId: cash?.sourceRefId && burn?.sourceRefId ? cash.sourceRefId : null,
+        format: formatRunwayMonths,
       }),
     };
     const pos = await tx.select().from(positions).where(eq(positions.companyId, id));
@@ -1000,6 +1002,7 @@ routes.get("/api/command", async (c) => {
         runway: factOrDash({
           value: r,
           sourceRefId: cash?.sourceRefId && burn?.sourceRefId ? cash.sourceRefId : null,
+          format: formatRunwayMonths,
         }),
         lastMis: cash?.periodEnd ?? latestByMetricPeriod(cm)[0]?.periodEnd ?? null,
         ownershipPct: p?.ownershipPct ?? null,
@@ -1764,6 +1767,32 @@ routes.post("/api/ask", async (c) => {
         };
       })
       .filter((f) => f.documentId);
+    if (tokens.includes("runway")) {
+      const byCompany = new Map<string, typeof facts>();
+      for (const f of facts) {
+        if (body.companyId && f.companyId !== body.companyId) continue;
+        const list = byCompany.get(f.companyId) ?? [];
+        list.push(f);
+        byCompany.set(f.companyId, list);
+      }
+      for (const rows of byCompany.values()) {
+        const cashS = seriesFor(rows, "cash");
+        const burnS = seriesFor(rows, "burn");
+        const months = runwayMonthsFromBurns(
+          cashS[0]?.valueNumeric ?? null,
+          burnS.slice(0, 3).map((b) => b.valueNumeric ?? null),
+        );
+        const cash = cashS[0];
+        if (months == null || !cash?.sourceRefId) continue;
+        const ref = refs.find((r) => r.id === cash.sourceRefId);
+        if (!ref?.documentId) continue;
+        factHits.push({
+          sourceRefId: cash.sourceRefId,
+          documentId: ref.documentId,
+          excerpt: `runway ${formatRunwayMonths(months)} cash ${cash.valueNumeric ?? ""} ${cash.unit} burn ${burnS[0]?.valueNumeric ?? ""} ${burnS[0]?.unit ?? ""}`,
+        });
+      }
+    }
     return {
       chunks: chunkRows.map((r) => ({
         documentId: r.document_id,
