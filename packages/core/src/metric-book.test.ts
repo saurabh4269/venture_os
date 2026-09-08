@@ -16,7 +16,7 @@ describe("metric book", () => {
       ghost: { label: "nope" },
     });
     expect(book.cash?.label).toBe("Closing cash");
-    expect(book.ghost).toBeUndefined();
+    expect("ghost" in book).toBe(false);
     const cat = resolveMetricCatalog(book);
     const cash = cat.find((m) => m.key === "cash")!;
     expect(cash.label).toBe("Closing cash");
