@@ -12,8 +12,8 @@ import {
   type ConnectorKind,
   type ConnectorStatus,
 } from "@venture-os/core";
-import { PageHead, Panel, SettingsSubnav } from "@/components/BookUI";
-import { IconKey, IconLock } from "@/components/Icons";
+import { PageHead, Panel } from "@/components/BookUI";
+import { IconAffinity, IconGranola, IconKey, IconLock, IconOnedrive } from "@/components/Icons";
 import { useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookErrorMessage } from "@/lib/wake";
@@ -59,9 +59,26 @@ const EMPTY: FormState = {
   userId: "",
 };
 
+const CONNECTOR_ICONS: Record<ConnectorKind, typeof IconOnedrive> = {
+  onedrive: IconOnedrive,
+  affinity: IconAffinity,
+  granola: IconGranola,
+};
+
+const CONNECTOR_BLURB: Record<ConnectorKind, string> = {
+  onedrive: "MIS folders from SharePoint / OneDrive",
+  affinity: "CRM ownership and company links",
+  granola: "Meeting notes as subjective Confirm rows",
+};
+
 function statusLabel(status: ConnectorStatus) {
   if (status === "not_connected") return "not connected";
   return status.replaceAll("_", " ");
+}
+
+function asKind(raw: string | null): ConnectorKind | null {
+  if (raw === "onedrive" || raw === "affinity" || raw === "granola") return raw;
+  return null;
 }
 
 function ConnectorCards() {
@@ -74,8 +91,15 @@ function ConnectorCards() {
   const [busy, setBusy] = useState<string>("");
   const [affinityFields, setAffinityFields] = useState<{ id: string; name: string; type?: string }[]>([]);
   const [affinityFieldsErr, setAffinityFieldsErr] = useState("");
+  const [selected, setSelected] = useState<ConnectorKind | null>(() => asKind(search.get("tool")));
 
   const oauthNote = search.get("onedrive") || search.get("error");
+
+  useEffect(() => {
+    const fromQuery = asKind(search.get("tool"));
+    if (fromQuery) setSelected(fromQuery);
+    else if (search.get("onedrive") || search.get("error")) setSelected("onedrive");
+  }, [search]);
 
   function load() {
     if (!isAdmin) return;
@@ -244,11 +268,19 @@ function ConnectorCards() {
     [],
   );
 
+  const kind = selected;
+  const row = kind ? rows.find((r) => r.kind === kind) : undefined;
+  const status = row?.status ?? "not_connected";
+  const f = kind ? form(kind) : EMPTY;
+  const canConnect = Boolean(kind && isAdmin && (valid(kind) || Boolean(row?.hasCredentials)));
+  const BrandIcon = kind ? CONNECTOR_ICONS[kind] : null;
+
   return (
-    <><PageHead
+    <>
+      <PageHead
         kicker="Settings"
         title="Connectors"
-        lede="Not connected until a real health check passes."
+        lede="Pick a tool, then configure it. Not connected until a real health check passes."
         badge={
           isAdmin ? (
             <span className="badge">
@@ -259,7 +291,6 @@ function ConnectorCards() {
           )
         }
       />
-      <SettingsSubnav current="connectors" />
       {oauthNote && (
         <p className={search.get("error") ? "sev-high" : "lede"} role="status">
           {search.get("error") ? `OAuth error: ${search.get("error")}` : `OneDrive ${search.get("onedrive")}.`}
@@ -271,246 +302,274 @@ function ConnectorCards() {
         </p>
       )}
 
-      <h2 className="section-title">Active connections</h2>
-      <div className="connector-grid" data-testid="connector-cards">
-        {CONNECTOR_KINDS.map((kind) => {
-          const row = rows.find((r) => r.kind === kind);
-          const status = row?.status ?? "not_connected";
-          const f = form(kind);
-          const canConnect = isAdmin && (valid(kind) || Boolean(row?.hasCredentials));
+      <div className="connector-picker" data-testid="connector-cards" role="list" aria-label="Connector tools">
+        {CONNECTOR_KINDS.map((k) => {
+          const r = rows.find((x) => x.kind === k);
+          const st = r?.status ?? "not_connected";
+          const Icon = CONNECTOR_ICONS[k];
+          const on = selected === k;
           return (
-            <section className="card connector-card" key={kind} data-testid={`connector-card-${kind}`}>
-              <div className="vault-row">
-                <div className="conn-mark" aria-hidden>
-                  {connectorLabel(kind).slice(0, 1)}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="row">
-                    <strong>{connectorLabel(kind)}</strong>
-                    <span className={`badge badge-${status}`} data-testid={`connector-status-${kind}`}>
-                      {status === "connected" ? "● Connected" : statusLabel(status)}
-                    </span>
-                  </div>
-                  <div className="row" style={{ marginTop: 6 }}>
-                    {row?.usingEnvFallback && <span className="lede">env default</span>}
-                    {row?.hasCredentials ? (
-                      <span className="lede" data-testid={`connector-hint-${kind}`}>
-                        <IconKey /> {row.secretHint ?? "••••"}
-                      </span>
-                    ) : (
-                      <span className="lede">No org key saved</span>
-                    )}
-                    {row?.lastHealthAt ? (
-                      <span className="lede">Last health {new Date(row.lastHealthAt).toLocaleDateString()}</span>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <p className="lede" style={{ marginTop: 8 }}>
-                {help[kind]}
-              </p>
-              {row?.lastError && (
-                <p className="sev-high" role="alert" data-testid={`connector-error-${kind}`}>
-                  {row.lastError}
-                </p>
-              )}
-              <p className="lede">
-                Last successful sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : ""}
-              </p>
-
-              {isAdmin ? (
-                <form
-                  className="field"
-                  style={{ gap: 8, marginTop: 10 }}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    save(kind);
-                  }}
-                >
-                  {kind === "onedrive" && (
-                    <>
-                      <label className="field">
-                        Auth mode
-                        <select
-                          value={f.authMode}
-                          onChange={(e) =>
-                            setForms((p) => ({
-                              ...p,
-                              [kind]: { ...form(kind), authMode: e.target.value as FormState["authMode"] },
-                            }))
-                          }
-                          aria-label="OneDrive auth mode"
-                        >
-                          <option value="auth_code">Delegated (auth code + refresh)</option>
-                          <option value="client_credentials">App-only (client credentials)</option>
-                        </select>
-                      </label>
-                      <label className="field">
-                        Application (client) ID
-                        <input
-                          value={f.clientId}
-                          onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), clientId: e.target.value } }))}
-                          autoComplete="off"
-                          data-testid="onedrive-client-id"
-                        />
-                      </label>
-                      <label className="field">
-                        Client secret
-                        <input
-                          type="password"
-                          value={f.clientSecret}
-                          onChange={(e) =>
-                            setForms((p) => ({ ...p, [kind]: { ...form(kind), clientSecret: e.target.value } }))
-                          }
-                          autoComplete="new-password"
-                          data-testid="onedrive-client-secret"
-                        />
-                      </label>
-                      <label className="field">
-                        Directory (tenant) ID
-                        <input
-                          value={f.tenantId}
-                          onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), tenantId: e.target.value } }))}
-                          data-testid="onedrive-tenant-id"
-                        />
-                      </label>
-                      {f.authMode === "client_credentials" && (
-                        <>
-                          <label className="field">
-                            Drive id (app-only)
-                            <input
-                              value={f.driveId}
-                              onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), driveId: e.target.value } }))}
-                            />
-                          </label>
-                          <label className="field">
-                            User id (app-only, optional)
-                            <input
-                              value={f.userId}
-                              onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), userId: e.target.value } }))}
-                            />
-                          </label>
-                        </>
-                      )}
-                    </>
-                  )}
-                  {kind === "affinity" && (
-                    <>
-                      <label className="field">
-                        API key
-                        <input
-                          type="password"
-                          value={f.apiKey}
-                          onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), apiKey: e.target.value } }))}
-                          autoComplete="new-password"
-                          data-testid="affinity-api-key"
-                        />
-                      </label>
-                      <label className="field">
-                        Ownership field id (optional)
-                        <input
-                          value={f.ownershipFieldId}
-                          onChange={(e) =>
-                            setForms((p) => ({ ...p, [kind]: { ...form(kind), ownershipFieldId: e.target.value } }))
-                          }
-                          placeholder="from GET /v2/companies/fields"
-                          list="affinity-field-ids"
-                        />
-                      </label>
-                      <datalist id="affinity-field-ids">
-                        {affinityFields.map((af) => (
-                          <option key={af.id} value={af.id}>
-                            {af.name}
-                            {af.type ? ` (${af.type})` : ""}
-                          </option>
-                        ))}
-                      </datalist>
-                      <button
-                        className="btn ghost sm"
-                        type="button"
-                        disabled={Boolean(busy) || !row?.hasCredentials}
-                        onClick={() => void loadAffinityFields()}
-                        data-testid="affinity-load-fields"
-                      >
-                        {busy === "affinity-fields" ? "Loading fields…" : "Load Affinity fields"}
-                      </button>
-                      {affinityFieldsErr ? <p className="error">{affinityFieldsErr}</p> : null}
-                      {affinityFields.length > 0 ? (
-                        <p className="muted">
-                          {affinityFields.length} field{affinityFields.length === 1 ? "" : "s"} loaded. Pick an id for
-                          ownership, or paste one.
-                        </p>
-                      ) : null}
-                    </>
-                  )}
-                  {kind === "granola" && (
-                    <label className="field">
-                      API key
-                      <input
-                        type="password"
-                        value={f.apiKey}
-                        onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), apiKey: e.target.value } }))}
-                        autoComplete="new-password"
-                        data-testid="granola-api-key"
-                      />
-                    </label>
-                  )}
-                  <div className="row">
-                    <button className="btn sm" type="submit" disabled={Boolean(busy)}>
-                      {busy === `save-${kind}`
-                        ? row?.hasCredentials
-                          ? "Rotating…"
-                          : "Saving…"
-                        : row?.hasCredentials
-                          ? "Rotate"
-                          : "Save"}
-                    </button>
-                    <button
-                      className="btn ghost sm"
-                      type="button"
-                      disabled={Boolean(busy) || (!valid(kind) && !row?.hasCredentials)}
-                      onClick={() => test(kind)}
-                      data-testid={`connector-test-${kind}`}
-                    >
-                      {busy === `test-${kind}` ? "Testing…" : "Test connection"}
-                    </button>
-                    <button
-                      className="btn sm"
-                      type="button"
-                      disabled={!canConnect || Boolean(busy)}
-                      onClick={() => connect(kind)}
-                      data-testid={`connector-connect-${kind}`}
-                      title={canConnect ? "Connect" : "Save valid credentials first"}
-                    >
-                      {busy === `connect-${kind}` ? "Connecting…" : "Connect"}
-                    </button>
-                    <button
-                      className="btn ghost sm danger-text"
-                      type="button"
-                      disabled={status === "not_connected" || Boolean(busy)}
-                      onClick={() => disconnect(kind)}
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <p className="lede">Only Org Admin can paste keys.</p>
-              )}
-              {err[kind] && (
-                <p className="sev-high" role="alert" data-testid={`connector-form-error-${kind}`}>
-                  {err[kind]}
-                </p>
-              )}
-              {msg[kind] && (
-                <p className="lede" role="status">
-                  {msg[kind]}
-                </p>
-              )}
-            </section>
+            <button
+              key={k}
+              type="button"
+              role="listitem"
+              className={`connector-tile${on ? " is-on" : ""}`}
+              data-testid={`connector-card-${k}`}
+              aria-pressed={on}
+              onClick={() => setSelected(k)}
+            >
+              <span className="connector-tile-ico">
+                <Icon />
+              </span>
+              <span className="connector-tile-copy">
+                <strong>{connectorLabel(k)}</strong>
+                <span className="lede">{CONNECTOR_BLURB[k]}</span>
+              </span>
+              <span className={`badge badge-${st}`} data-testid={`connector-status-${k}`}>
+                {st === "connected" ? "Connected" : statusLabel(st)}
+              </span>
+            </button>
           );
         })}
       </div>
+
+      {!kind ? (
+        <div className="empty connector-empty">
+          <strong>Select a connector</strong>
+          Open OneDrive, Affinity, or Granola to paste keys and test the link.
+        </div>
+      ) : (
+        <Panel
+          className="connector-detail"
+          kicker="Connector"
+          title={
+            <span className="connector-detail-title">
+              {BrandIcon ? <BrandIcon /> : null}
+              {connectorLabel(kind)}
+            </span>
+          }
+          actions={
+            <span className={`badge badge-${status}`} data-testid={`connector-detail-status-${kind}`}>
+              {status === "connected" ? "● Connected" : statusLabel(status)}
+            </span>
+          }
+        >
+          <p className="lede" style={{ marginTop: 0 }}>
+            {help[kind]}
+          </p>
+          <div className="connector-detail-meta">
+            {row?.usingEnvFallback && <span className="lede">env default</span>}
+            {row?.hasCredentials ? (
+              <span className="lede" data-testid={`connector-hint-${kind}`}>
+                <IconKey /> {row.secretHint ?? "••••"}
+              </span>
+            ) : (
+              <span className="lede">No org key saved</span>
+            )}
+            {row?.lastHealthAt ? (
+              <span className="lede">Last health {new Date(row.lastHealthAt).toLocaleDateString()}</span>
+            ) : null}
+            <span className="lede">
+              Last sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "—"}
+            </span>
+          </div>
+          {row?.lastError && (
+            <p className="sev-high" role="alert" data-testid={`connector-error-${kind}`}>
+              {row.lastError}
+            </p>
+          )}
+
+          {isAdmin ? (
+            <form
+              className="connector-detail-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void save(kind);
+              }}
+            >
+              {kind === "onedrive" && (
+                <>
+                  <label className="field">
+                    Auth mode
+                    <select
+                      value={f.authMode}
+                      onChange={(e) =>
+                        setForms((p) => ({
+                          ...p,
+                          [kind]: { ...form(kind), authMode: e.target.value as FormState["authMode"] },
+                        }))
+                      }
+                      aria-label="OneDrive auth mode"
+                    >
+                      <option value="auth_code">Delegated (auth code + refresh)</option>
+                      <option value="client_credentials">App-only (client credentials)</option>
+                    </select>
+                  </label>
+                  <label className="field">
+                    Application (client) ID
+                    <input
+                      value={f.clientId}
+                      onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), clientId: e.target.value } }))}
+                      autoComplete="off"
+                      data-testid="onedrive-client-id"
+                    />
+                  </label>
+                  <label className="field">
+                    Client secret
+                    <input
+                      type="password"
+                      value={f.clientSecret}
+                      onChange={(e) =>
+                        setForms((p) => ({ ...p, [kind]: { ...form(kind), clientSecret: e.target.value } }))
+                      }
+                      autoComplete="new-password"
+                      data-testid="onedrive-client-secret"
+                    />
+                  </label>
+                  <label className="field">
+                    Directory (tenant) ID
+                    <input
+                      value={f.tenantId}
+                      onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), tenantId: e.target.value } }))}
+                      data-testid="onedrive-tenant-id"
+                    />
+                  </label>
+                  {f.authMode === "client_credentials" && (
+                    <>
+                      <label className="field">
+                        Drive id (app-only)
+                        <input
+                          value={f.driveId}
+                          onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), driveId: e.target.value } }))}
+                        />
+                      </label>
+                      <label className="field">
+                        User id (app-only, optional)
+                        <input
+                          value={f.userId}
+                          onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), userId: e.target.value } }))}
+                        />
+                      </label>
+                    </>
+                  )}
+                </>
+              )}
+              {kind === "affinity" && (
+                <>
+                  <label className="field">
+                    API key
+                    <input
+                      type="password"
+                      value={f.apiKey}
+                      onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), apiKey: e.target.value } }))}
+                      autoComplete="new-password"
+                      data-testid="affinity-api-key"
+                    />
+                  </label>
+                  <label className="field">
+                    Ownership field id (optional)
+                    <input
+                      value={f.ownershipFieldId}
+                      onChange={(e) =>
+                        setForms((p) => ({ ...p, [kind]: { ...form(kind), ownershipFieldId: e.target.value } }))
+                      }
+                      placeholder="from GET /v2/companies/fields"
+                      list="affinity-field-ids"
+                    />
+                  </label>
+                  <datalist id="affinity-field-ids">
+                    {affinityFields.map((af) => (
+                      <option key={af.id} value={af.id}>
+                        {af.name}
+                        {af.type ? ` (${af.type})` : ""}
+                      </option>
+                    ))}
+                  </datalist>
+                  <button
+                    className="btn ghost sm"
+                    type="button"
+                    disabled={Boolean(busy) || !row?.hasCredentials}
+                    onClick={() => void loadAffinityFields()}
+                    data-testid="affinity-load-fields"
+                  >
+                    {busy === "affinity-fields" ? "Loading fields…" : "Load Affinity fields"}
+                  </button>
+                  {affinityFieldsErr ? <p className="error">{affinityFieldsErr}</p> : null}
+                  {affinityFields.length > 0 ? (
+                    <p className="lede">
+                      {affinityFields.length} field{affinityFields.length === 1 ? "" : "s"} loaded. Pick an id for
+                      ownership, or paste one.
+                    </p>
+                  ) : null}
+                </>
+              )}
+              {kind === "granola" && (
+                <label className="field">
+                  API key
+                  <input
+                    type="password"
+                    value={f.apiKey}
+                    onChange={(e) => setForms((p) => ({ ...p, [kind]: { ...form(kind), apiKey: e.target.value } }))}
+                    autoComplete="new-password"
+                    data-testid="granola-api-key"
+                  />
+                </label>
+              )}
+              <div className="connector-detail-actions">
+                <button className="btn sm" type="submit" disabled={Boolean(busy)}>
+                  {busy === `save-${kind}`
+                    ? row?.hasCredentials
+                      ? "Rotating…"
+                      : "Saving…"
+                    : row?.hasCredentials
+                      ? "Rotate"
+                      : "Save"}
+                </button>
+                <button
+                  className="btn ghost sm"
+                  type="button"
+                  disabled={Boolean(busy) || (!valid(kind) && !row?.hasCredentials)}
+                  onClick={() => void test(kind)}
+                  data-testid={`connector-test-${kind}`}
+                >
+                  {busy === `test-${kind}` ? "Testing…" : "Test connection"}
+                </button>
+                <button
+                  className="btn sm"
+                  type="button"
+                  disabled={!canConnect || Boolean(busy)}
+                  onClick={() => void connect(kind)}
+                  data-testid={`connector-connect-${kind}`}
+                  title={canConnect ? "Connect" : "Save valid credentials first"}
+                >
+                  {busy === `connect-${kind}` ? "Connecting…" : "Connect"}
+                </button>
+                <button
+                  className="btn ghost sm danger-text"
+                  type="button"
+                  disabled={status === "not_connected" || Boolean(busy)}
+                  onClick={() => void disconnect(kind)}
+                >
+                  Disconnect
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="lede">Only Org Admin can paste keys.</p>
+          )}
+          {err[kind] && (
+            <p className="sev-high" role="alert" data-testid={`connector-form-error-${kind}`}>
+              {err[kind]}
+            </p>
+          )}
+          {msg[kind] && (
+            <p className="lede" role="status">
+              {msg[kind]}
+            </p>
+          )}
+        </Panel>
+      )}
+
       <p className="lede" style={{ marginTop: 16 }}>
         Map OneDrive, Affinity, or Granola ids on each <Link href="/companies">company</Link>, then sync into Confirm.
       </p>

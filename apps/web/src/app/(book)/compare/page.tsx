@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { METRIC_CATALOG, metricByKey } from "@venture-os/core";
-import { ComparePeerBars } from "@/components/BookCharts";
+import {
+  ComparePeerColumns,
+  ComparePeerRadar,
+  ComparePeerScatter,
+} from "@/components/BookCharts";
 import { CompanyMark, PageHead, Panel } from "@/components/BookUI";
 import { Fact } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
@@ -141,16 +145,22 @@ export default function ComparePage() {
     setHydrated(true);
   }, []);
 
+  /** Peer filter is client-side so chips reshape charts instantly (no API round-trip). */
   const qs = useMemo(() => {
     const p = new URLSearchParams();
     p.set("metrics", metrics.join(","));
-    if (touched) p.set("companyIds", selected.join(","));
     if (periodEnd) p.set("periodEnd", periodEnd);
     if (stage) p.set("stage", stage);
     if (sector) p.set("sector", sector);
+    return p.toString();
+  }, [metrics, periodEnd, stage, sector]);
+
+  const urlQs = useMemo(() => {
+    const p = new URLSearchParams(qs);
+    if (touched) p.set("companyIds", selected.join(","));
     if (chartMetric) p.set("chart", chartMetric);
     return p.toString();
-  }, [metrics, selected, periodEnd, touched, stage, sector, chartMetric]);
+  }, [qs, touched, selected, chartMetric]);
 
   const compareKey = hydrated ? `/api/compare?${qs}` : null;
   const { data, error, isLoading: loading } = useSWR<Data>(compareKey, bookFetcher);
@@ -160,9 +170,9 @@ export default function ComparePage() {
   }, [error]);
   useEffect(() => {
     if (!hydrated) return;
-    const next = `${window.location.pathname}?${qs}`;
+    const next = `${window.location.pathname}?${urlQs}`;
     window.history.replaceState(null, "", next);
-  }, [qs, hydrated]);
+  }, [urlQs, hydrated]);
 
   useEffect(() => {
     if (metrics.includes(chartMetric)) return;
@@ -180,8 +190,17 @@ export default function ComparePage() {
     });
   }
 
+  const peerPool = useMemo(() => {
+    if (!data?.companies) return [];
+    return data.companies.filter((c) => {
+      if (stage && (c.stage ?? "") !== stage) return false;
+      if (sector && (c.sector ?? "") !== sector) return false;
+      return true;
+    });
+  }, [data?.companies, stage, sector]);
+
   function toggleCo(id: string) {
-    const allIds = data?.companies?.map((c) => c.id) ?? [];
+    const allIds = peerPool.map((c) => c.id);
     setTouched(true);
     setSelected((cur) => {
       const current = !touched || cur.length === 0 ? allIds : cur;
@@ -205,14 +224,17 @@ export default function ComparePage() {
   };
 
   const peerCount = useMemo(() => {
-    const all = data?.companies?.length ?? 0;
-    if (!touched) return all;
-    return selected.length;
-  }, [data?.companies, touched, selected]);
+    if (!touched) return peerPool.length;
+    return selected.filter((id) => peerPool.some((c) => c.id === id)).length;
+  }, [peerPool, touched, selected]);
 
   const visible = useMemo(() => {
     if (!data) return [];
     let rows = data.matrix;
+    if (touched) {
+      const allow = new Set(selected);
+      rows = rows.filter((row) => allow.has(row.company.id));
+    }
     if (hideEmpty) {
       rows = rows.filter((row) => data.metrics.some((m) => row.cells[m]?.isFact));
     }
@@ -229,7 +251,7 @@ export default function ComparePage() {
       });
     }
     return rows;
-  }, [data, hideEmpty, sortKey]);
+  }, [data, hideEmpty, sortKey, touched, selected]);
 
   const chartRows = useMemo(() => {
     return visible
@@ -242,22 +264,32 @@ export default function ComparePage() {
       .filter((r): r is { name: string; value: number; periodEnd: string | null } => r != null);
   }, [visible, chartMetric]);
 
-  const secondaryMetric = useMemo(() => {
-    const prefer = ["runway_months", "burn", "net_revenue", "cash"].filter((m) => m !== chartMetric && metrics.includes(m));
-    return prefer[0] ?? null;
-  }, [chartMetric, metrics]);
+  const radarPeers = useMemo(() => {
+    return visible.map((row) => ({
+      name: row.company.name,
+      values: Object.fromEntries(
+        data?.metrics.map((m) => [m, chartValue(row.cells[m], m)] as const) ?? [],
+      ) as Record<string, number | null>,
+    }));
+  }, [visible, data?.metrics]);
 
-  const secondaryRows = useMemo(() => {
-    if (!secondaryMetric) return [];
-    return visible
+  const scatterPair = useMemo(() => {
+    const xKey = metrics.includes("cash") ? "cash" : metrics.find((m) => (CHARTABLE as readonly string[]).includes(m));
+    const yKey =
+      metrics.includes("runway_months") && xKey !== "runway_months"
+        ? "runway_months"
+        : metrics.find((m) => m !== xKey && (CHARTABLE as readonly string[]).includes(m));
+    if (!xKey || !yKey) return null;
+    const rows = visible
       .map((row) => {
-        const cell = row.cells[secondaryMetric];
-        const value = chartValue(cell, secondaryMetric);
-        if (value == null) return null;
-        return { name: row.company.name, value, periodEnd: cell?.periodEnd ?? null };
+        const x = chartValue(row.cells[xKey], xKey);
+        const y = chartValue(row.cells[yKey], yKey);
+        if (x == null || y == null) return null;
+        return { name: row.company.name, x, y };
       })
-      .filter((r): r is { name: string; value: number; periodEnd: string | null } => r != null);
-  }, [visible, secondaryMetric]);
+      .filter((r): r is { name: string; x: number; y: number } => r != null);
+    return { xKey, yKey, rows };
+  }, [visible, metrics]);
 
   function exportCsv() {
     if (!data) return;
@@ -298,6 +330,7 @@ export default function ComparePage() {
       <PageHead
         title="Compare"
         kicker="Peer book"
+        lede="Toggle peers to reshape the radar, columns, and scatter — charts only include names you leave on."
         actions={
           <button className="btn ghost sm" type="button" onClick={exportCsv} disabled={!visible.length}>
             Export
@@ -346,15 +379,15 @@ export default function ComparePage() {
           </select>
         </label>
         <label className="field table-tools-field">
-          <span className="sr-only">Chart metric</span>
+          <span className="sr-only">Column metric</span>
           <select
             value={chartMetric}
             onChange={(e) => setChartMetric(e.target.value)}
-            aria-label="Chart metric"
+            aria-label="Column chart metric"
           >
             {CHARTABLE.filter((m) => metrics.includes(m)).map((m) => (
               <option key={m} value={m}>
-                Chart: {metricLabel(m, data?.labels)}
+                Columns: {metricLabel(m, data?.labels)}
               </option>
             ))}
           </select>
@@ -385,7 +418,7 @@ export default function ComparePage() {
               </div>
             </div>
             <ul className="compare-picker-list">
-              {(data?.companies ?? []).map((c) => (
+              {peerPool.map((c) => (
                 <li key={c.id}>
                   <label>
                     <input type="checkbox" checked={checked(c.id)} onChange={() => toggleCo(c.id)} />
@@ -457,9 +490,9 @@ export default function ComparePage() {
         <div className="compare-peers-rail" aria-label="Companies in this compare">
           <div className="compare-peers-head">
             <div>
-              <strong>Peers in view</strong>
+              <strong>Peers in view · {peerCount}</strong>
               <p className="lede">
-                Charts and the matrix only include these names. Toggle peers to reshape the peer bars.
+                On = included in radar, columns, scatter, and matrix. Off removes that company immediately.
               </p>
             </div>
             <div className="row" style={{ gap: 10 }}>
@@ -472,7 +505,7 @@ export default function ComparePage() {
             </div>
           </div>
           <div className="compare-peer-chips">
-            {(data.companies ?? []).map((c) => {
+            {peerPool.map((c) => {
               const on = checked(c.id);
               return (
                 <button
@@ -494,30 +527,52 @@ export default function ComparePage() {
       {!loading && !err && visible.length === 0 ? (
         <div className="empty">
           <strong>Nothing to compare</strong>
-          Confirm metrics on the book, widen peers, or turn off Hide empty.
+          Confirm metrics on the book, turn peers back on, or turn off Hide empty.
         </div>
       ) : null}
 
       {!loading && data && visible.length > 0 ? (
         <div className="compare-stack">
-          <div className={`chart-grid${secondaryMetric ? "" : " chart-grid-single"}`}>
-            <Panel title={metricLabel(chartMetric, data.labels)} kicker={`Why this chart · ${peerCount} peers`}>
+          <Panel
+            title="Peer fingerprints"
+            kicker={`Apex radar · ${Math.min(peerCount, 6)} peers`}
+          >
+            <p className="lede compare-chart-why">
+              Shape of booked metrics for the peers you left on. Axes are relative within this set — flip a peer
+              chip and the polygons change.
+            </p>
+            <ComparePeerRadar
+              peers={radarPeers}
+              metricKeys={data.metrics.filter((m) => (CHARTABLE as readonly string[]).includes(m))}
+              metricLabels={data.labels ?? {}}
+            />
+          </Panel>
+
+          <div className={`chart-grid${scatterPair && scatterPair.rows.length >= 2 ? "" : " chart-grid-single"}`}>
+            <Panel title={metricLabel(chartMetric, data.labels)} kicker="Chart.js columns">
               <p className="lede compare-chart-why">
-                Booked {metricLabel(chartMetric, data.labels).toLowerCase()} across the selected peers for the period
-                filter above. Blank peers stay off the chart.
+                Ranked {metricLabel(chartMetric, data.labels).toLowerCase()} for selected peers only.
               </p>
-              <ComparePeerBars
+              <ComparePeerColumns
                 rows={chartRows}
                 metricLabel={metricLabel(chartMetric, data.labels)}
                 unitHint={unitHint(chartMetric)}
               />
             </Panel>
-            {secondaryMetric ? (
-              <Panel title={metricLabel(secondaryMetric, data.labels)} kicker="Peers (booked)">
-                <ComparePeerBars
-                  rows={secondaryRows}
-                  metricLabel={metricLabel(secondaryMetric, data.labels)}
-                  unitHint={unitHint(secondaryMetric)}
+            {scatterPair && scatterPair.rows.length >= 2 ? (
+              <Panel
+                title={`${metricLabel(scatterPair.xKey, data.labels)} × ${metricLabel(scatterPair.yKey, data.labels)}`}
+                kicker="Apex scatter"
+              >
+                <p className="lede compare-chart-why">
+                  Position of each selected peer on two booked axes. Zoom if the cluster is tight.
+                </p>
+                <ComparePeerScatter
+                  rows={scatterPair.rows}
+                  xLabel={metricLabel(scatterPair.xKey, data.labels)}
+                  yLabel={metricLabel(scatterPair.yKey, data.labels)}
+                  xUnit={unitHint(scatterPair.xKey)}
+                  yUnit={unitHint(scatterPair.yKey)}
                 />
               </Panel>
             ) : null}

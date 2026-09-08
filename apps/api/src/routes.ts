@@ -22,6 +22,9 @@ import {
   defaultPriorAsOf,
   objectiveBook,
   parseFlagPolicyJson,
+  parseMetricBookJson,
+  metricBookView,
+  validateMetricBookInput,
   refuseUnsourcedDigits,
   resolveFlagThresholds,
   rollupEur,
@@ -1105,6 +1108,28 @@ routes.get("/api/command", async (c) => {
       .sort((a, b) => b.cash - a.cash)
       .slice(0, 12);
 
+    const runwayBars = coverage
+      .map((row) => {
+        const cm = metrics.filter((m) => m.companyId === row.company.id);
+        const cash = seriesFor(cm, "cash")[0];
+        const burns = seriesFor(cm, "burn");
+        const months = runwayMonthsFromBurns(
+          cash?.valueNumeric ?? null,
+          burns.slice(0, 3).map((b) => b.valueNumeric ?? null),
+        );
+        return months != null && cash
+          ? {
+              companyId: row.company.id,
+              name: row.company.name,
+              months,
+              periodEnd: String(cash.periodEnd).slice(0, 10),
+            }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x != null)
+      .sort((a, b) => a.months - b.months)
+      .slice(0, 12);
+
     const objMetrics = objectiveBook(metrics);
     const periodSet = new Set<string>();
     for (const m of objMetrics) {
@@ -1167,6 +1192,7 @@ routes.get("/api/command", async (c) => {
       charts: {
         coverageMix: { booked, gap, review },
         cashByCompany: cashBars,
+        runwayByCompany: runwayBars,
         portfolioSeries,
       },
       sourceRefs: refs,
@@ -1841,7 +1867,91 @@ routes.get("/api/ask/history", async (c) => {
 routes.get("/api/reports", async (c) => {
   const s = requireOrg(c);
   const rows = await withOrg(s.orgId, (tx) => tx.select().from(reports).orderBy(desc(reports.createdAt)));
-  return c.json({ reports: rows });
+  return c.json({
+    reports: rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      kind: r.kind,
+      createdAt: r.createdAt,
+      artifactStatus: r.artifactStatus,
+    })),
+  });
+});
+
+routes.get("/api/reports/:id", async (c) => {
+  const s = requireOrg(c);
+  const id = c.req.param("id");
+  const report = await withOrg(s.orgId, async (tx) => {
+    const [row] = await tx.select().from(reports).where(eq(reports.id, id));
+    return row;
+  });
+  if (!report) throw new HttpError(404, "not_found");
+  return c.json({ report });
+});
+
+routes.patch("/api/reports/:id", async (c) => {
+  const s = requireWrite(c);
+  const id = c.req.param("id");
+  const body = await c.req.json<{
+    title?: string;
+    coverNote?: string | null;
+    pages?: { companyId?: string; name?: string; objective?: string[]; subjective?: string[] }[];
+  }>();
+  const updated = await withOrg(s.orgId, async (tx) => {
+    const [row] = await tx.select().from(reports).where(eq(reports.id, id));
+    if (!row) return null;
+    const prev = (row.body ?? {}) as {
+      pages?: {
+        companyId?: string;
+        name: string;
+        stage?: string | null;
+        metrics: unknown[];
+        flags?: unknown[];
+        objective: string[];
+        subjective: string[];
+      }[];
+      rows?: unknown;
+      periodEnd?: string | null;
+      generatedFrom?: string;
+      fixture?: boolean;
+      coverNote?: string | null;
+    };
+    const title =
+      typeof body.title === "string" && body.title.trim() ? body.title.trim().slice(0, 200) : row.title;
+    const pages = Array.isArray(prev.pages) ? [...prev.pages] : [];
+    if (Array.isArray(body.pages)) {
+      for (let i = 0; i < pages.length; i++) {
+        const patch = body.pages[i];
+        if (!patch) continue;
+        const cur = pages[i]!;
+        // Metrics / flags stay book-sourced. Only draft narrative may change.
+        pages[i] = {
+          ...cur,
+          objective: Array.isArray(patch.objective)
+            ? patch.objective.map((x) => String(x).slice(0, 4000)).filter(Boolean)
+            : cur.objective,
+          subjective: Array.isArray(patch.subjective)
+            ? patch.subjective.map((x) => String(x).slice(0, 4000)).filter(Boolean)
+            : cur.subjective,
+        };
+      }
+    }
+    const coverNote =
+      body.coverNote === undefined
+        ? (prev.coverNote ?? null)
+        : body.coverNote == null || !String(body.coverNote).trim()
+          ? null
+          : String(body.coverNote).trim().slice(0, 4000);
+    const nextBody = { ...prev, pages, coverNote };
+    const [out] = await tx
+      .update(reports)
+      .set({ title, body: nextBody })
+      .where(eq(reports.id, id))
+      .returning();
+    return out;
+  });
+  if (!updated) throw new HttpError(404, "not_found");
+  return c.json({ report: updated });
 });
 
 routes.post("/api/reports", async (c) => {
@@ -1938,7 +2048,11 @@ routes.post("/api/reports", async (c) => {
 routes.get("/api/reports/:id/export/:fmt", async (c) => {
   const s = requireOrg(c);
   const id = c.req.param("id");
-  const fmt = c.req.param("fmt") as "pdf" | "pptx" | "xlsx";
+  const fmtRaw = c.req.param("fmt");
+  if (fmtRaw !== "pdf" && fmtRaw !== "pptx" && fmtRaw !== "xlsx") {
+    throw new HttpError(400, "invalid_export_format");
+  }
+  const fmt = fmtRaw;
   const report = await withOrg(s.orgId, async (tx) => {
     const [row] = await tx.select().from(reports).where(eq(reports.id, id));
     return row;
@@ -2006,9 +2120,34 @@ routes.get("/api/settings", async (c) => {
           after: a.after,
         };
       }),
+      formulaBook: metricBookView(parseMetricBookJson(settings?.metricBook)),
     };
   });
   return c.json(data);
+});
+
+routes.post("/api/settings/formula-book", async (c) => {
+  const s = requireAdmin(c);
+  const body = await c.req.json<{ metrics?: unknown }>();
+  const checked = validateMetricBookInput(body.metrics ?? body);
+  if (!checked.ok) {
+    return c.json({ error: "invalid_formula_book", fields: checked.fields }, 400);
+  }
+  const next = checked.book;
+  const row = await withOrg(s.orgId, async (tx) => {
+    const [existing] = await tx.select().from(orgSettings);
+    if (!existing) {
+      await tx.insert(orgSettings).values({ orgId: s.orgId, metricBook: next });
+    } else {
+      await tx.update(orgSettings).set({ metricBook: next }).where(eq(orgSettings.orgId, s.orgId));
+    }
+    const [settings] = await tx.select().from(orgSettings);
+    return settings;
+  });
+  return c.json({
+    settings: row,
+    formulaBook: metricBookView(parseMetricBookJson(row?.metricBook)),
+  });
 });
 
 routes.post("/api/settings/flag-policy", async (c) => {

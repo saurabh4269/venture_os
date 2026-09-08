@@ -287,7 +287,7 @@ async function main() {
       (await tx.select().from(companies).where(inArray(companies.id, companyIds))).map((c) => [c.name, c]),
     );
 
-    // —— Salad Days: short runway + below plan (booked → Flags)
+    // —— Salad Days: short runway (~1.9 mo) + below plan (booked → Flags)
     {
       const co = byName.get("Salad Days")!;
       const doc = await ensureDoc(
@@ -440,7 +440,7 @@ async function main() {
       });
     }
 
-    // —— Hosteller: burn up + short runway
+    // —— Hosteller: burn up + short runway (~3.6 mo)
     {
       const co = byName.get("The Hosteller")!;
       const doc = await ensureDoc(
@@ -466,7 +466,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "burn",
-        value: 0.48,
+        value: 0.5,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });
@@ -475,7 +475,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "cash",
-        value: 1.1,
+        value: 1.8,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });
@@ -490,7 +490,7 @@ async function main() {
       });
     }
 
-    // —— Apparel: baseline booked cash + pending Confirm rows
+    // —— Apparel: healthy long runway (~16.8 mo) + pending Confirm burn
     {
       const co = byName.get("Fixture Apparel Co (FIXTURE_ONLY)")!;
       const doc = await ensureDoc(tx, orgId, co.id, "FIXTURE_ONLY-mis-fy26-m5.xlsx", "2026-07-01", "2026-07-31");
@@ -507,6 +507,65 @@ async function main() {
         sourceRefId: ref.id,
         metricKey: "cash",
         value: 4.2,
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "burn",
+        value: 0.25,
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "net_revenue",
+        value: 3.1,
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+      });
+    }
+
+    // —— Go Zero: mid runway (~8.8 mo); ambiguous-unit row stays in Confirm
+    {
+      const co = byName.get("Go Zero")!;
+      const doc = await ensureDoc(
+        tx,
+        orgId,
+        co.id,
+        "FIXTURE_ONLY-go-zero-booked-base.xlsx",
+        "2026-07-01",
+        "2026-07-31",
+      );
+      const ref = await ensureRef(tx, orgId, doc.id, "B3", "FIXTURE_ONLY · Go Zero · booked base pack");
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "cash",
+        value: 3.5,
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "burn",
+        value: 0.4,
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "net_revenue",
+        value: 1.2,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });

@@ -1,11 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
-import { motion, useReducedMotion } from "motion/react";
-import useSWR, { mutate as swrMutate } from "swr";
 import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
+import { SettingsSubnav } from "@/components/BookUI";
 import {
   IconAsk,
   IconCommand,
@@ -28,7 +24,13 @@ import { authClient, type Me } from "@/lib/auth-client";
 import { BOOK_KEEPALIVE_MS, bookFetcher, bookSwrOptions, prefetchBookApis } from "@/lib/book-data";
 import { SPRING_INDICATOR } from "@/lib/motion-ease";
 import { isAdminRole, isLockRole, isWriteRole, roleLabel } from "@/lib/roles";
-import { isWakeError, WAKING_COPY } from "@/lib/wake";
+import { isWakeError, nextWakeDelayMs, pingBookHealth, WAKE_AUTO_RETRY, WAKING_COPY } from "@/lib/wake";
+import { Suspense } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
+import useSWR, { mutate as swrMutate } from "swr";
 
 type PulseLite = { pulse: { inboxPending: number; openFlags: number } };
 
@@ -187,6 +189,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [wake, setWake] = useState<"loading" | "slow" | "error">("loading");
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
+  const [wakeEpoch, setWakeEpoch] = useState(0);
   const [accountOpen, setAccountOpen] = useState(false);
   const redirected = useRef(false);
 
@@ -197,6 +200,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    setNavOpen(false);
+    setAccountOpen(false);
+  }, [path]);
 
   function toggleRailCollapsed() {
     setRailCollapsed((v) => {
@@ -216,7 +224,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
     isLoading: meLoading,
     isValidating: meValidating,
     mutate: mutateMe,
-  } = useSWR<Me>("/api/me", bookFetcher, { dedupingInterval: 30_000, revalidateOnFocus: true });
+  } = useSWR<Me>("/api/me", bookFetcher, {
+    dedupingInterval: 30_000,
+    revalidateOnFocus: true,
+    /** Shell owns cold-start retries so we can ping /api/health between attempts. */
+    shouldRetryOnError: false,
+  });
   const { data: orgsData, mutate: mutateOrgs } = useSWR<{ orgs: OrgRow[] }>(
     me?.user ? "/api/orgs" : null,
     bookFetcher,
@@ -232,24 +245,95 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const confirmBadge = pulseLite?.pulse.inboxPending ?? null;
   const flagsBadge = pulseLite?.pulse.openFlags ?? null;
 
+  /** Start waking the free-tier API as soon as a book route mounts. */
+  useEffect(() => {
+    void pingBookHealth();
+  }, []);
+
+  /**
+   * Cookie-only gate: if there is no session cookie, send to login with `next=`
+   * without waiting on a cold API (unlike /api/me).
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/session-hint", { credentials: "include", cache: "no-store" });
+        const hint = (await res.json().catch(() => null)) as { hasSession?: boolean } | null;
+        if (cancelled || redirected.current || hint?.hasSession !== false) return;
+        redirected.current = true;
+        router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
+      } catch {
+        /* hint is best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
   useEffect(() => {
     if (!sessionPending) return;
     const slow = window.setTimeout(() => setWake((w) => (w === "loading" ? "slow" : w)), 2500);
     return () => window.clearTimeout(slow);
   }, [sessionPending]);
 
+  /**
+   * Cold API: stay on this tab, ping health, and re-fetch /api/me with backoff.
+   * Real auth failures still go to /login?next=… (session preserved in the URL).
+   */
   useEffect(() => {
-    if (!meError) return;
+    if (ready || !meError || redirected.current) return;
     const msg = meError instanceof Error ? meError.message : UPSTREAM_UNAVAILABLE_MESSAGE;
-    if (isWakeError(msg)) {
-      setWake("error");
-      setWakeErr(msg);
+    if (!isWakeError(msg)) {
+      if (redirected.current) return;
+      redirected.current = true;
+      router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
       return;
     }
-    if (redirected.current) return;
-    redirected.current = true;
-    router.replace(`/login?next=${encodeURIComponent(pathRef.current)}`);
-  }, [meError, router]);
+
+    let cancelled = false;
+    setWake("slow");
+    setWakeErr(msg);
+
+    void (async () => {
+      for (let attempt = 0; attempt < WAKE_AUTO_RETRY.maxAttempts; attempt++) {
+        if (cancelled || redirected.current) return;
+        void pingBookHealth();
+        const delay = attempt === 0 ? WAKE_AUTO_RETRY.firstDelayMs : nextWakeDelayMs(attempt - 1);
+        await new Promise((r) => window.setTimeout(r, delay));
+        if (cancelled || redirected.current) return;
+        setRetrying(true);
+        try {
+          const data = await mutateMe();
+          if (cancelled || redirected.current) return;
+          if (data?.user) {
+            setWakeErr("");
+            setWake("loading");
+            return;
+          }
+          if (data && !data.user) return;
+        } catch {
+          /* keep auto-waking */
+        } finally {
+          if (!cancelled) setRetrying(false);
+        }
+      }
+      if (!cancelled && !redirected.current) setWake("error");
+    })();
+
+    const onVis = () => {
+      if (document.visibilityState !== "visible" || cancelled || redirected.current) return;
+      void pingBookHealth();
+      void mutateMe();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [meError, ready, mutateMe, router, wakeEpoch]);
 
   useEffect(() => {
     if (!me || redirected.current) return;
@@ -270,7 +354,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     const ping = () => {
       if (cancelled || document.visibilityState === "hidden") return;
-      void fetch("/api/health", { credentials: "include", cache: "no-store" }).catch(() => undefined);
+      void pingBookHealth();
     };
     ping();
     const id = window.setInterval(ping, BOOK_KEEPALIVE_MS);
@@ -287,16 +371,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   async function loadSession() {
     setWakeErr("");
-    setWake("loading");
-    setRetrying(true);
+    setWake("slow");
+    setRetrying(false);
     redirected.current = false;
-    try {
-      await mutateMe();
-      await mutateOrgs();
-      setWake("loading");
-    } finally {
-      setRetrying(false);
-    }
+    /** Bump epoch so the auto-wake effect restarts even if meError is unchanged. */
+    setWakeEpoch((n) => n + 1);
+    void pingBookHealth();
   }
 
   async function switchOrg(id: string) {
@@ -328,6 +408,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     Boolean(me?.org?.metadata?.includes("fixtureOnly")) || /FIXTURE_ONLY/i.test(me?.org?.name ?? "");
   const canWrite = isWriteRole(me?.role);
   const orgName = me?.org?.name ?? "Venture OS";
+  const isSettings = path.startsWith("/settings");
   if (!ready) {
     const message =
       wake === "error" ? WAKING_COPY.unreachable : wake === "slow" || meValidating ? WAKING_COPY.slow : WAKING_COPY.checking;
@@ -338,6 +419,130 @@ export function Shell({ children }: { children: React.ReactNode }) {
         onRetry={wake === "error" ? loadSession : undefined}
         busy={wake !== "error" || retrying}
       />
+    );
+  }
+
+  const session = (
+    <BookSessionContext.Provider
+      value={{
+        me: me ?? null,
+        canWrite,
+        isAdmin: isAdminRole(me?.role),
+        canLock: isLockRole(me?.role),
+        ready: true,
+      }}
+    >
+      <CiteProvider>{children}</CiteProvider>
+    </BookSessionContext.Provider>
+  );
+
+  const accountMenu = (
+    <div className="account" aria-label="Account">
+      <button
+        type="button"
+        className="account-trigger"
+        aria-expanded={accountOpen}
+        aria-controls="account-menu"
+        data-testid="account-menu"
+        title={me?.user?.name ?? "Account"}
+        onClick={() => setAccountOpen((v) => !v)}
+      >
+        <IconUser />
+        <span className="account-who">
+          <span className="who">{me?.user?.name}</span>
+          <span className="who-meta">{roleLabel(me?.role)}</span>
+        </span>
+      </button>
+      {accountOpen ? (
+        <div id="account-menu" className="account-menu" role="menu">
+          {!isSettings ? (
+            <Link
+              href="/settings"
+              role="menuitem"
+              className="account-menu-item"
+              onClick={() => {
+                setAccountOpen(false);
+                setNavOpen(false);
+              }}
+            >
+              <IconSettings className="nav-ico" />
+              Settings
+            </Link>
+          ) : null}
+          {orgs.length === 0 ? (
+            <Link href="/onboard" role="menuitem" className="account-menu-item" onClick={() => setAccountOpen(false)}>
+              <IconOrg className="nav-ico" />
+              Create organisation
+            </Link>
+          ) : (
+            <label className="account-menu-item account-org">
+              <IconOrg className="nav-ico" />
+              <span className="sr-only">Organisation</span>
+              <select
+                value={me?.org?.id ?? ""}
+                onChange={(e) => switchOrg(e.target.value)}
+                aria-label="Organisation"
+              >
+                {orgs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <button type="button" className="account-menu-item" role="menuitem" onClick={signOut}>
+            Sign out
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (isSettings) {
+    return (
+      <div className="app app-settings" data-testid="shell-ready">
+        <a href="#main" className="skip-link">
+          Skip to settings
+        </a>
+        <header className="settings-topbar">
+          <Link href="/command" className="settings-back">
+            ← Book
+          </Link>
+          <div className="settings-topbar-brand">
+            <span className="settings-topbar-title">Settings</span>
+            <span className="settings-topbar-org">{orgName}</span>
+          </div>
+          <button
+            type="button"
+            className="settings-nav-toggle"
+            aria-expanded={navOpen}
+            aria-controls="settings-nav"
+            onClick={() => setNavOpen((v) => !v)}
+          >
+            Sections
+          </button>
+          {accountMenu}
+        </header>
+        <div className="settings-shell">
+          <aside className={`settings-rail${navOpen ? " is-open" : ""}`} id="settings-nav">
+            <Suspense fallback={<nav className="settings-subnav" aria-hidden />}>
+              <SettingsSubnav />
+            </Suspense>
+          </aside>
+          <main className="main" id="main">
+            {fixture && (
+              <div className="banner" role="alert">
+                FIXTURE_ONLY. Illustrative rows. Not production figures.
+              </div>
+            )}
+            <div className="sr-only" aria-live="polite">
+              {orgLive}
+            </div>
+            {session}
+          </main>
+        </div>
+      </div>
     );
   }
 
@@ -410,64 +615,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
         )}
-        <div className="account" aria-label="Account">
-          <button
-            type="button"
-            className="account-trigger"
-            aria-expanded={accountOpen}
-            aria-controls="account-menu"
-            data-testid="account-menu"
-            title={me?.user?.name ?? "Account"}
-            onClick={() => setAccountOpen((v) => !v)}
-          >
-            <IconUser />
-            <span className="account-who">
-              <span className="who">{me?.user?.name}</span>
-              <span className="who-meta">{roleLabel(me?.role)}</span>
-            </span>
-          </button>
-          {accountOpen ? (
-            <div id="account-menu" className="account-menu" role="menu">
-              <Link
-                href="/settings"
-                role="menuitem"
-                className="account-menu-item"
-                onClick={() => {
-                  setAccountOpen(false);
-                  setNavOpen(false);
-                }}
-              >
-                <IconSettings className="nav-ico" />
-                Settings
-              </Link>
-              {orgs.length === 0 ? (
-                <Link href="/onboard" role="menuitem" className="account-menu-item" onClick={() => setAccountOpen(false)}>
-                  <IconOrg className="nav-ico" />
-                  Create organisation
-                </Link>
-              ) : (
-                <label className="account-menu-item account-org">
-                  <IconOrg className="nav-ico" />
-                  <span className="sr-only">Organisation</span>
-                  <select
-                    value={me?.org?.id ?? ""}
-                    onChange={(e) => switchOrg(e.target.value)}
-                    aria-label="Organisation"
-                  >
-                    {orgs.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <button type="button" className="account-menu-item" role="menuitem" onClick={signOut}>
-                Sign out
-              </button>
-            </div>
-          ) : null}
-        </div>
+        {accountMenu}
       </aside>
       <main className="main" id="main">
         {fixture && (
@@ -478,17 +626,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="sr-only" aria-live="polite">
           {orgLive}
         </div>
-        <BookSessionContext.Provider
-          value={{
-            me: me ?? null,
-            canWrite,
-            isAdmin: isAdminRole(me?.role),
-            canLock: isLockRole(me?.role),
-            ready: true,
-          }}
-        >
-          <CiteProvider>{children}</CiteProvider>
-        </BookSessionContext.Provider>
+        {session}
       </main>
     </div>
   );

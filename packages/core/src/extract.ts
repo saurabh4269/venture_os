@@ -40,6 +40,7 @@ export function extractFromRows(
   rows: unknown[][],
   sheet: string,
   fyStartMonth = 4,
+  catalog: import("./catalog.js").MetricDef[] = METRIC_CATALOG,
 ): ExtractedProposal[] {
   const out: ExtractedProposal[] = [];
   const headerRow = (rows[0] ?? []).map((c) => String(c ?? ""));
@@ -69,7 +70,7 @@ export function extractFromRows(
           ? ` · ${header.trim().slice(0, 80)}`
           : "";
       const excerpt = `${label} → ${row[c]}${headerBits}`;
-      const def = matchMetricAlias(label);
+      const def = matchMetricAlias(label, catalog);
       if (resolvedUnit === "ambiguous" || (def?.unitFamily === "money" && resolvedUnit === "unknown")) {
         out.push({
           kind: "unit_ambiguity",

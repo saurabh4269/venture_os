@@ -118,6 +118,8 @@ export const orgSettings = pgTable("org_settings", {
   displayCurrency: text("display_currency").notNull().default("EUR"),
   /** Firm flag thresholds keyed by catalog key. Missing key → catalog default. */
   flagPolicy: jsonb("flag_policy").notNull().default({}),
+  /** Firm metric dictionary overrides keyed by catalog key. Missing key → catalog default. */
+  metricBook: jsonb("metric_book").notNull().default({}),
   /** null = human confirm only. Typical production: 0.9 */
   autoConfirmMinConfidence: doublePrecision("auto_confirm_min_confidence"),
   monthlyPackEnabled: boolean("monthly_pack_enabled").notNull().default(false),

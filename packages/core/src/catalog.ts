@@ -186,20 +186,20 @@ export const METRIC_CATALOG: MetricDef[] = [
   },
 ];
 
-export function metricByKey(key: string): MetricDef | undefined {
-  return METRIC_CATALOG.find((m) => m.key === key);
+export function metricByKey(key: string, catalog: MetricDef[] = METRIC_CATALOG): MetricDef | undefined {
+  return catalog.find((m) => m.key === key);
 }
 
-export function matchMetricAlias(raw: string): MetricDef | undefined {
+export function matchMetricAlias(raw: string, catalog: MetricDef[] = METRIC_CATALOG): MetricDef | undefined {
   const n = raw.toLowerCase().replace(/[_:]+/g, " ").replace(/\s+/g, " ").trim();
-  const exact = METRIC_CATALOG.find(
-    (m) => m.label.toLowerCase() === n || m.aliases.some((a) => n === a),
-  );
+  const exact = catalog.find((m) => m.label.toLowerCase() === n || m.aliases.some((a) => n === a));
   if (exact) return exact;
-  const scored = METRIC_CATALOG.flatMap((m) =>
-    m.aliases
-      .filter((a) => n.includes(a))
-      .map((a) => ({ m, len: a.length })),
-  ).sort((a, b) => b.len - a.len);
+  const scored = catalog
+    .flatMap((m) =>
+      m.aliases
+        .filter((a) => n.includes(a))
+        .map((a) => ({ m, len: a.length })),
+    )
+    .sort((a, b) => b.len - a.len);
   return scored[0]?.m;
 }

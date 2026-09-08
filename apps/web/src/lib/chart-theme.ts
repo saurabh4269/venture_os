@@ -63,12 +63,13 @@ export function doughnutOptions(
   return {
     responsive: true,
     maintainAspectRatio: false,
-    cutout: "68%",
+    cutout: "74%",
     animation: motion(reduceMotion),
     plugins: {
       legend: { display: false },
       tooltip: { ...TIP, callbacks: { label: onLabel } },
     },
+    layout: { padding: 4 },
   } as ChartOptions<"doughnut">;
 }
 
@@ -184,7 +185,16 @@ export function apexBookBase(reduceMotion: boolean): ApexOptions {
     chart: {
       toolbar: {
         show: true,
-        tools: { download: true, selection: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true },
+        offsetY: 0,
+        tools: {
+          download: false,
+          selection: true,
+          zoom: true,
+          zoomin: true,
+          zoomout: true,
+          pan: true,
+          reset: true,
+        },
       },
       zoom: { enabled: true, type: "x" },
       animations: { enabled: !reduceMotion, speed: 500 },
@@ -208,7 +218,7 @@ export function apexBarToolbar(reduceMotion: boolean): ApexOptions {
   return {
     chart: {
       type: "bar",
-      toolbar: { show: true, tools: { download: true, selection: false, zoom: false, pan: false, reset: false } },
+      toolbar: { show: false },
       animations: { enabled: !reduceMotion, speed: 450 },
       fontFamily: "inherit",
       foreColor: BOOK_CHART.muted,
@@ -222,6 +232,90 @@ export function apexBarToolbar(reduceMotion: boolean): ApexOptions {
       yaxis: { lines: { show: false } },
     },
     tooltip: { theme: "light" },
+  };
+}
+
+/** Distinct peer colors for compare (Apex distributed / Chart.js datasets). */
+export const PEER_PALETTE = [
+  BOOK_CHART.forest,
+  BOOK_CHART.limeDeep,
+  BOOK_CHART.forestSoft,
+  "#2a6f97",
+  "#bc6c25",
+  "#6d597a",
+  "#0077b6",
+  "#9b2226",
+  "#52796f",
+  "#b08968",
+  "#4a4e69",
+  "#40916c",
+] as const;
+
+export function peerColor(i: number) {
+  return PEER_PALETTE[i % PEER_PALETTE.length]!;
+}
+
+export function apexRadarBase(reduceMotion: boolean): ApexOptions {
+  return {
+    chart: {
+      type: "radar",
+      toolbar: { show: false },
+      animations: { enabled: !reduceMotion, speed: 450 },
+      fontFamily: "inherit",
+      foreColor: BOOK_CHART.muted,
+      background: "transparent",
+    },
+    stroke: { width: 2 },
+    fill: { opacity: 0.18 },
+    markers: { size: 3, hover: { size: 5 } },
+    legend: {
+      position: "bottom",
+      fontSize: "11px",
+      markers: { size: 5, shape: "circle" },
+      itemMargin: { horizontal: 10 },
+    },
+    tooltip: { theme: "light" },
+    grid: { borderColor: BOOK_CHART.rule },
+    yaxis: { show: false, max: 100, min: 0, tickAmount: 4 },
+    plotOptions: {
+      radar: {
+        size: undefined,
+        polygons: {
+          strokeColors: BOOK_CHART.rule,
+          connectorColors: BOOK_CHART.rule,
+          fill: { colors: ["#f7faf8", "#ffffff"] },
+        },
+      },
+    },
+  };
+}
+
+export function apexScatterBase(reduceMotion: boolean): ApexOptions {
+  return {
+    chart: {
+      type: "scatter",
+      toolbar: {
+        show: true,
+        tools: {
+          download: false,
+          selection: false,
+          zoom: true,
+          zoomin: true,
+          zoomout: true,
+          pan: true,
+          reset: true,
+        },
+      },
+      zoom: { enabled: true, type: "xy" },
+      animations: { enabled: !reduceMotion, speed: 450 },
+      fontFamily: "inherit",
+      foreColor: BOOK_CHART.muted,
+      background: "transparent",
+    },
+    grid: { borderColor: BOOK_CHART.rule, strokeDashArray: 4 },
+    legend: { show: false },
+    tooltip: { theme: "light", shared: false, intersect: true },
+    markers: { size: 9, strokeWidth: 2, strokeColors: "#fff", hover: { size: 11 } },
   };
 }
 

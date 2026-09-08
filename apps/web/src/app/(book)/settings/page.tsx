@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { FLAG_CATALOG, FLAG_THRESHOLD_BOUNDS, METRIC_CATALOG } from "@venture-os/core";
-import { Miss, PageHead, Panel, SettingsSubnav, type SettingsTab } from "@/components/BookUI";
+import { UnitSchema, type Unit } from "@venture-os/schema";
+import { Miss, PageHead, Panel, type SettingsTab } from "@/components/BookUI";
 import { useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { connectorLabel } from "@/lib/connectors";
@@ -44,7 +45,21 @@ type Settings = {
     before: Record<string, unknown>;
     after: Record<string, unknown>;
   }[];
+  formulaBook?: {
+    key: string;
+    label: string;
+    catalogLabel: string;
+    unitFamily: string;
+    defaultUnit: string;
+    catalogDefaultUnit: string;
+    aliases: string[];
+    catalogAliases: string[];
+    derivedFormula: string | null;
+    overridden: boolean;
+  }[];
 };
+
+type FormulaDraftRow = { label: string; aliases: string; defaultUnit: string };
 
 type Member = { id: string; userId: string; role: string; email: string | null; name: string | null };
 type Invite = {
@@ -83,7 +98,39 @@ function SettingsInner() {
   const [policyDraft, setPolicyDraft] = useState<Record<string, string>>({});
   const [policyMsg, setPolicyMsg] = useState("");
   const [policyFields, setPolicyFields] = useState<Record<string, string>>({});
+  const [formulaDraft, setFormulaDraft] = useState<Record<string, FormulaDraftRow>>({});
+  const [formulaMsg, setFormulaMsg] = useState("");
+  const [formulaFields, setFormulaFields] = useState<Record<string, string>>({});
+  const [formulaOpen, setFormulaOpen] = useState<string | null>(null);
   const [loadErr, setLoadErr] = useState("");
+
+  function seedFormulaDraft(
+    rows?: Settings["formulaBook"],
+  ) {
+    const next: Record<string, FormulaDraftRow> = {};
+    const source =
+      rows ??
+      METRIC_CATALOG.map((m) => ({
+        key: m.key,
+        label: m.label,
+        catalogLabel: m.label,
+        unitFamily: m.unitFamily,
+        defaultUnit: m.defaultUnit,
+        catalogDefaultUnit: m.defaultUnit,
+        aliases: m.aliases,
+        catalogAliases: m.aliases,
+        derivedFormula: null as string | null,
+        overridden: false,
+      }));
+    for (const m of source) {
+      next[m.key] = {
+        label: m.label,
+        aliases: m.aliases.join(", "),
+        defaultUnit: m.defaultUnit,
+      };
+    }
+    setFormulaDraft(next);
+  }
 
   function load() {
     setLoadErr("");
@@ -98,6 +145,7 @@ function SettingsInner() {
           for (const f of FLAG_CATALOG) next[f.key] = String(f.defaultThreshold);
         }
         setPolicyDraft(next);
+        seedFormulaDraft(s.formulaBook);
       })
       .catch((e: Error) => setLoadErr(bookErrorMessage(e.message)));
     api<{
@@ -164,8 +212,7 @@ function SettingsInner() {
   const pending = invites.filter((i) => i.status === "pending");
 
   return (
-    <><PageHead title="Settings" lede="Firm defaults, people, and flag policy." />
-      <SettingsSubnav current={tab} />
+    <><PageHead title="Settings" lede="Firm defaults, formula book, people, and flag policy." />
       {loadErr && (
         <p className="sev-high" role="alert">
           {loadErr}
@@ -262,27 +309,224 @@ function SettingsInner() {
       )}
 
       {tab === "formula" && (
-      <Panel title="Formula book" flush>
-        <table>
-          <thead>
-            <tr>
-              <th>Label</th>
-              <th>Key</th>
-              <th>Family</th>
-              <th>Default unit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {METRIC_CATALOG.map((m) => (
-              <tr key={m.key}>
-                <td>{m.label}</td>
-                <td className="lede">{titleCaseKind(m.key)}</td>
-                <td>{titleCaseKind(m.unitFamily)}</td>
-                <td>{m.defaultUnit}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Panel
+        title="Formula book"
+        kicker="Firm metric dictionary"
+        actions={
+          isAdmin ? (
+            <button
+              type="button"
+              className="btn sm"
+              disabled={busy}
+              onClick={async () => {
+                setFormulaMsg("");
+                setFormulaFields({});
+                const metrics: Record<string, { label: string; aliases: string[]; defaultUnit: string }> = {};
+                const local: Record<string, string> = {};
+                for (const m of METRIC_CATALOG) {
+                  const d = formulaDraft[m.key];
+                  if (!d) continue;
+                  const label = d.label.trim();
+                  if (!label) {
+                    local[`${m.key}.label`] = "label required";
+                    continue;
+                  }
+                  const aliases = d.aliases
+                    .split(",")
+                    .map((a) => a.trim().toLowerCase())
+                    .filter(Boolean);
+                  const unitOk = UnitSchema.safeParse(d.defaultUnit);
+                  if (!unitOk.success) {
+                    local[`${m.key}.defaultUnit`] = "invalid unit";
+                    continue;
+                  }
+                  const base = METRIC_CATALOG.find((x) => x.key === m.key)!;
+                  const sameLabel = label === base.label;
+                  const sameAliases =
+                    aliases.length === base.aliases.length &&
+                    aliases.every((a, i) => a === base.aliases[i]);
+                  const sameUnit = d.defaultUnit === base.defaultUnit;
+                  if (sameLabel && sameAliases && sameUnit) continue;
+                  metrics[m.key] = {
+                    label,
+                    aliases: aliases.length ? aliases : base.aliases,
+                    defaultUnit: d.defaultUnit,
+                  };
+                }
+                if (Object.keys(local).length) {
+                  setFormulaFields(local);
+                  setFormulaMsg("Fix the highlighted rows");
+                  return;
+                }
+                setBusy(true);
+                try {
+                  await api("/api/settings/formula-book", {
+                    method: "POST",
+                    body: JSON.stringify({ metrics }),
+                  });
+                  setFormulaMsg("Saved");
+                  load();
+                } catch (ex) {
+                  const raw = ex instanceof Error ? ex.message : "Could not save formula book";
+                  setFormulaMsg(friendlyAuthError(raw));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "Saving…" : "Save formula book"}
+            </button>
+          ) : null
+        }
+      >
+        <p className="lede" style={{ marginTop: 0 }}>
+          Edit firm labels, MIS aliases, and default units. Derived rules (like runway) stay
+          deterministic — you can rename them, not rewrite the math.
+          {!isAdmin ? " Org Admin can save changes." : ""}
+        </p>
+        {formulaMsg && (
+          <p className={Object.keys(formulaFields).length ? "sev-high" : "lede"} role="status">
+            {formulaMsg}
+          </p>
+        )}
+        <div className="formula-book">
+          {(data?.formulaBook ?? METRIC_CATALOG.map((m) => ({
+            key: m.key,
+            label: m.label,
+            catalogLabel: m.label,
+            unitFamily: m.unitFamily,
+            defaultUnit: m.defaultUnit,
+            catalogDefaultUnit: m.defaultUnit,
+            aliases: m.aliases,
+            catalogAliases: m.aliases,
+            derivedFormula: m.key === "runway_months" ? "Cash ÷ average of the last up to three booked burn months" : null,
+            overridden: false,
+          }))).map((m) => {
+            const draft = formulaDraft[m.key] ?? {
+              label: m.label,
+              aliases: m.aliases.join(", "),
+              defaultUnit: m.defaultUnit,
+            };
+            const open = formulaOpen === m.key;
+            const unitsForFamily = (UnitSchema.options as Unit[]).filter((u) => {
+              if (u === "unknown") return false;
+              if (m.unitFamily === "money") return ["lakh", "crore", "thousand", "million", "unit"].includes(u);
+              if (m.unitFamily === "percent") return u === "percent";
+              if (m.unitFamily === "months") return u === "months";
+              if (m.unitFamily === "count") return u === "count" || u === "unit";
+              return true;
+            });
+            return (
+              <div key={m.key} className={`formula-row${m.overridden ? " is-overridden" : ""}${open ? " is-open" : ""}`}>
+                <button
+                  type="button"
+                  className="formula-row-head"
+                  aria-expanded={open}
+                  onClick={() => setFormulaOpen(open ? null : m.key)}
+                >
+                  <span className="formula-row-title">
+                    <strong>{draft.label}</strong>
+                    <span className="lede">{titleCaseKind(m.key)}</span>
+                  </span>
+                  <span className="formula-row-meta">
+                    {m.derivedFormula ? <span className="badge">Derived</span> : null}
+                    {m.overridden ? <span className="badge">Firm</span> : null}
+                    <span className="lede">{titleCaseKind(m.unitFamily)} · {draft.defaultUnit}</span>
+                  </span>
+                </button>
+                {open ? (
+                  <div className="formula-row-body">
+                    {m.derivedFormula ? (
+                      <p className="formula-derived">
+                        <span className="page-kicker">Formula</span>
+                        {m.derivedFormula}
+                      </p>
+                    ) : null}
+                    <div className="formula-edit-grid">
+                      <label className="field">
+                        <span>Display label</span>
+                        <input
+                          value={draft.label}
+                          disabled={!isAdmin}
+                          aria-invalid={Boolean(formulaFields[`${m.key}.label`])}
+                          aria-label={`${m.catalogLabel} label`}
+                          onChange={(e) =>
+                            setFormulaDraft({
+                              ...formulaDraft,
+                              [m.key]: { ...draft, label: e.target.value },
+                            })
+                          }
+                        />
+                        {formulaFields[`${m.key}.label`] ? (
+                          <span className="sev-high">{formulaFields[`${m.key}.label`]}</span>
+                        ) : null}
+                      </label>
+                      <label className="field">
+                        <span>Default unit</span>
+                        <select
+                          value={draft.defaultUnit}
+                          disabled={!isAdmin}
+                          aria-label={`${m.catalogLabel} default unit`}
+                          onChange={(e) =>
+                            setFormulaDraft({
+                              ...formulaDraft,
+                              [m.key]: { ...draft, defaultUnit: e.target.value },
+                            })
+                          }
+                        >
+                          {unitsForFamily.map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                        </select>
+                        {formulaFields[`${m.key}.defaultUnit`] ? (
+                          <span className="sev-high">{formulaFields[`${m.key}.defaultUnit`]}</span>
+                        ) : null}
+                      </label>
+                      <label className="field formula-aliases">
+                        <span>MIS aliases · comma-separated</span>
+                        <textarea
+                          rows={2}
+                          value={draft.aliases}
+                          disabled={!isAdmin}
+                          aria-label={`${m.catalogLabel} aliases`}
+                          onChange={(e) =>
+                            setFormulaDraft({
+                              ...formulaDraft,
+                              [m.key]: { ...draft, aliases: e.target.value },
+                            })
+                          }
+                        />
+                        <span className="field-hint">
+                          Catalog defaults: {m.catalogAliases.join(", ")}
+                        </span>
+                      </label>
+                    </div>
+                    {isAdmin ? (
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        onClick={() =>
+                          setFormulaDraft({
+                            ...formulaDraft,
+                            [m.key]: {
+                              label: m.catalogLabel,
+                              aliases: m.catalogAliases.join(", "),
+                              defaultUnit: m.catalogDefaultUnit,
+                            },
+                          })
+                        }
+                      >
+                        Reset to catalog
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </Panel>
       )}
 

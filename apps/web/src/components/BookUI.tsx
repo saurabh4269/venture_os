@@ -1,9 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { IconChevronDown, IconSearch } from "@/components/Icons";
+import { useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import {
+  IconChevronDown,
+  IconConnectors,
+  IconFirm,
+  IconFlags,
+  IconFormula,
+  IconFunds,
+  IconPeople,
+  IconSearch,
+} from "@/components/Icons";
 import { companyLogoSrc } from "@/lib/company-logos";
 import { formatOwnership } from "@/lib/format";
 import { SPRING_INDICATOR } from "@/lib/motion-ease";
@@ -80,21 +90,33 @@ export function Panel({
 
 export type SettingsTab = "formula" | "flags" | "connectors" | "firm" | "funds" | "people";
 
-export function SettingsSubnav({ current }: { current: SettingsTab }) {
+export function settingsTabFromLocation(path: string, tabQuery: string | null): SettingsTab {
+  if (path.startsWith("/settings/connectors")) return "connectors";
+  if (tabQuery === "formula" || tabQuery === "flags" || tabQuery === "firm" || tabQuery === "funds" || tabQuery === "people") {
+    return tabQuery;
+  }
+  return "formula";
+}
+
+export function SettingsSubnav({ current }: { current?: SettingsTab }) {
   const layoutId = useId();
   const reduce = useReducedMotion();
-  const tabs: { id: SettingsTab; href: string; label: string }[] = [
-    { id: "formula", href: "/settings?tab=formula", label: "Formula book" },
-    { id: "flags", href: "/settings?tab=flags", label: "Flag policy" },
-    { id: "connectors", href: "/settings/connectors", label: "Connectors" },
-    { id: "firm", href: "/settings?tab=firm", label: "Firm" },
-    { id: "funds", href: "/settings?tab=funds", label: "Funds" },
-    { id: "people", href: "/settings?tab=people", label: "People" },
+  const path = usePathname();
+  const search = useSearchParams();
+  const active = current ?? settingsTabFromLocation(path, search.get("tab"));
+  const tabs: { id: SettingsTab; href: string; label: string; Icon: ComponentType<{ className?: string }> }[] = [
+    { id: "formula", href: "/settings?tab=formula", label: "Formula book", Icon: IconFormula },
+    { id: "flags", href: "/settings?tab=flags", label: "Flag policy", Icon: IconFlags },
+    { id: "connectors", href: "/settings/connectors", label: "Connectors", Icon: IconConnectors },
+    { id: "firm", href: "/settings?tab=firm", label: "Firm", Icon: IconFirm },
+    { id: "funds", href: "/settings?tab=funds", label: "Funds", Icon: IconFunds },
+    { id: "people", href: "/settings?tab=people", label: "People", Icon: IconPeople },
   ];
   return (
     <nav className="settings-subnav" aria-label="Settings">
       {tabs.map((t) => {
-        const on = current === t.id;
+        const on = active === t.id;
+        const Icon = t.Icon;
         return (
           <Link
             key={t.id}
@@ -109,6 +131,7 @@ export function SettingsSubnav({ current }: { current: SettingsTab }) {
                 transition={reduce ? { duration: 0 } : SPRING_INDICATOR}
               />
             ) : null}
+            <Icon className="nav-ico" />
             <span className="settings-tab-label">{t.label}</span>
           </Link>
         );

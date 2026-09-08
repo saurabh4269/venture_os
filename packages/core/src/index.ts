@@ -1,5 +1,6 @@
 export * from "./nulls.js";
 export * from "./catalog.js";
+export * from "./metric-book.js";
 export * from "./units.js";
 export * from "./fiscal.js";
 export * from "./metrics.js";

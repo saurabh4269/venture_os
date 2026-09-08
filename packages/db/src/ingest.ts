@@ -12,6 +12,8 @@ import {
   matchMetricAlias,
   mergeExtractProposals,
   parseExtractAssistJson,
+  parseMetricBookJson,
+  resolveMetricCatalog,
   shouldAbortExtractAssist,
   shouldAutoConfirm,
   toEur,
@@ -54,8 +56,9 @@ export async function runParseJob(orgId: string, documentId: string): Promise<{ 
       const fy = company?.fyStartMonth ?? 4;
       const [settings] = await tx.select().from(orgSettings);
       const minConf = settings?.autoConfirmMinConfidence ?? null;
+      const metricCatalog = resolveMetricCatalog(parseMetricBookJson(settings?.metricBook));
 
-      let proposals = await extractBuffer(buf, doc.mime, doc.filename, fy);
+      let proposals = await extractBuffer(buf, doc.mime, doc.filename, fy, metricCatalog);
       const assisted = await maybeLlmAssist(proposals, buf, doc.mime, doc.filename, fy);
       if (assisted.length) {
         proposals = mergeExtractProposals(proposals, assisted);
@@ -319,6 +322,7 @@ async function extractBuffer(
   mime: string,
   filename: string,
   fy: number,
+  catalog: ReturnType<typeof resolveMetricCatalog>,
 ): Promise<ExtractedProposal[]> {
   const lower = filename.toLowerCase();
   const isXlsx =
@@ -331,7 +335,7 @@ async function extractBuffer(
     if (lower.endsWith(".csv")) {
       const text = buf.toString("utf8");
       const rows = text.split(/\r?\n/).filter((l) => l.length).map(parseCsvLine);
-      return extractFromRows(rows, "csv", fy);
+      return extractFromRows(rows, "csv", fy, catalog);
     }
     await wb.xlsx.load(buf as unknown as ArrayBuffer);
     const all: ExtractedProposal[] = [];
@@ -344,7 +348,7 @@ async function extractBuffer(
         });
         rows.push(cells);
       });
-      all.push(...extractFromRows(rows, sheet.name, fy));
+      all.push(...extractFromRows(rows, sheet.name, fy, catalog));
     });
     return all;
   }

@@ -11,6 +11,7 @@ import {
   FundRollupBars,
   KpiSparkline,
   PortfolioSeriesChart,
+  RunwayByCompanyChart,
 } from "@/components/BookCharts";
 import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
@@ -42,6 +43,7 @@ type Pulse = {
   charts?: {
     coverageMix: { booked: number; gap: number; review: number };
     cashByCompany: { companyId: string; name: string; cash: number; periodEnd: string }[];
+    runwayByCompany: { companyId: string; name: string; months: number; periodEnd: string }[];
     portfolioSeries: {
       periodEnd: string;
       cashSum: number | null;
@@ -415,12 +417,15 @@ export default function CommandPage() {
           </Panel>
 
           {data.charts && data.pulse.companies > 0 ? (
-            <div className="chart-grid">
-              <Panel title="Coverage mix" kicker="Booked, gap, review">
+            <div className="chart-grid chart-grid-command">
+              <Panel title="Coverage mix" kicker="Booked · gap · review" className="coverage-mix-panel">
                 <CoverageMixChart {...data.charts.coverageMix} />
               </Panel>
               <Panel title="Cash by company" kicker="Latest booked period">
                 <CashByCompanyChart rows={data.charts.cashByCompany} />
+              </Panel>
+              <Panel title="Runway by company" kicker="Cash ÷ avg burn · booked only">
+                <RunwayByCompanyChart rows={data.charts.runwayByCompany ?? []} />
               </Panel>
               <Panel title="Portfolio trend" kicker="Sum of booked values" className="chart-span-2">
                 <PortfolioSeriesChart rows={data.charts.portfolioSeries} />

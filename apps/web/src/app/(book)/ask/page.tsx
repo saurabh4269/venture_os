@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AskComposer } from "@/components/ask/AskComposer";
+import { AskReveal } from "@/components/ask/AskReveal";
+import { AskScroller } from "@/components/ask/AskScroller";
+import { AskThinking } from "@/components/ask/AskThinking";
 import { ContextCard, PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
-import { BusyDots } from "@/components/motion/BusyDots";
 import { api } from "@/lib/api";
+import { EASE_OUT, SPRING_SOFT } from "@/lib/motion-ease";
 import { bookErrorMessage } from "@/lib/wake";
 
 type AskRes = {
@@ -19,6 +24,8 @@ type Turn = {
   text: string;
   refused?: boolean;
   citations?: AskRes["citations"];
+  /** Progressive reveal for the newest assistant turn. */
+  reveal?: boolean;
 };
 
 const STARTERS = [
@@ -29,13 +36,14 @@ const STARTERS = [
 
 export default function AskPage() {
   const openCite = useCite();
-  const scroller = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   const [q, setQ] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState("");
+  const [followKey, setFollowKey] = useState(0);
 
   useEffect(() => {
     api<{ companies: { id: string; name: string }[] }>("/api/companies")
@@ -45,11 +53,9 @@ export default function AskPage() {
     if (fromUrl) setCompanyId(fromUrl);
   }, []);
 
-  useEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [turns, busy]);
+  function bumpFollow() {
+    setFollowKey((n) => n + 1);
+  }
 
   async function ask(question: string) {
     const text = question.trim();
@@ -59,6 +65,7 @@ export default function AskPage() {
     setQ("");
     setBusy(true);
     setErr("");
+    bumpFollow();
     try {
       const followUpHint =
         turns.length > 0
@@ -73,15 +80,17 @@ export default function AskPage() {
       });
       const refused = Boolean(next.refused || /will not guess/i.test(next.answer));
       setTurns((t) => [
-        ...t,
+        ...t.map((x) => (x.reveal ? { ...x, reveal: false } : x)),
         {
           id: `a-${Date.now()}`,
           role: "assistant",
           text: next.answer || (refused ? "Not enough confirmed evidence to answer." : ""),
           refused,
           citations: next.citations,
+          reveal: !reduce,
         },
       ]);
+      bumpFollow();
     } catch (e) {
       setErr(e instanceof Error ? bookErrorMessage(e.message) : "Ask failed");
     } finally {
@@ -89,15 +98,11 @@ export default function AskPage() {
     }
   }
 
-  function send(e: React.FormEvent) {
-    e.preventDefault();
-    void ask(q);
-  }
-
   function resetChat() {
     setTurns([]);
     setErr("");
     setQ("");
+    bumpFollow();
   }
 
   return (
@@ -131,11 +136,13 @@ export default function AskPage() {
       </div>
 
       <div className="ask-chat-frame">
-        <div className="ask-chat-scroll" ref={scroller}>
+        <AskScroller followKey={`${followKey}-${turns.length}-${busy ? 1 : 0}`} busy={busy}>
           {turns.length === 0 ? (
             <div className="ask-chat-empty">
               <strong>Ask the book</strong>
-              <p className="lede">Start with a confirmed metric, flag, or coverage question. Follow-ups stay in this thread.</p>
+              <p className="lede">
+                Start with a confirmed metric, flag, or coverage question. Follow-ups stay in this thread.
+              </p>
               <div className="ask-starters">
                 {STARTERS.map((s) => (
                   <button key={s} type="button" className="ask-starter" onClick={() => void ask(s)} disabled={busy}>
@@ -146,51 +153,72 @@ export default function AskPage() {
             </div>
           ) : (
             <ul className="ask-thread">
-              {turns.map((t) => (
-                <li key={t.id} className={`ask-turn ask-turn-${t.role}${t.refused ? " is-refused" : ""}`}>
-                  <div className="ask-turn-role">{t.role === "user" ? "You" : "Ask"}</div>
-                  <div
-                    className="ask-turn-body"
-                    data-testid={t.role === "assistant" ? (t.refused ? "ask-refused" : "ask-answer") : undefined}
+              <AnimatePresence initial={false}>
+                {turns.map((t) => (
+                  <motion.li
+                    key={t.id}
+                    className={`ask-turn ask-turn-${t.role}${t.refused ? " is-refused" : ""}`}
+                    initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14, filter: "blur(4px)" }}
+                    animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={reduce ? { duration: 0.2, ease: EASE_OUT } : SPRING_SOFT}
+                    layout={!reduce}
                   >
-                    <p className="body">{t.text}</p>
-                    {t.role === "assistant" && t.citations?.length ? (
-                      <ul className="ask-cites">
-                        {t.citations.map((c, i) => (
-                          <li key={`${t.id}-${c.documentId}-${i}`}>
-                            <ContextCard
-                              kicker={`Source ${i + 1}`}
-                              body={c.excerpt || "Source excerpt"}
-                              onOpen={
-                                c.documentId || c.excerpt
-                                  ? () =>
-                                      openCite({
-                                        display: c.excerpt?.slice(0, 80) || "Source",
-                                        documentId: c.documentId ?? undefined,
-                                        sourcePath: c.documentId ? `/api/documents/${c.documentId}/file` : undefined,
-                                        excerpt: c.excerpt,
-                                      })
-                                  : undefined
-                              }
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
+                    <div className="ask-turn-role">{t.role === "user" ? "You" : "Ask"}</div>
+                    <div
+                      className="ask-turn-body"
+                      data-testid={t.role === "assistant" ? (t.refused ? "ask-refused" : "ask-answer") : undefined}
+                    >
+                      {t.role === "assistant" && t.reveal ? (
+                        <AskReveal
+                          text={t.text}
+                          onTick={bumpFollow}
+                          onDone={() =>
+                            setTurns((cur) => cur.map((x) => (x.id === t.id ? { ...x, reveal: false } : x)))
+                          }
+                        />
+                      ) : (
+                        <p className="body">{t.text}</p>
+                      )}
+                      {t.role === "assistant" && t.citations?.length && !t.reveal ? (
+                        <ul className="ask-cites">
+                          {t.citations.map((c, i) => (
+                            <li key={`${t.id}-${c.documentId}-${i}`}>
+                              <ContextCard
+                                kicker={`Source ${i + 1}`}
+                                body={c.excerpt || "Source excerpt"}
+                                onOpen={
+                                  c.documentId || c.excerpt
+                                    ? () =>
+                                        openCite({
+                                          display: c.excerpt?.slice(0, 80) || "Source",
+                                          documentId: c.documentId ?? undefined,
+                                          sourcePath: c.documentId
+                                            ? `/api/documents/${c.documentId}/file`
+                                            : undefined,
+                                          excerpt: c.excerpt,
+                                        })
+                                    : undefined
+                                }
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
               {busy ? (
-                <li className="ask-turn ask-turn-assistant">
+                <li className="ask-turn ask-turn-assistant ask-turn-thinking">
                   <div className="ask-turn-role">Ask</div>
                   <div className="ask-turn-body">
-                    <BusyDots label="Searching confirmed facts…" className="ask-busy" />
+                    <AskThinking />
                   </div>
                 </li>
               ) : null}
             </ul>
           )}
-        </div>
+        </AskScroller>
 
         {err ? (
           <p className="sev-high ask-chat-err" role="alert">
@@ -198,30 +226,13 @@ export default function AskPage() {
           </p>
         ) : null}
 
-        <form onSubmit={send} className="ask-composer">
-          <label className="sr-only" htmlFor="ask-question">
-            Question
-          </label>
-          <textarea
-            id="ask-question"
-            data-testid="ask-question"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            rows={2}
-            placeholder={turns.length ? "Ask a follow-up…" : "Ask about confirmed cash, runway, flags…"}
-            required
-            minLength={3}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void ask(q);
-              }
-            }}
-          />
-          <button className="btn" disabled={busy || q.trim().length < 3} data-testid="ask-submit">
-            {busy ? "…" : turns.length ? "Send" : "Ask"}
-          </button>
-        </form>
+        <AskComposer
+          value={q}
+          onChange={setQ}
+          onSubmit={() => void ask(q)}
+          busy={busy}
+          placeholder={turns.length ? "Ask a follow-up…" : "Ask about confirmed cash, runway, flags…"}
+        />
       </div>
     </div>
   );

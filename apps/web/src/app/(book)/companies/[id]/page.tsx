@@ -232,11 +232,11 @@ export default function CompanyPage() {
   async function draftOnePager() {
     setDraftMsg("");
     try {
-      await api("/api/reports", {
+      const res = await api<{ report: { id: string } }>("/api/reports", {
         method: "POST",
         body: JSON.stringify({ kind: "one_pager", companyId: id }),
       });
-      router.push("/reports");
+      router.push(`/reports/${res.report.id}`);
     } catch (e) {
       setDraftMsg(e instanceof Error ? e.message : "Draft failed");
     }
