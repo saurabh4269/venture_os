@@ -9,7 +9,7 @@ export const TRUNCATED_JSON_MESSAGE =
   "The book returned a truncated response. Refresh and try again.";
 export const INVALID_JSON_MESSAGE =
   "The book returned a response that was not valid JSON. Refresh and try again.";
-export const UPSTREAM_UNAVAILABLE_MESSAGE = "The book API is unreachable. Try again in a moment.";
+export const UPSTREAM_UNAVAILABLE_MESSAGE = "The book is unreachable. Try again in a moment.";
 
 /** Parse a response body without throwing raw JSON.parse SyntaxError. */
 export function parseJsonSafe(text: string): unknown {

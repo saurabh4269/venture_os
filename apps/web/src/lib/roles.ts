@@ -97,7 +97,7 @@ export function friendlyAuthError(raw: string): string {
     return "The book returned a truncated response. Refresh and try again.";
   }
   if (t.includes("upstream_unavailable")) {
-    return "The book API is unreachable. Try again in a moment.";
+    return "The book is unreachable. Try again in a moment.";
   }
   return raw;
 }
