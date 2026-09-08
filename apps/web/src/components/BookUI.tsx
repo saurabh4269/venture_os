@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import {
   IconChevronDown,
+  IconClose,
   IconConnectors,
   IconFirm,
   IconFlags,
@@ -293,21 +294,29 @@ export function Pipeline({ current }: { current?: "source" | "proposed" | "revie
   );
 }
 
-/** Searchable company jump/filter — dropdown list for table toolbars. */
+/** Searchable company jump/filter — dropdown list for table toolbars and pickers. */
 export function CompanyCombobox({
   companies,
   value,
   onChange,
   onPick,
+  onClear,
   id = "co-search",
   placeholder = "Search companies…",
+  emptyOption,
+  limit = 12,
+  label = "Search companies",
 }: {
   companies: { id: string; name: string; stage?: string | null }[];
   value: string;
   onChange: (q: string) => void;
   onPick?: (company: { id: string; name: string }) => void;
+  onClear?: () => void;
   id?: string;
   placeholder?: string;
+  emptyOption?: string;
+  limit?: number;
+  label?: string;
 }) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -322,8 +331,11 @@ export function CompanyCombobox({
             c.name.toLowerCase().includes(needle) ||
             (c.stage ?? "").toLowerCase().includes(needle),
         );
-    return list.slice(0, 8);
-  }, [companies, value]);
+    return list.slice(0, limit);
+  }, [companies, value, limit]);
+
+  const showEmptyOption = Boolean(emptyOption) && !value.trim();
+  const optionCount = matches.length + (showEmptyOption ? 1 : 0);
 
   useEffect(() => {
     setHi(0);
@@ -344,10 +356,16 @@ export function CompanyCombobox({
     onPick?.(c);
   }
 
+  function clear() {
+    onChange("");
+    setOpen(false);
+    onClear?.();
+  }
+
   return (
     <div className="company-combobox" ref={rootRef}>
       <label className="sr-only" htmlFor={id}>
-        Search companies
+        {label}
       </label>
       <div className="company-combobox-field">
         <IconSearch className="company-combobox-ico" />
@@ -371,41 +389,78 @@ export function CompanyCombobox({
             if (e.key === "ArrowDown") {
               e.preventDefault();
               setOpen(true);
-              setHi((i) => Math.min(i + 1, Math.max(matches.length - 1, 0)));
+              setHi((i) => Math.min(i + 1, Math.max(optionCount - 1, 0)));
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
               setHi((i) => Math.max(i - 1, 0));
-            } else if (e.key === "Enter" && open && matches[hi]) {
+            } else if (e.key === "Enter" && open) {
               e.preventDefault();
-              pick(matches[hi]!);
+              if (showEmptyOption && hi === 0) {
+                clear();
+                return;
+              }
+              const idx = showEmptyOption ? hi - 1 : hi;
+              if (matches[idx]) pick(matches[idx]!);
             } else if (e.key === "Escape") {
-              setOpen(false);
+              if (open) {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpen(false);
+              }
             }
           }}
         />
-        <IconChevronDown className="company-combobox-chev" />
+        {value ? (
+          <button
+            type="button"
+            className="company-combobox-clear"
+            aria-label="Clear company"
+            onClick={clear}
+          >
+            <IconClose />
+          </button>
+        ) : (
+          <IconChevronDown className="company-combobox-chev" />
+        )}
       </div>
-      {open && matches.length > 0 ? (
+      {open && (matches.length > 0 || showEmptyOption) ? (
         <ul id={listId} className="company-combobox-menu" role="listbox">
-          {matches.map((c, i) => (
-            <li key={c.id} role="presentation">
+          {showEmptyOption ? (
+            <li role="presentation">
               <button
                 type="button"
-                id={`${listId}-${c.id}`}
                 role="option"
-                aria-selected={i === hi}
-                className={`company-combobox-option${i === hi ? " is-on" : ""}`}
-                onMouseEnter={() => setHi(i)}
-                onClick={() => pick(c)}
+                aria-selected={hi === 0}
+                className={`company-combobox-option${hi === 0 ? " is-on" : ""}`}
+                onMouseEnter={() => setHi(0)}
+                onClick={clear}
               >
-                <span className="company-combobox-lead">
-                  <CompanyMark name={c.name} />
-                  <span className="company-combobox-name">{c.name}</span>
-                </span>
-                <span className="company-combobox-meta">{c.stage ?? ""}</span>
+                <span className="company-combobox-name">{emptyOption}</span>
               </button>
             </li>
-          ))}
+          ) : null}
+          {matches.map((c, i) => {
+            const row = showEmptyOption ? i + 1 : i;
+            return (
+              <li key={c.id} role="presentation">
+                <button
+                  type="button"
+                  id={`${listId}-${c.id}`}
+                  role="option"
+                  aria-selected={row === hi}
+                  className={`company-combobox-option${row === hi ? " is-on" : ""}`}
+                  onMouseEnter={() => setHi(row)}
+                  onClick={() => pick(c)}
+                >
+                  <span className="company-combobox-lead">
+                    <CompanyMark name={c.name} />
+                    <span className="company-combobox-name">{c.name}</span>
+                  </span>
+                  <span className="company-combobox-meta">{c.stage ?? ""}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {open && value.trim() && matches.length === 0 ? (

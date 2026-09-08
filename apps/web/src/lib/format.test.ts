@@ -19,7 +19,7 @@ describe("formatOwnership", () => {
 });
 
 describe("monthName", () => {
-  it("maps 1–12 and defaults missing to April", () => {
+  it("maps 1-12 and defaults missing to April", () => {
     expect(monthName(1)).toBe("January");
     expect(monthName(4)).toBe("April");
     expect(monthName(null)).toBe("April");

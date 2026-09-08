@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { CompanyMark, Miss, PageHead, Panel } from "@/components/BookUI";
-import { IconEdit } from "@/components/Icons";
+import { CompanyCombobox, CompanyMark, Miss, PageHead, Panel } from "@/components/BookUI";
 import { useBookSession } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -26,25 +25,10 @@ type CompanyLite = {
   country?: string | null;
 };
 
-const TEMPLATE_SAMPLE_KPIS: Record<ReportKind, { label: string; hint: string }[]> = {
-  one_pager: [
-    { label: "Net revenue", hint: "Booked period" },
-    { label: "Cash", hint: "Booked period" },
-    { label: "Burn", hint: "Booked period" },
-    { label: "Runway", hint: "Cash ÷ burn" },
-  ],
-  portfolio: [
-    { label: "Coverage", hint: "Names with MIS" },
-    { label: "NAV", hint: "As booked" },
-    { label: "MOIC", hint: "As booked" },
-    { label: "Open flags", hint: "Catalog only" },
-  ],
-  monthly_pack: [
-    { label: "Period", hint: "Ritual close" },
-    { label: "Cash Σ", hint: "Booked sum" },
-    { label: "Burn Σ", hint: "Booked sum" },
-    { label: "Confirm queue", hint: "Pending rows" },
-  ],
+const TEMPLATE_SAMPLE_KPIS: Record<ReportKind, string[]> = {
+  one_pager: ["Net revenue", "Cash", "Burn", "Runway"],
+  portfolio: ["Coverage", "NAV", "MOIC", "Open flags"],
+  monthly_pack: ["Period", "Cash", "Burn", "Confirm queue"],
 };
 
 export default function ReportsPage() {
@@ -60,6 +44,7 @@ export default function ReportsPage() {
 
   const [packKind, setPackKind] = useState<ReportKind | null>(null);
   const [companyId, setCompanyId] = useState("");
+  const [companyQ, setCompanyQ] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
   const [actionErr, setActionErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -74,7 +59,7 @@ export default function ReportsPage() {
         month: "short",
         day: "numeric",
       })
-    : "Latest booked period";
+    : "Latest booked";
   const sampleKpis = packKind ? TEMPLATE_SAMPLE_KPIS[packKind] : [];
 
   useEffect(() => {
@@ -92,6 +77,7 @@ export default function ReportsPage() {
   function openTemplate(kind: ReportKind) {
     setActionErr("");
     setCompanyId("");
+    setCompanyQ("");
     setPeriodEnd("");
     setPackKind(kind);
   }
@@ -106,7 +92,7 @@ export default function ReportsPage() {
     if (!packKind || !pack) return;
     setActionErr("");
     if (pack.needsCompany && !companyId) {
-      setActionErr("Pick a company for a one-pager. We will not invent a name.");
+      setActionErr("Pick a company.");
       return;
     }
     setBusy(true);
@@ -131,12 +117,7 @@ export default function ReportsPage() {
 
   return (
     <>
-      <PageHead
-        title="Reports"
-        testId="reports-ready"
-        kicker="Templates from the book"
-        lede="Pick a template to configure and create a draft. Edit and download from the draft screen — nothing is invented to fill blanks."
-      />
+      <PageHead title="Reports" testId="reports-ready" />
       {err && !packKind && (
         <p className="sev-high" role="alert">
           {err}
@@ -151,17 +132,8 @@ export default function ReportsPage() {
             className="report-template-card"
             onClick={() => openTemplate(t.kind)}
           >
-            <p className="page-kicker">{t.eyebrow}</p>
             <h3>{t.title}</h3>
-            <p className="lede">{t.body}</p>
-            <ul className="report-template-sections" aria-label="Sections">
-              {t.sections.slice(0, 4).map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ul>
-            <p className="report-template-formats">
-              Export · {t.formats.map((f) => f.toUpperCase()).join(" · ")}
-            </p>
+            <p className="report-template-meta">{t.sections.join(", ")}</p>
           </button>
         ))}
       </section>
@@ -170,37 +142,27 @@ export default function ReportsPage() {
       {!loading && rows.length === 0 ? (
         <div className="empty">
           <strong>No drafts yet</strong>
-          Open a template card to configure scope and create a draft. Missing stays blank.
         </div>
       ) : !loading ? (
-        <Panel title="Recent drafts" kicker="Open to edit" flush>
+        <Panel title="Drafts" flush>
           <table className="table-hover">
             <thead>
               <tr>
                 <th>Title</th>
                 <th>Template</th>
                 <th>Created</th>
-                <th className="num">Edit</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="report-draft-title">{r.title}</td>
+                  <td className="report-draft-title">
+                    <Link href={`/reports/${r.id}`}>{r.title}</Link>
+                  </td>
                   <td>
                     <span className="report-kind-pill">{REPORT_KIND_LABEL[r.kind] ?? r.kind}</span>
                   </td>
                   <td className="lede">{new Date(r.createdAt).toLocaleString()}</td>
-                  <td className="num">
-                    <Link
-                      className="chart-tool-btn report-edit-btn"
-                      href={`/reports/${r.id}`}
-                      aria-label={`Edit ${r.title}`}
-                      title="Open draft"
-                    >
-                      <IconEdit />
-                    </Link>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -209,15 +171,11 @@ export default function ReportsPage() {
       ) : null}
 
       {packKind && pack ? (
-        <div className="report-compose-layer" role="dialog" aria-modal="true" aria-label={`${pack.title} composer`}>
-          <button type="button" className="report-compose-scrim" aria-label="Close template" onClick={closeDrawer} />
+        <div className="report-compose-layer" role="dialog" aria-modal="true" aria-label={pack.title}>
+          <button type="button" className="report-compose-scrim" aria-label="Close" onClick={closeDrawer} />
           <aside className="report-compose-drawer">
             <div className="report-compose-drawer-head">
-              <div>
-                <p className="page-kicker">{pack.eyebrow}</p>
-                <h2>{pack.title}</h2>
-                <p className="lede">{pack.body}</p>
-              </div>
+              <h2>{pack.title}</h2>
               <button type="button" className="btn ghost sm" onClick={closeDrawer} disabled={busy}>
                 Close
               </button>
@@ -230,13 +188,11 @@ export default function ReportsPage() {
             ) : null}
 
             <div className="report-compose-body">
-              <article className="report-preview" aria-label={`${pack.title} template`}>
+              <article className="report-preview" aria-label={`${pack.title} preview`}>
                 <div className="report-preview-chrome">
                   <span className="report-preview-dot" />
                   <span className="report-preview-dot" />
                   <span className="report-preview-dot" />
-                  <span className="report-template-badge">Template preview</span>
-                  <span className="page-kicker">{pack.eyebrow}</span>
                 </div>
                 <div className="report-doc">
                   <header className="report-doc-head">
@@ -244,48 +200,28 @@ export default function ReportsPage() {
                       <div className="report-doc-brand">
                         <CompanyMark name={company.name} size="lg" />
                         <div>
-                          <p className="page-kicker">
-                            {[company.sector, company.country].filter(Boolean).join(" · ") || "Company"}
-                          </p>
                           <h2>{company.name}</h2>
                           {company.stage ? <span className="badge">{company.stage}</span> : null}
                         </div>
                       </div>
-                    ) : (
-                      <div>
-                        <p className="page-kicker">{pack.eyebrow}</p>
-                        <h2>{pack.title}</h2>
-                        <p className="lede">
-                          {packKind === "one_pager"
-                            ? "Select a company below to personalize the cover."
-                            : "Layout filled only from confirmed book rows when you create a draft."}
-                        </p>
-                      </div>
-                    )}
+                    ) : packKind !== "one_pager" ? (
+                      <h2>{pack.title}</h2>
+                    ) : null}
                     <dl className="report-doc-meta">
                       <div>
                         <dt>Period</dt>
                         <dd>{periodLabel}</dd>
                       </div>
-                      <div>
-                        <dt>Source</dt>
-                        <dd>Book only</dd>
-                      </div>
-                      <div>
-                        <dt>Missing</dt>
-                        <dd>Shown blank</dd>
-                      </div>
                     </dl>
                   </header>
 
-                  <div className="report-kpi-strip" aria-label="Sample KPI slots">
-                    {sampleKpis.map((k) => (
-                      <div key={k.label} className="report-kpi report-kpi-template">
-                        <div className="k">{k.label}</div>
+                  <div className="report-kpi-strip" aria-label="KPI slots">
+                    {sampleKpis.map((label) => (
+                      <div key={label} className="report-kpi report-kpi-template">
+                        <div className="k">{label}</div>
                         <div className="v">
-                          <Miss label="Filled at draft time" />
+                          <Miss />
                         </div>
-                        <div className="meta">{k.hint}</div>
                       </div>
                     ))}
                   </div>
@@ -299,75 +235,52 @@ export default function ReportsPage() {
                           <span />
                           <span className="short" />
                         </div>
-                        <p className="lede">
-                          {packKind === "one_pager" && !company ? (
-                            <>
-                              Waiting on company · <Miss label="Not selected" />
-                            </>
-                          ) : (
-                            "Structure only — values appear after you create a draft from the book."
-                          )}
-                        </p>
                       </div>
                     ))}
                   </div>
-
-                  <footer className="report-doc-foot">
-                    <span>Not a saved file yet</span>
-                    <span>{pack.title}</span>
-                  </footer>
                 </div>
               </article>
 
-              <div className="report-settings" aria-label="Template settings">
-                <div className="report-settings-head">
-                  <p className="page-kicker">Configure</p>
-                  <h3>Scope</h3>
-                  <p className="lede">Set period and company, then create an editable draft.</p>
-                </div>
-
-                <ul className="report-template-outline">
-                  {pack.sections.map((s) => (
-                    <li key={s}>{s}</li>
-                  ))}
-                </ul>
-
+              <div className="report-settings" aria-label="Draft settings">
                 {canWrite ? (
                   <>
                     <div className="report-settings-fields">
                       <label className="field">
-                        <span>Time period</span>
+                        <span>Period</span>
                         <input
                           type="date"
                           value={periodEnd}
                           onChange={(e) => setPeriodEnd(e.target.value)}
                           aria-label="Period end"
                         />
-                        <span className="field-hint">Leave empty for the latest booked period on each metric.</span>
                       </label>
-                      <label className="field">
-                        <span>
-                          Companies{pack.needsCompany ? " · required" : " · optional focus"}
-                        </span>
-                        <select
-                          value={companyId}
-                          onChange={(e) => setCompanyId(e.target.value)}
-                          aria-label="Company"
-                        >
-                          <option value="">{pack.needsCompany ? "Select company…" : "All coverage (no focus)"}</option>
-                          {cos.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
-                        {company ? (
-                          <span className="report-company-chip">
-                            <CompanyMark name={company.name} />
-                            <span>{company.name}</span>
-                          </span>
-                        ) : null}
-                      </label>
+                      <div className="field report-company-field">
+                        <span>{pack.needsCompany ? "Company" : "Focus company"}</span>
+                        <CompanyCombobox
+                          id="report-company"
+                          companies={cos}
+                          value={companyQ}
+                          limit={24}
+                          emptyOption={pack.needsCompany ? undefined : "All coverage"}
+                          placeholder={pack.needsCompany ? "Search companies…" : "All coverage"}
+                          label={pack.needsCompany ? "Company" : "Focus company"}
+                          onChange={(q) => {
+                            setCompanyQ(q);
+                            if (!q.trim()) setCompanyId("");
+                            else if (company && !company.name.toLowerCase().includes(q.trim().toLowerCase())) {
+                              setCompanyId("");
+                            }
+                          }}
+                          onPick={(c) => {
+                            setCompanyId(c.id);
+                            setCompanyQ(c.name);
+                          }}
+                          onClear={() => {
+                            setCompanyId("");
+                            setCompanyQ("");
+                          }}
+                        />
+                      </div>
                     </div>
 
                     <div className="report-settings-actions">
@@ -377,15 +290,12 @@ export default function ReportsPage() {
                         disabled={!canGenerate}
                         onClick={() => void createDraft()}
                       >
-                        {busy ? "Creating draft…" : "Create draft · open editor"}
+                        {busy ? "Creating…" : "Create draft"}
                       </button>
-                      <p className="lede">
-                        Draft opens full-screen so you can edit commentary and download PDF, PPTX, or XLSX.
-                      </p>
                     </div>
                   </>
                 ) : (
-                  <p className="lede">Drafting needs write access. You can still open existing drafts.</p>
+                  <p className="lede">Write access required to draft.</p>
                 )}
               </div>
             </div>

@@ -364,7 +364,7 @@ function ConnectorCards() {
               <span className="lede">Last health {new Date(row.lastHealthAt).toLocaleDateString()}</span>
             ) : null}
             <span className="lede">
-              Last sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "—"}
+              Last sync: {row?.lastSyncAt ? new Date(row.lastSyncAt).toLocaleString() : "Not synced"}
             </span>
           </div>
           {row?.lastError && (

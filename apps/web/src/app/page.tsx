@@ -3,9 +3,9 @@ import { HomeSessionRedirect } from "@/components/marketing/HomeSessionRedirect"
 import { MarketingLanding } from "@/components/marketing/MarketingLanding";
 
 export const metadata: Metadata = {
-  title: "Venture OS — the book for the investment team",
+  title: "Venture OS: the book for the investment team",
   description:
-    "Command, cite, and act on the truth of your portfolio. Cite or refuse; missing is —.",
+    "Command, cite, and act on the truth of your portfolio. Cite or refuse; missing stays blank.",
 };
 
 export default function Home() {

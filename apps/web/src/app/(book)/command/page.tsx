@@ -426,21 +426,17 @@ export default function CommandPage() {
 
           {data.charts && data.pulse.companies > 0 ? (
             <>
-              <Panel
-                title="Runway months left"
-                kicker="Shortest first · color = urgency · Δ vs prior when both sides booked"
-                className="runway-strip-panel"
-              >
+              <Panel title="Runway" className="runway-strip-panel">
                 <RunwayUrgencyStrip rows={data.charts.runwayByCompany ?? []} />
               </Panel>
               <div className="chart-grid chart-grid-command">
-                <Panel title="Coverage mix" kicker="Booked · gap · review" className="coverage-mix-panel">
+                <Panel title="Coverage mix" className="coverage-mix-panel">
                   <CoverageMixChart {...data.charts.coverageMix} />
                 </Panel>
-                <Panel title="Cash by company" kicker="Latest booked period" className="chart-span-2">
+                <Panel title="Cash by company" className="chart-span-2">
                   <CashByCompanyChart rows={data.charts.cashByCompany} />
                 </Panel>
-                <Panel title="Portfolio trend" kicker="Sum of booked values" className="chart-span-2">
+                <Panel title="Portfolio trend" className="chart-span-2">
                   <PortfolioSeriesChart rows={data.charts.portfolioSeries} />
                 </Panel>
               </div>
@@ -499,7 +495,7 @@ export default function CommandPage() {
           )}
 
           {data.coverage.length > 0 && (
-            <Panel title="Portfolio pulse" kicker="Booked evidence only" flush>
+            <Panel title="Portfolio pulse" flush>
               <div className="table-tools">
                 <label className="field table-tools-field">
                   <span className="sr-only">Filter companies</span>

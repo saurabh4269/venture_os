@@ -13,7 +13,7 @@ export const MONTH_NAMES = [
   "December",
 ] as const;
 
-/** 1–12 → month label. Default April (firm FY start) when missing/invalid. */
+/** 1-12 → month label. Default April (firm FY start) when missing/invalid. */
 export function monthName(n: number | null | undefined): string {
   if (n == null || n < 1 || n > 12) return "April";
   return MONTH_NAMES[n - 1]!;

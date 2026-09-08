@@ -381,7 +381,7 @@ function SettingsInner() {
       >
         <p className="lede" style={{ marginTop: 0 }}>
           Edit firm labels, MIS aliases, and default units. Derived rules (like runway) stay
-          deterministic — you can rename them, not rewrite the math.
+          deterministic: you can rename them, not rewrite the math.
           {!isAdmin ? " Org Admin can save changes." : ""}
         </p>
         {formulaMsg && (

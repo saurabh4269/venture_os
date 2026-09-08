@@ -220,6 +220,15 @@ export function IconChevronDown(p: IconProps) {
   );
 }
 
+export function IconClose(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M6.5 6.5 17.5 17.5" />
+      <path d="M17.5 6.5 6.5 17.5" />
+    </Svg>
+  );
+}
+
 export function IconDownload(p: IconProps) {
   return (
     <Svg {...p}>

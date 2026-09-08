@@ -264,7 +264,6 @@ export function CashByCompanyChart({
       chartId={chartId}
       filename="cash-by-company"
       label="Cash by company"
-      foot={<p className="chart-foot">Drag to zoom · double-click to reset. Booked cash only.</p>}
     >
       <ApexChart type="bar" height={height} options={options} series={[{ name: "Cash", data: rows.map((r) => r.cash) }]} />
     </ChartShell>
@@ -302,7 +301,7 @@ export type RunwayUrgencyRow = {
 export function RunwayUrgencyStrip({ rows }: { rows: RunwayUrgencyRow[] }) {
   const reduce = useReduceMotion();
   if (rows.length === 0) {
-    return <ChartEmpty label="No runway yet — need booked cash and burn for at least one company." />;
+    return <ChartEmpty label="No runway yet. Need booked cash and burn for at least one company." />;
   }
 
   const scaleMax = Math.max(12, ...rows.map((r) => r.months));
@@ -385,9 +384,6 @@ export function RunwayUrgencyStrip({ rows }: { rows: RunwayUrgencyRow[] }) {
           );
         })}
       </ul>
-      <p className="chart-foot">
-        Cash ÷ avg of up to three booked burns · shortest first · Δ blank when prior cash or burn is missing.
-      </p>
     </div>
   );
 }
@@ -400,7 +396,7 @@ export function RunwayByCompanyChart({
 }) {
   const reduce = useReduceMotion();
   const chartId = useApexChartId();
-  if (rows.length === 0) return <ChartEmpty label="No runway to chart — need booked cash and burn." />;
+  if (rows.length === 0) return <ChartEmpty label="No runway to chart. Need booked cash and burn." />;
 
   const height = Math.max(220, rows.length * 28 + 56);
   const colors = rows.map((r) => runwayBarColor(r.months));
@@ -452,11 +448,6 @@ export function RunwayByCompanyChart({
       chartId={chartId}
       filename="runway-by-company"
       label="Runway by company"
-      foot={
-        <p className="chart-foot">
-          Drag to zoom · double-click to reset. Booked cash ÷ burn only — missing stays off the chart.
-        </p>
-      }
     >
       <ApexChart type="bar" height={height} options={options} series={[{ name: "Runway", data: rows.map((r) => r.months) }]} />
     </ChartShell>
@@ -544,12 +535,6 @@ export function PortfolioSeriesChart({
       chartId={chartId}
       filename="portfolio-trend"
       label="Portfolio booked series"
-      foot={
-        <p className="chart-foot">
-          Drag to zoom · double-click to reset. Legend toggles series. Sums only include companies with a
-          booked value that period — missing is not zero.
-        </p>
-      }
     >
       <ApexChart
         type="area"
@@ -610,11 +595,6 @@ export function CompanyMetricHistoryChart({
       chartId={chartId}
       filename="company-metric-history"
       label="Company metric history"
-      foot={
-        <p className="chart-foot">
-          Drag to zoom · double-click to reset. Legend toggles series. Gaps stay blank.
-        </p>
-      }
     >
       <ApexChart
         type="area"
@@ -673,7 +653,6 @@ export function FundRollupBars({
       chartId={chartId}
       filename="fund-rollup"
       label="Fund operating rollup"
-      foot={<p className="chart-foot">Drag to zoom · double-click to reset. Booked rollups only.</p>}
     >
       <ApexChart
         type="bar"
@@ -765,12 +744,6 @@ export function ComparePeerBars({
       chartId={chartId}
       filename={`${metricLabel.toLowerCase().replace(/\s+/g, "-")}-peers`}
       label={`${metricLabel} by peer`}
-      foot={
-        <p className="chart-foot">
-          Booked facts only
-          {rows.length > 12 ? ` (top 12 of ${rows.length})` : ""}. Drag to zoom · double-click to reset.
-        </p>
-      }
     >
       <ApexChart
         type="bar"
@@ -855,13 +828,6 @@ export function ComparePeerRadar({
       chartId={chartId}
       filename="peer-radar"
       label="Peer metric fingerprints"
-      foot={
-        <p className="chart-foot">
-          Each axis is scaled 0–100 within the selected peers (not absolute units). Toggle peers to reshape the
-          fingerprints
-          {peers.length > 6 ? ` · showing 6 of ${peers.length}` : ""}.
-        </p>
-      }
     >
       <ApexChart type="radar" height={340} options={options} series={series} />
     </ChartShell>
@@ -933,12 +899,6 @@ export function ComparePeerColumns({
       chartId={chartId}
       filename={`${metricLabel.toLowerCase().replace(/\s+/g, "-")}-columns`}
       label={`${metricLabel} columns`}
-      foot={
-        <p className="chart-foot">
-          Drag to zoom · double-click to reset. Selected peers only · booked {metricLabel.toLowerCase()}
-          {rows.length > 14 ? ` (top 14 of ${rows.length})` : ""}.
-        </p>
-      }
     >
       <ApexChart
         type="bar"
@@ -1033,13 +993,6 @@ export function ComparePeerScatter({
       chartId={chartId}
       filename="peer-bubble"
       label={`${xLabel} vs ${yLabel}`}
-      foot={
-        <p className="chart-foot">
-          Bubble size = booked {sizeLabel.toLowerCase()}
-          {bookedZ.length < rows.length ? " (small floor when that metric is missing — never invented)" : ""}.
-          Drag to zoom · double-click to reset.
-        </p>
-      }
     >
       <ApexChart type="bubble" height={420} options={options} series={series} />
     </ChartShell>

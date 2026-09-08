@@ -123,7 +123,6 @@ export default function AskPage() {
       <PageHead
         title="Ask"
         testId="ask-ready"
-        kicker="Cite-or-refuse over confirmed book facts"
         actions={
           turns.length > 0 ? (
             <button type="button" className="btn ghost sm" onClick={resetChat}>
@@ -142,7 +141,7 @@ export default function AskPage() {
               </div>
               <strong>Ask the book</strong>
               <p className="lede">
-                Confirmed metrics only. Missing evidence returns a refusal — never a guess.
+                Confirmed metrics only. Missing evidence returns a refusal, never a guess.
               </p>
               <div className="ask-starters" role="list">
                 {STARTERS.map((s, i) => (

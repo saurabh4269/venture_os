@@ -9,12 +9,7 @@ import { IconDownload } from "@/components/Icons";
 import { useBookSession } from "@/components/Shell";
 import { api, downloadAuthed } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
-import {
-  REPORT_EXPORT_FORMATS,
-  REPORT_KIND_LABEL,
-  reportTemplate,
-  type ReportExportFmt,
-} from "@/lib/report-templates";
+import { REPORT_EXPORT_FORMATS, type ReportExportFmt } from "@/lib/report-templates";
 import { bookErrorMessage } from "@/lib/wake";
 
 type ReportMetric = {
@@ -115,7 +110,6 @@ export default function ReportEditorPage() {
     };
   }, [dlOpen]);
 
-  const pack = reportTemplate(report?.kind ?? "portfolio");
   const periodLabel = report?.body?.periodEnd
     ? new Date(`${report.body.periodEnd}T12:00:00`).toLocaleDateString(undefined, {
         year: "numeric",
@@ -236,12 +230,10 @@ export default function ReportEditorPage() {
       <PageHead
         title={title || report.title}
         testId="report-editor-ready"
-        kicker={REPORT_KIND_LABEL[report.kind] ?? report.kind}
-        lede="Preview booked facts in-page. Edit title and commentary; metrics stay cite-or-refuse."
         actions={
           <div className="report-editor-actions">
             <Link className="btn ghost sm" href="/reports">
-              All drafts
+              Drafts
             </Link>
             {canWrite ? (
               <button type="button" className="btn ghost sm" disabled={!dirty || saving} onClick={() => void save()}>
@@ -262,7 +254,6 @@ export default function ReportEditorPage() {
               </button>
               {dlOpen ? (
                 <div className="report-dl-menu" role="menu">
-                  <p className="page-kicker">Download as</p>
                   {REPORT_EXPORT_FORMATS.map((f) => (
                     <button
                       key={f.fmt}
@@ -272,8 +263,7 @@ export default function ReportEditorPage() {
                       disabled={Boolean(dlBusy)}
                       onClick={() => void download(f.fmt)}
                     >
-                      <strong>{f.label}</strong>
-                      <span className="lede">{dlBusy === f.fmt ? "Preparing…" : f.hint}</span>
+                      {dlBusy === f.fmt ? "Preparing…" : f.label}
                     </button>
                   ))}
                 </div>
@@ -291,7 +281,6 @@ export default function ReportEditorPage() {
 
       <div className="report-editor">
         <aside className="report-editor-side" aria-label="Draft settings">
-          <p className="page-kicker">Draft</p>
           <label className="field">
             <span>Title</span>
             <input
@@ -304,26 +293,8 @@ export default function ReportEditorPage() {
               aria-label="Report title"
             />
           </label>
-          <dl className="report-doc-meta">
-            <div>
-              <dt>Template</dt>
-              <dd>{pack.title}</dd>
-            </div>
-            <div>
-              <dt>Period</dt>
-              <dd>{periodLabel}</dd>
-            </div>
-            <div>
-              <dt>Source</dt>
-              <dd>Book only</dd>
-            </div>
-            <div>
-              <dt>Formats</dt>
-              <dd>{pack.formats.map((f) => f.toUpperCase()).join(" · ")}</dd>
-            </div>
-          </dl>
           <label className="field">
-            <span>Cover note · not a booked fact</span>
+            <span>Cover note</span>
             <textarea
               rows={4}
               value={coverNote}
@@ -332,13 +303,10 @@ export default function ReportEditorPage() {
                 markDirty();
               }}
               disabled={!canWrite}
-              placeholder="Optional framing for the export cover. Leave blank if none."
+              placeholder="Optional"
               aria-label="Cover note"
             />
           </label>
-          <p className="lede">
-            KPI values are read-only. Change commentary below; download after you are happy with the preview.
-          </p>
         </aside>
 
         <article className="report-preview report-preview-live" aria-label="Report preview">
@@ -346,7 +314,6 @@ export default function ReportEditorPage() {
             <span className="report-preview-dot" />
             <span className="report-preview-dot" />
             <span className="report-preview-dot" />
-            <span className="page-kicker">{pack.eyebrow}</span>
           </div>
           <div className="report-doc">
             <header className="report-doc-head">
@@ -354,29 +321,17 @@ export default function ReportEditorPage() {
                 <div className="report-doc-brand">
                   <CompanyMark name={pages[0].name} size="lg" />
                   <div>
-                    <p className="page-kicker">{pages.length > 1 ? `${pages.length} companies` : "Company"}</p>
                     <h2>{pages.length === 1 ? pages[0].name : title}</h2>
                     {pages[0].stage ? <span className="badge">{pages[0].stage}</span> : null}
                   </div>
                 </div>
               ) : (
-                <div>
-                  <p className="page-kicker">{pack.eyebrow}</p>
-                  <h2>{title}</h2>
-                </div>
+                <h2>{title}</h2>
               )}
               <dl className="report-doc-meta">
                 <div>
                   <dt>Period</dt>
                   <dd>{periodLabel}</dd>
-                </div>
-                <div>
-                  <dt>Created</dt>
-                  <dd>{new Date(report.createdAt).toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt>Missing</dt>
-                  <dd>Shown blank</dd>
                 </div>
               </dl>
             </header>
@@ -395,9 +350,7 @@ export default function ReportEditorPage() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="lede">No booked KPIs on this draft.</p>
-            )}
+            ) : null}
 
             {pages.map((p, idx) => (
               <section key={p.companyId ?? `${p.name}-${idx}`} className="report-doc-company">
@@ -423,7 +376,7 @@ export default function ReportEditorPage() {
                       {p.metrics.length === 0 ? (
                         <tr>
                           <td colSpan={4}>
-                            <Miss label="No booked metrics" />
+                            <Miss />
                           </td>
                         </tr>
                       ) : (
@@ -460,7 +413,7 @@ export default function ReportEditorPage() {
                       value={p.objective.join("\n")}
                       onChange={(e) => setLane(idx, "objective", e.target.value)}
                       disabled={!canWrite}
-                      placeholder="Blank if none booked"
+                      placeholder=""
                     />
                   </label>
                   <label className="field">
@@ -470,17 +423,12 @@ export default function ReportEditorPage() {
                       value={p.subjective.join("\n")}
                       onChange={(e) => setLane(idx, "subjective", e.target.value)}
                       disabled={!canWrite}
-                      placeholder="Blank if none booked"
+                      placeholder=""
                     />
                   </label>
                 </div>
               </section>
             ))}
-
-            <footer className="report-doc-foot">
-              <span>Venture OS · cite-or-refuse</span>
-              <span>{REPORT_KIND_LABEL[report.kind] ?? report.kind}</span>
-            </footer>
           </div>
         </article>
       </div>

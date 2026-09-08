@@ -19,7 +19,7 @@ function CommandFrame() {
         </div>
         <div>
           <div className="k">Coverage</div>
-          <div className="v">—</div>
+          <div className="v"></div>
         </div>
       </div>
       <div className="mkt-frame-rows">
@@ -83,11 +83,11 @@ function IcoReport() {
 }
 
 const PIPELINE = [
-  { stage: 1, name: "Source", body: "Vault — MIS, board packs, transcripts." },
-  { stage: 2, name: "Proposed", body: "Inbox — parser output, not yet the book." },
+  { stage: 1, name: "Source", body: "Vault: MIS, board packs, transcripts." },
+  { stage: 2, name: "Proposed", body: "Inbox: parser output, not yet the book." },
   { stage: 3, name: "Reviewed", body: "Flags and units checked against evidence." },
   { stage: 4, name: "Book", body: "Confirmed facts with file and locator." },
-  { stage: 5, name: "Analysis", body: "Ask, reports, and compare — book only." },
+  { stage: 5, name: "Analysis", body: "Ask, reports, and compare. Book only." },
 ] as const;
 
 export function MarketingLanding() {
@@ -109,7 +109,7 @@ export function MarketingLanding() {
           </div>
           <div className="mkt-hero-visual">
             <CommandFrame />
-            <p className="mkt-schematic">Schematic of Command — not a live book.</p>
+            <p className="mkt-schematic">Schematic of Command, not a live book.</p>
           </div>
         </section>
 
@@ -121,7 +121,7 @@ export function MarketingLanding() {
               <p>Every figure needs a source. Ask refuses when the book has no evidence.</p>
             </div>
             <div>
-              <strong>Missing is —</strong>
+              <strong>Missing stays blank</strong>
               <p>Null stays null. We never coerce a blank into zero or a health score.</p>
             </div>
             <div>
@@ -145,7 +145,7 @@ export function MarketingLanding() {
                   <IcoCompanies />
                 </span>
                 <h3>Active companies</h3>
-                <div className="v">—</div>
+                <div className="v"></div>
               </div>
               <div className="mkt-clarity-status">
                 <span>Empty until you confirm a row</span>
@@ -158,7 +158,7 @@ export function MarketingLanding() {
                   <IcoFlags />
                 </span>
                 <h3>Open flags</h3>
-                <div className="v">—</div>
+                <div className="v"></div>
               </div>
               <div className="mkt-clarity-status">
                 <span>No evidence, no flag</span>
@@ -171,7 +171,7 @@ export function MarketingLanding() {
                   <IcoCoverage />
                 </span>
                 <h3>Coverage</h3>
-                <div className="v">—</div>
+                <div className="v"></div>
               </div>
               <div className="mkt-clarity-status">
                 <span>Missing stays missing</span>
@@ -190,7 +190,7 @@ export function MarketingLanding() {
             </article>
             <article>
               <h3>Cite or refuse</h3>
-              <p>Ask searches the book. Insufficient evidence returns a refusal — not an estimate.</p>
+              <p>Ask searches the book. Insufficient evidence returns a refusal, not an estimate.</p>
             </article>
             <article>
               <h3>Dual commentary</h3>
@@ -233,7 +233,7 @@ export function MarketingLanding() {
                 <IcoCite />
               </span>
               <strong>1. Cite</strong>
-              <p>Every figure needs a source document and locator. We extract and link the page or cell. Missing stays —.</p>
+              <p>Every figure needs a source document and locator. We extract and link the page or cell. Missing stays blank.</p>
             </li>
             <li>
               <span className="mkt-step-ico">
@@ -256,7 +256,7 @@ export function MarketingLanding() {
           <p className="mkt-kicker">Empty book</p>
           <h2>A new organisation starts empty.</h2>
           <p className="lede mkt-lede">
-            We do not publish customer logos or invent portfolio figures for marketing. Command shows dashes until
+            We do not publish customer logos or invent portfolio figures for marketing. Command stays blank until
             your firm confirms its first pack.
           </p>
         </section>
@@ -266,7 +266,7 @@ export function MarketingLanding() {
           <h2>Talk to us. No public price list.</h2>
           <p className="lede mkt-lede">
             Venture OS is with design partners first. We will not invent a seat price here. Get started and we
-            will discuss whether the book fits your firm — with an empty book until you confirm facts.
+            will discuss whether the book fits your firm, with an empty book until you confirm facts.
           </p>
           <div className="mkt-hero-ctas">
             <Link href="/signup" className="btn">

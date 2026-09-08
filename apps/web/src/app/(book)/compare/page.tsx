@@ -336,7 +336,7 @@ export default function ComparePage() {
       <PageHead
         title="Compare"
         kicker="Peer book"
-        lede="Toggle peers to reshape the radar, columns, and scatter — charts only include names you leave on."
+        lede="Toggle peers to reshape the radar, columns, and scatter. Charts only include names you leave on."
         actions={
           <button className="btn ghost sm" type="button" onClick={exportCsv} disabled={!visible.length}>
             Export
@@ -541,12 +541,8 @@ export default function ComparePage() {
         <div className="compare-stack">
           <Panel
             title="Peer fingerprints"
-            kicker={`Apex radar · ${Math.min(peerCount, 6)} peers`}
+            kicker={peerCount > 6 ? `6 of ${peerCount}` : `${peerCount} peers`}
           >
-            <p className="lede compare-chart-why">
-              Shape of booked metrics for the peers you left on. Axes are relative within this set — flip a peer
-              chip and the polygons change.
-            </p>
             <ComparePeerRadar
               peers={radarPeers}
               metricKeys={data.metrics.filter((m) => (CHARTABLE as readonly string[]).includes(m))}
@@ -555,10 +551,7 @@ export default function ComparePage() {
           </Panel>
 
           <div className="chart-grid chart-grid-single">
-            <Panel title={metricLabel(chartMetric, data.labels)} kicker="Peer columns">
-              <p className="lede compare-chart-why">
-                Ranked {metricLabel(chartMetric, data.labels).toLowerCase()} for selected peers only.
-              </p>
+            <Panel title={metricLabel(chartMetric, data.labels)}>
               <ComparePeerColumns
                 rows={chartRows}
                 metricLabel={metricLabel(chartMetric, data.labels)}
@@ -570,19 +563,7 @@ export default function ComparePage() {
             <Panel
               className="compare-scatter-panel"
               title={`${metricLabel(scatterPair.xKey, data.labels)} × ${metricLabel(scatterPair.yKey, data.labels)}`}
-              kicker={
-                scatterPair.zKey
-                  ? `Bubble · size ${metricLabel(scatterPair.zKey, data.labels)}`
-                  : "Peer bubble"
-              }
             >
-              <p className="lede compare-chart-why">
-                Position on two booked axes
-                {scatterPair.zKey
-                  ? `; bubble size is booked ${metricLabel(scatterPair.zKey, data.labels).toLowerCase()}`
-                  : ""}
-                . Drag to zoom · double-click to reset.
-              </p>
               <ComparePeerScatter
                 rows={scatterPair.rows}
                 xLabel={metricLabel(scatterPair.xKey, data.labels)}

@@ -23,7 +23,7 @@ export function bookErrorMessage(raw: string): string {
 
 export const WAKING_COPY = {
   checking: "Checking your organisation…",
-  slow: "Waking the book. Hosts on a free tier sleep after idle — this can take a short moment.",
+  slow: "Waking the book. Hosts on a free tier sleep after idle. This can take a short moment.",
   unreachable: "The book API is unreachable. Your session is kept. Try again in a moment.",
   retry: "Try again",
   retrying: "Trying again…",

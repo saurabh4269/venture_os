@@ -443,7 +443,7 @@ export default function NavPage() {
             <div className="nav-workspace">
             <Panel
               title="Marks"
-              kicker={`${visiblePositions.length} of ${data.positions.length} · click a row to mark`}
+              kicker={`${visiblePositions.length} of ${data.positions.length}`}
               flush
             >
               <div className="table-scroll">
@@ -528,7 +528,7 @@ export default function NavPage() {
           ) : null}
 
           {canWrite && !locked && data.positions.length > 0 ? (
-            <Panel id="nav-mark-form" title="Mark this quarter" kicker={`${quarterLabel(asOf)} · method + rationale`}>
+            <Panel id="nav-mark-form" title="Mark this quarter" kicker={quarterLabel(asOf)}>
               <form onSubmit={addMark} className="nav-mark-form">
                 <label className="field">
                   Company
