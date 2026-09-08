@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { METRIC_CATALOG, metricByKey } from "@venture-os/core";
 import { ComparePeerBars } from "@/components/BookCharts";
-import { PageHead, Panel } from "@/components/BookUI";
+import { CompanyMark, PageHead, Panel } from "@/components/BookUI";
 import { Fact } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -389,6 +389,7 @@ export default function ComparePage() {
                 <li key={c.id}>
                   <label>
                     <input type="checkbox" checked={checked(c.id)} onChange={() => toggleCo(c.id)} />
+                    <CompanyMark name={c.name} />
                     <span>{c.name}</span>
                     {c.stage ? <span className="lede">{c.stage}</span> : null}
                   </label>
@@ -452,6 +453,44 @@ export default function ComparePage() {
 
       {loading && <p className="lede">Loading</p>}
 
+      {!loading && data ? (
+        <div className="compare-peers-rail" aria-label="Companies in this compare">
+          <div className="compare-peers-head">
+            <div>
+              <strong>Peers in view</strong>
+              <p className="lede">
+                Charts and the matrix only include these names. Toggle peers to reshape the peer bars.
+              </p>
+            </div>
+            <div className="row" style={{ gap: 10 }}>
+              <button type="button" className="linkish" onClick={selectAllPeers}>
+                All
+              </button>
+              <button type="button" className="linkish" onClick={clearPeers}>
+                None
+              </button>
+            </div>
+          </div>
+          <div className="compare-peer-chips">
+            {(data.companies ?? []).map((c) => {
+              const on = checked(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`peer-chip${on ? " is-on" : ""}`}
+                  aria-pressed={on}
+                  onClick={() => toggleCo(c.id)}
+                >
+                  <CompanyMark name={c.name} />
+                  <span>{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {!loading && !err && visible.length === 0 ? (
         <div className="empty">
           <strong>Nothing to compare</strong>
@@ -462,7 +501,11 @@ export default function ComparePage() {
       {!loading && data && visible.length > 0 ? (
         <div className="compare-stack">
           <div className={`chart-grid${secondaryMetric ? "" : " chart-grid-single"}`}>
-            <Panel title={metricLabel(chartMetric, data.labels)} kicker="Peers (booked)">
+            <Panel title={metricLabel(chartMetric, data.labels)} kicker={`Why this chart · ${peerCount} peers`}>
+              <p className="lede compare-chart-why">
+                Booked {metricLabel(chartMetric, data.labels).toLowerCase()} across the selected peers for the period
+                filter above. Blank peers stay off the chart.
+              </p>
               <ComparePeerBars
                 rows={chartRows}
                 metricLabel={metricLabel(chartMetric, data.labels)}
@@ -504,9 +547,12 @@ export default function ComparePage() {
                   {visible.map((row) => (
                     <tr key={row.company.id}>
                       <td>
-                        <Link className="company-link" href={`/companies/${row.company.id}`}>
-                          {row.company.name}
-                        </Link>
+                        <div className="company-cell">
+                          <CompanyMark name={row.company.name} />
+                          <Link className="company-link" href={`/companies/${row.company.id}`}>
+                            {row.company.name}
+                          </Link>
+                        </div>
                       </td>
                       {data.metrics.map((m) => {
                         const cell = row.cells[m];

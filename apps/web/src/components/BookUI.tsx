@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { IconChevronDown, IconSearch } from "@/components/Icons";
+import { companyLogoSrc } from "@/lib/company-logos";
 import { formatOwnership } from "@/lib/format";
 import { SPRING_INDICATOR } from "@/lib/motion-ease";
 
@@ -16,6 +17,7 @@ export function PageHead({
   actions,
   testId,
   badge,
+  mark,
 }: {
   title: string;
   lede?: ReactNode;
@@ -23,16 +25,20 @@ export function PageHead({
   actions?: ReactNode;
   testId?: string;
   badge?: ReactNode;
+  mark?: ReactNode;
 }) {
   return (
     <header className="page-head">
-      <div>
-        {kicker ? <p className="page-kicker">{kicker}</p> : null}
-        <div className="page-title-row">
-          <h1 data-testid={testId}>{title}</h1>
-          {badge}
+      <div className={mark ? "page-head-main" : undefined}>
+        {mark ? <div className="page-head-mark">{mark}</div> : null}
+        <div>
+          {kicker ? <p className="page-kicker">{kicker}</p> : null}
+          <div className="page-title-row">
+            <h1 data-testid={testId}>{title}</h1>
+            {badge}
+          </div>
+          {lede ? <p className="lede">{lede}</p> : null}
         </div>
-        {lede ? <p className="lede">{lede}</p> : null}
       </div>
       {actions ? <div className="page-actions">{actions}</div> : null}
     </header>
@@ -369,7 +375,10 @@ export function CompanyCombobox({
                 onMouseEnter={() => setHi(i)}
                 onClick={() => pick(c)}
               >
-                <span className="company-combobox-name">{c.name}</span>
+                <span className="company-combobox-lead">
+                  <CompanyMark name={c.name} />
+                  <span className="company-combobox-name">{c.name}</span>
+                </span>
                 <span className="company-combobox-meta">{c.stage ?? ""}</span>
               </button>
             </li>
@@ -430,11 +439,26 @@ export function Miss({ label = "Not reported" }: { label?: string }) {
   return <span className="fact-miss" aria-label={label} />;
 }
 
-export function CompanyMark({ name }: { name: string }) {
+export function CompanyMark({
+  name,
+  size = "sm",
+}: {
+  name: string;
+  size?: "sm" | "md" | "lg";
+}) {
   const initial = (name.trim()[0] || "?").toUpperCase();
+  const src = companyLogoSrc(name);
+  const [failed, setFailed] = useState(false);
+  const showLogo = Boolean(src) && !failed;
+
   return (
-    <span className="co-mark" aria-hidden>
-      {initial}
+    <span className={`co-mark co-mark--${size}${showLogo ? " has-logo" : ""}`} aria-hidden title={name}>
+      {showLogo ? (
+        // eslint-disable-next-line @next/next/no-img-element -- local static marks; initial fallback on error
+        <img src={src!} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />
+      ) : (
+        initial
+      )}
     </span>
   );
 }

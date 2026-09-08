@@ -9,6 +9,7 @@ import {
   CashByCompanyChart,
   CoverageMixChart,
   FundRollupBars,
+  KpiSparkline,
   PortfolioSeriesChart,
 } from "@/components/BookCharts";
 import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
@@ -333,8 +334,10 @@ export default function CommandPage() {
             <div className={`kpi${data.pulse.openFlags > 0 ? " accent-warn" : ""}`}>
               <Link className="kpi-link" href="/flags">
                 <div className="k">Open flags</div>
-                <div className="v">
-                  <AnimatedNumber value={data.pulse.openFlags} />
+                <div className="kpi-row">
+                  <div className="v">
+                    <AnimatedNumber value={data.pulse.openFlags} />
+                  </div>
                 </div>
                 {data.pulse.openFlags > 0 ? <div className="meta">Requires review</div> : null}
               </Link>
@@ -346,24 +349,30 @@ export default function CommandPage() {
               </div>
               <div className="meta">{gaps > 0 ? "No booked MIS" : "All names have a period"}</div>
             </div>
-            <div className={`kpi${!data.pulse.nav.nav.complete ? " accent-warn" : " accent-forest"}`}>
+            <div className={`kpi kpi-with-spark${!data.pulse.nav.nav.complete ? " accent-warn" : " accent-forest"}`}>
               <Link className="kpi-link" href="/nav">
-                <div className="k">NAV</div>
-                <div className="v">
-                  {data.pulse.nav.nav.total == null ? "" : data.pulse.nav.nav.total.toLocaleString("en-IN")}
+                <div className="kpi-body">
+                  <div className="k">NAV</div>
+                  <div className="v">
+                    {data.pulse.nav.nav.total == null ? "" : data.pulse.nav.nav.total.toLocaleString("en-IN")}
+                  </div>
+                  <div className="meta">
+                    {!data.pulse.nav.nav.complete ? `Incomplete · ${data.pulse.nav.nav.missing} unmarked` : "As booked"}
+                  </div>
                 </div>
-                <div className="meta">
-                  {!data.pulse.nav.nav.complete ? `Incomplete · ${data.pulse.nav.nav.missing} unmarked` : "As booked"}
-                </div>
+                <KpiSparkline values={(data.charts?.portfolioSeries ?? []).map((r) => r.cashSum)} />
               </Link>
             </div>
-            <div className="kpi">
-              <div className="k">MOIC</div>
-              <div className="v">{data.pulse.moic == null ? "" : `${data.pulse.moic.toFixed(2)}x`}</div>
-              <div className="meta">
-                IRR {data.pulse.irr == null ? "" : `${(data.pulse.irr * 100).toFixed(1)}%`}
-                {uncited != null && uncited > 0 ? ` · ${uncited} uncited` : ""}
+            <div className="kpi kpi-with-spark">
+              <div className="kpi-body">
+                <div className="k">MOIC</div>
+                <div className="v">{data.pulse.moic == null ? "" : `${data.pulse.moic.toFixed(2)}x`}</div>
+                <div className="meta">
+                  IRR {data.pulse.irr == null ? "" : `${(data.pulse.irr * 100).toFixed(1)}%`}
+                  {uncited != null && uncited > 0 ? ` · ${uncited} uncited` : ""}
+                </div>
               </div>
+              <KpiSparkline values={(data.charts?.portfolioSeries ?? []).map((r) => r.revenueSum)} />
             </div>
           </div>
 

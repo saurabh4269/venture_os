@@ -270,13 +270,28 @@ export default function CompaniesPage() {
                     const rowClass =
                       kind === "gap" ? "row-gap" : kind === "review" || (cov?.openFlags ?? 0) > 0 ? "row-flag" : undefined;
                     return (
-                      <tr key={c.id} data-testid="companies-row" className={rowClass}>
+                      <tr
+                        key={c.id}
+                        data-testid="companies-row"
+                        className={`row-link${rowClass ? ` ${rowClass}` : ""}`}
+                        tabIndex={0}
+                        role="link"
+                        aria-label={`Open ${c.name}`}
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest("a, button, input, select, textarea")) return;
+                          router.push(`/companies/${c.id}`);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            router.push(`/companies/${c.id}`);
+                          }
+                        }}
+                      >
                         <td>
                           <div className="company-cell">
                             <CompanyMark name={c.name} />
-                            <Link className="company-link" href={`/companies/${c.id}`}>
-                              {c.name}
-                            </Link>
+                            <span className="company-link">{c.name}</span>
                           </div>
                         </td>
                         <td>{c.stage ?? ""}</td>

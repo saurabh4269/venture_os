@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import useSWR, { mutate as swrMutate } from "swr";
-import { AskFab } from "@/components/AskPanel";
 import { CiteProvider, useCite, type CitePayload } from "@/components/Cite";
 import {
   IconAsk,
@@ -16,6 +15,8 @@ import {
   IconInbox,
   IconNav,
   IconOrg,
+  IconRailLeft,
+  IconRailRight,
   IconReports,
   IconSettings,
   IconUser,
@@ -102,17 +103,18 @@ const NAV: NavGroup[] = [
   {
     id: "output",
     title: "Output",
-    items: [{ href: "/reports", label: "Reports", Icon: IconReports }],
+    items: [
+      { href: "/reports", label: "Reports", Icon: IconReports },
+      { href: "/ask", label: "Ask", Icon: IconAsk, match: (p) => p.startsWith("/ask") },
+    ],
   },
 ];
+
+const RAIL_COLLAPSED_KEY = "vos.railCollapsed";
 
 function pathActive(path: string, item: NavItem) {
   if (item.match) return item.match(path);
   return path === item.href || path.startsWith(`${item.href}/`);
-}
-
-function groupOpen(path: string, group: NavGroup) {
-  return group.items.some((item) => pathActive(path, item));
 }
 
 function NavLink({
@@ -123,6 +125,7 @@ function NavLink({
   onClick,
   nested,
   badge,
+  collapsed,
 }: {
   href: string;
   label: string;
@@ -131,6 +134,7 @@ function NavLink({
   onClick: () => void;
   nested?: boolean;
   badge?: number | null;
+  collapsed?: boolean;
 }) {
   const router = useRouter();
   const reduce = useReducedMotion();
@@ -140,7 +144,8 @@ function NavLink({
       href={href}
       className={`${nested ? "nav-sub" : ""}${active ? " active" : ""}`}
       aria-current={active ? "page" : undefined}
-      aria-label={showBadge ? `${label}, ${badge}` : undefined}
+      aria-label={showBadge ? `${label}, ${badge}` : label}
+      title={collapsed ? label : undefined}
       onClick={onClick}
       onMouseEnter={() => {
         router.prefetch(href);
@@ -177,13 +182,33 @@ export function Shell({ children }: { children: React.ReactNode }) {
   pathRef.current = path;
   const router = useRouter();
   const [navOpen, setNavOpen] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const [orgLive, setOrgLive] = useState("");
   const [wake, setWake] = useState<"loading" | "slow" | "error">("loading");
   const [wakeErr, setWakeErr] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const redirected = useRef(false);
+
+  useEffect(() => {
+    try {
+      setRailCollapsed(window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function toggleRailCollapsed() {
+    setRailCollapsed((v) => {
+      const next = !v;
+      try {
+        window.localStorage.setItem(RAIL_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   const {
     data: me,
@@ -206,12 +231,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
   });
   const confirmBadge = pulseLite?.pulse.inboxPending ?? null;
   const flagsBadge = pulseLite?.pulse.openFlags ?? null;
-
-  useEffect(() => {
-    const next: Record<string, boolean> = {};
-    for (const g of NAV) next[g.id] = groupOpen(path, g);
-    setExpanded((prev) => ({ ...prev, ...next }));
-  }, [path]);
 
   useEffect(() => {
     if (!sessionPending) return;
@@ -309,9 +328,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
     Boolean(me?.org?.metadata?.includes("fixtureOnly")) || /FIXTURE_ONLY/i.test(me?.org?.name ?? "");
   const canWrite = isWriteRole(me?.role);
   const orgName = me?.org?.name ?? "Venture OS";
-  const companyMatch = path.match(/^\/companies\/([^/]+)/);
-  const askCompanyId = companyMatch && companyMatch[1] !== "new" ? companyMatch[1] : undefined;
-
   if (!ready) {
     const message =
       wake === "error" ? WAKING_COPY.unreachable : wake === "slow" || meValidating ? WAKING_COPY.slow : WAKING_COPY.checking;
@@ -326,83 +342,72 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="app" data-testid="shell-ready">
+    <div className={`app${railCollapsed ? " rail-collapsed" : ""}`} data-testid="shell-ready">
       <a href="#main" className="skip-link">
         Skip to book
       </a>
-      <aside className={navOpen ? "rail is-open" : "rail"}>
-        <Link href="/command" className="brand">
-          Venture OS
-          <span>{orgName}</span>
-        </Link>
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={navOpen}
-          aria-controls="primary-nav"
-          onClick={() => setNavOpen((v) => !v)}
-        >
-          Menu
-        </button>
+      <aside className={`rail${navOpen ? " is-open" : ""}${railCollapsed ? " is-collapsed" : ""}`}>
+        <div className="rail-top">
+          <Link href="/command" className="brand" title="Venture OS">
+            <span className="brand-mark" aria-hidden>
+              V
+            </span>
+            <span className="brand-copy">
+              Venture OS
+              <span>{orgName}</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="rail-collapse"
+            aria-pressed={railCollapsed}
+            aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={toggleRailCollapsed}
+          >
+            {railCollapsed ? <IconRailRight /> : <IconRailLeft />}
+          </button>
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-expanded={navOpen}
+            aria-controls="primary-nav"
+            onClick={() => setNavOpen((v) => !v)}
+          >
+            Menu
+          </button>
+        </div>
         <nav id="primary-nav" className={navOpen ? "nav is-open" : "nav"} aria-label="Primary">
-          {NAV.map((g) => {
-            const open = expanded[g.id] ?? groupOpen(path, g);
-            const single = g.items.length === 1;
-            return (
-              <div key={g.id} className="nav-group">
-                {single ? (
-                  <NavLink
-                    href={g.items[0].href}
-                    label={g.items[0].label}
-                    Icon={g.items[0].Icon}
-                    active={pathActive(path, g.items[0])}
-                    onClick={() => setNavOpen(false)}
-                    badge={
-                      g.items[0].href === "/confirm"
-                        ? confirmBadge
-                        : g.items[0].href === "/flags"
-                          ? flagsBadge
-                          : null
-                    }
-                  />
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className={`nav-parent${open ? " is-open" : ""}${groupOpen(path, g) ? " has-active" : ""}`}
-                      aria-expanded={open}
-                      onClick={() => setExpanded((e) => ({ ...e, [g.id]: !open }))}
-                    >
-                      <span>{g.title}</span>
-                      <span className="nav-chevron" aria-hidden>
-                        {open ? "▾" : "▸"}
-                      </span>
-                    </button>
-                    {open
-                      ? g.items.map((n) => (
-                          <NavLink
-                            key={n.href}
-                            href={n.href}
-                            label={n.label}
-                            Icon={n.Icon}
-                            nested
-                            active={pathActive(path, n)}
-                            onClick={() => setNavOpen(false)}
-                            badge={
-                              n.href === "/confirm" ? confirmBadge : n.href === "/flags" ? flagsBadge : null
-                            }
-                          />
-                        ))
-                      : null}
-                  </>
-                )}
-              </div>
-            );
-          })}
+          {NAV.map((g) => (
+            <div key={g.id} className="nav-group">
+              <div className="nav-sec">{g.title}</div>
+              {g.items.map((n) => (
+                <NavLink
+                  key={n.href}
+                  href={n.href}
+                  label={n.label}
+                  Icon={n.Icon}
+                  nested
+                  collapsed={railCollapsed}
+                  active={pathActive(path, n)}
+                  onClick={() => setNavOpen(false)}
+                  badge={n.href === "/confirm" ? confirmBadge : n.href === "/flags" ? flagsBadge : null}
+                />
+              ))}
+            </div>
+          ))}
         </nav>
         {canWrite && (
-          <Link href="/companies/new" className="btn rail-cta" onClick={() => setNavOpen(false)}>
-            New company
+          <Link
+            href="/companies/new"
+            className="btn rail-cta"
+            title="New company"
+            onClick={() => setNavOpen(false)}
+          >
+            <span className="rail-cta-label">New company</span>
+            <span className="rail-cta-plus" aria-hidden>
+              +
+            </span>
           </Link>
         )}
         <div className="account" aria-label="Account">
@@ -412,6 +417,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             aria-expanded={accountOpen}
             aria-controls="account-menu"
             data-testid="account-menu"
+            title={me?.user?.name ?? "Account"}
             onClick={() => setAccountOpen((v) => !v)}
           >
             <IconUser />
@@ -433,18 +439,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
               >
                 <IconSettings className="nav-ico" />
                 Settings
-              </Link>
-              <Link
-                href="/ask"
-                role="menuitem"
-                className="account-menu-item"
-                onClick={() => {
-                  setAccountOpen(false);
-                  setNavOpen(false);
-                }}
-              >
-                <IconAsk className="nav-ico" />
-                Ask history
               </Link>
               {orgs.length === 0 ? (
                 <Link href="/onboard" role="menuitem" className="account-menu-item" onClick={() => setAccountOpen(false)}>
@@ -493,10 +487,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             ready: true,
           }}
         >
-          <CiteProvider>
-            {children}
-            <AskFab companyId={askCompanyId} />
-          </CiteProvider>
+          <CiteProvider>{children}</CiteProvider>
         </BookSessionContext.Provider>
       </main>
     </div>

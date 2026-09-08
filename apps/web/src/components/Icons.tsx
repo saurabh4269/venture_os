@@ -166,6 +166,22 @@ export function IconSearch(p: IconProps) {
     </Svg>
   );
 }
+export function IconRailLeft(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M10 3.5 5.5 8 10 12.5" />
+      <path d="M12.5 3.5v9" />
+    </Svg>
+  );
+}
+export function IconRailRight(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M6 3.5 10.5 8 6 12.5" />
+      <path d="M3.5 3.5v9" />
+    </Svg>
+  );
+}
 export function IconChevronDown(p: IconProps) {
   return (
     <Svg {...p}>

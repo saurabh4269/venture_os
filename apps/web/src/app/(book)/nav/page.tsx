@@ -440,9 +440,10 @@ export default function NavPage() {
               No positions. Add a fund in <Link href="/settings">Settings</Link>, then onboard a company.
             </div>
           ) : (
+            <div className="nav-workspace">
             <Panel
               title="Marks"
-              kicker={`${visiblePositions.length} of ${data.positions.length}`}
+              kicker={`${visiblePositions.length} of ${data.positions.length} · click a row to mark`}
               flush
             >
               <div className="table-scroll">
@@ -467,11 +468,12 @@ export default function NavPage() {
                           key={p.position.id}
                           className={unmarkedRow ? "row-flag" : undefined}
                           onClick={() => {
-                            if (canWrite && !locked && unmarkedRow) {
-                              setForm({ ...emptyForm, positionId: p.position.id });
-                            }
+                            if (!(canWrite && !locked)) return;
+                            setForm({ ...emptyForm, positionId: p.position.id });
+                            const el = document.getElementById("nav-mark-form");
+                            if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
                           }}
-                          style={canWrite && !locked && unmarkedRow ? { cursor: "pointer" } : undefined}
+                          style={canWrite && !locked ? { cursor: "pointer" } : undefined}
                         >
                           <td>
                             <div className="company-cell">
@@ -520,14 +522,13 @@ export default function NavPage() {
                 <p className="table-foot">No rows match this filter.</p>
               ) : null}
             </Panel>
-          )}
 
           {canWrite && locked ? (
             <p className="lede">Locked. Unlock before changing marks.</p>
           ) : null}
 
           {canWrite && !locked && data.positions.length > 0 ? (
-            <Panel id="nav-mark-form" title="Add mark" kicker={quarterLabel(asOf)}>
+            <Panel id="nav-mark-form" title="Mark this quarter" kicker={`${quarterLabel(asOf)} · method + rationale`}>
               <form onSubmit={addMark} className="nav-mark-form">
                 <label className="field">
                   Company
@@ -648,6 +649,8 @@ export default function NavPage() {
               </form>
             </Panel>
           ) : null}
+            </div>
+          )}
         </>
       ) : null}
     </>

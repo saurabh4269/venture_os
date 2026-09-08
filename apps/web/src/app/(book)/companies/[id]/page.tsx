@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay, metricByKey } from "@venture-os/core";
-import { formatOwnership, Miss, PageHead, PageTabs, Panel } from "@/components/BookUI";
+import { CompanyMark, formatOwnership, Miss, PageHead, PageTabs, Panel } from "@/components/BookUI";
 import { CompanyMetricHistoryChart } from "@/components/BookCharts";
 import { useCite } from "@/components/Cite";
 import { Fact, useBookSession } from "@/components/Shell";
@@ -366,6 +366,7 @@ export default function CompanyPage() {
 
   return (
     <><PageHead
+        mark={<CompanyMark name={data.company.name} size="lg" />}
         title={data.company.name}
         kicker={[data.company.sector, data.company.country].filter(Boolean).join(" · ") || "Company"}
         badge={data.company.stage ? <span className="badge">{data.company.stage}</span> : undefined}

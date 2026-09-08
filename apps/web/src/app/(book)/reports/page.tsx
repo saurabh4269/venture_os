@@ -16,6 +16,27 @@ const KIND_LABEL: Record<string, string> = {
   monthly_pack: "Monthly pack",
 };
 
+const PACKS = [
+  {
+    kind: "one_pager" as const,
+    title: "One-pager",
+    body: "Single-company brief from booked metrics and evidence. Pick the name first.",
+    needsCompany: true,
+  },
+  {
+    kind: "portfolio" as const,
+    title: "Portfolio pack",
+    body: "Fund-wide snapshot across confirmed coverage. Company optional for a focus name.",
+    needsCompany: false,
+  },
+  {
+    kind: "monthly_pack" as const,
+    title: "Monthly pack",
+    body: "Ritual close pack for the period. Uses the book only — no invented cells.",
+    needsCompany: false,
+  },
+];
+
 export default function ReportsPage() {
   const { canWrite } = useBookSession();
   const { data: reportsData, error, isLoading: loading, mutate } = useSWR<{ reports: Report[] }>(
@@ -63,42 +84,58 @@ export default function ReportsPage() {
           {err}
         </p>
       )}
+
       {canWrite && (
-        <div className="table-tools">
-          <label className="field table-tools-field">
-            <span className="sr-only">Period end</span>
-            <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} aria-label="Period end" />
-          </label>
-          <label className="field table-tools-field">
-            <span className="sr-only">Company</span>
-            <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
-              <option value="">Select company (required for one-pager)</option>
-              {cos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="btn" onClick={() => draft("one_pager")} disabled={Boolean(busy)}>
-            {busy === "one_pager" ? "Drafting…" : "Draft one-pager"}
-          </button>
-          <button className="btn ghost" onClick={() => draft("portfolio")} disabled={Boolean(busy)}>
-            {busy === "portfolio" ? "Drafting…" : "Draft portfolio"}
-          </button>
-          <button className="btn ghost" onClick={() => draft("monthly_pack")} disabled={Boolean(busy)}>
-            {busy === "monthly_pack" ? "Drafting…" : "Draft monthly pack"}
-          </button>
-        </div>
+        <section className="report-build" aria-label="Draft packs">
+          <div className="table-tools">
+            <label className="field table-tools-field">
+              <span className="sr-only">Period end</span>
+              <input
+                type="date"
+                value={periodEnd}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+                aria-label="Period end"
+              />
+            </label>
+            <label className="field table-tools-field">
+              <span className="sr-only">Company</span>
+              <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company">
+                <option value="">Company (required for one-pager)</option>
+                {cos.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="report-pack-grid">
+            {PACKS.map((p) => (
+              <article key={p.kind} className="report-pack-card">
+                <h3>{p.title}</h3>
+                <p className="lede">{p.body}</p>
+                <button
+                  type="button"
+                  className={p.kind === "one_pager" ? "btn" : "btn ghost"}
+                  disabled={Boolean(busy) || (p.needsCompany && !companyId)}
+                  onClick={() => draft(p.kind)}
+                >
+                  {busy === p.kind ? "Drafting…" : `Draft ${p.title.toLowerCase()}`}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
       )}
+
       {loading && !err && <p className="lede">Loading the book…</p>}
       {!loading && rows.length === 0 ? (
         <div className="empty">
           <strong>No drafts yet</strong>
-          Pick a company and draft a one-pager, or draft the monthly pack from confirmed facts.
+          Choose a pack above. Exports stay blank where the book has no fact.
         </div>
       ) : !loading ? (
-        <Panel flush>
+        <Panel title="Recent drafts" flush>
           <table>
             <thead>
               <tr>
