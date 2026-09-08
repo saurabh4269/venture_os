@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FLAG_CATALOG, formatDualDisplay, metricByKey } from "@venture-os/core";
-import { CompanyMark, formatOwnership, Miss, PageHead, PageTabs, Panel } from "@/components/BookUI";
+import { CompanyMark, formatOwnership, Miss, PageHead, PageTabs, Panel, WorkSplit } from "@/components/BookUI";
 import { CompanyMetricHistoryChart } from "@/components/BookCharts";
 import { useCite } from "@/components/Cite";
 import { Fact, useBookSession } from "@/components/Shell";
@@ -412,6 +412,7 @@ export default function CompanyPage() {
 
       {tab === "overview" && (
         <>
+          <p className="page-kicker company-op-kicker">Operating</p>
           <div className="cards cards-4 company-kpi-strip" aria-label="Objective metrics">
             <div className="kpi accent-forest">
               <div className="k">Cash</div>
@@ -482,42 +483,43 @@ export default function CompanyPage() {
             </div>
           </div>
 
-          <Panel title="Booked trend">
-            <CompanyMetricHistoryChart points={historyPoints} />
-          </Panel>
-
-          <Panel title="Positions">
-            {!data.positions?.length ? (
-              <div className="empty">No positions.</div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fund</th>
-                    <th>Instrument</th>
-                    <th>Ownership</th>
-                    <th>Cost</th>
-                    <th>Invested</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.positions.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.fundName}</td>
-                      <td>{p.instrument}</td>
-                      <td>{formatOwnership(p.ownershipPct)}</td>
-                      <td>
-                        {p.costBasis == null
-                          ? ""
-                          : `${p.costBasis.toLocaleString("en-IN")} ${p.costCurrency}`}
-                      </td>
-                      <td>{p.investedAt ?? ""}</td>
+          <WorkSplit>
+            <Panel title="Booked trend">
+              <CompanyMetricHistoryChart points={historyPoints} />
+            </Panel>
+            <Panel title="Positions">
+              {!data.positions?.length ? (
+                <div className="empty">No positions.</div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fund</th>
+                      <th>Instrument</th>
+                      <th>Ownership</th>
+                      <th>Cost</th>
+                      <th>Invested</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Panel>
+                  </thead>
+                  <tbody>
+                    {data.positions.map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.fundName}</td>
+                        <td>{p.instrument}</td>
+                        <td>{formatOwnership(p.ownershipPct)}</td>
+                        <td>
+                          {p.costBasis == null
+                            ? ""
+                            : `${p.costBasis.toLocaleString("en-IN")} ${p.costCurrency}`}
+                        </td>
+                        <td>{p.investedAt ?? ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </Panel>
+          </WorkSplit>
 
           <div className="grid-2" style={{ marginBottom: 16 }}>
             <Panel title="Evidence trail">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { FLAG_CATALOG } from "@venture-os/core";
-import { CompanyMark, EM, formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { CompanyMark, EM, formatOwnership, PageHead, Panel, WorkSplit } from "@/components/BookUI";
 import {
   CashByCompanyChart,
   CoverageMixChart,
@@ -400,61 +400,72 @@ export default function CommandPage() {
             </div>
           </div>
 
-          <Panel
-            title="Needs a look"
-            kicker={look.length ? `${look.length} items` : undefined}
-            actions={
-              look.length > 0 ? (
-                <Link className="btn ghost sm" href="/confirm">
-                  Open Confirm
-                </Link>
-              ) : null
-            }
-          >
-            {look.length === 0 ? (
-              <div className="empty" style={{ boxShadow: "none" }}>
-                {data.pulse.companies === 0
-                  ? "No companies yet. Add one when you are ready."
-                  : "You are up to date. Check Confirm after new uploads."}
-              </div>
-            ) : (
-              <div className="look-list">
-                {look.map((item, i) => (
-                  <FadeIn key={item.id} delay={Math.min(i, 6) * 0.04}>
-                    <Link className="look-item" href={item.href}>
-                      {item.severity === "high" ? (
-                        <IconWarn className="nav-ico look-ico high" />
-                      ) : (
-                        <IconFlagSmall className="nav-ico look-ico" />
-                      )}
-                      <div>
-                        <div className="look-title">{item.company}</div>
-                        <div className="look-copy">{item.copy}</div>
-                      </div>
+          {(() => {
+            const series = data.charts?.portfolioSeries ?? [];
+            const hasTrend =
+              series.filter((r) => r.cashSum != null || r.revenueSum != null || r.burnSum != null).length >= 2;
+            const showMix = Boolean(data.charts && data.pulse.companies > 0);
+            const lookPanel = (
+              <Panel
+                title="Needs a look"
+                kicker={look.length ? `${look.length} items` : undefined}
+                actions={
+                  look.length > 0 ? (
+                    <Link className="btn ghost sm" href="/confirm">
+                      Open Confirm
                     </Link>
-                  </FadeIn>
-                ))}
-              </div>
-            )}
-          </Panel>
+                  ) : null
+                }
+              >
+                {look.length === 0 ? (
+                  <div className="empty" style={{ boxShadow: "none" }}>
+                    {data.pulse.companies === 0
+                      ? "No companies yet. Add one when you are ready."
+                      : "You are up to date. Check Confirm after new uploads."}
+                  </div>
+                ) : (
+                  <div className="look-list">
+                    {look.map((item, i) => (
+                      <FadeIn key={item.id} delay={Math.min(i, 6) * 0.04}>
+                        <Link className="look-item" href={item.href}>
+                          {item.severity === "high" ? (
+                            <IconWarn className="nav-ico look-ico high" />
+                          ) : (
+                            <IconFlagSmall className="nav-ico look-ico" />
+                          )}
+                          <div>
+                            <div className="look-title">{item.company}</div>
+                            <div className="look-copy">{item.copy}</div>
+                          </div>
+                        </Link>
+                      </FadeIn>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+            );
+            const hero = hasTrend ? (
+              <Panel title="Portfolio trend" kicker="Booked cash, revenue, burn">
+                <PortfolioSeriesChart rows={series} />
+              </Panel>
+            ) : showMix ? (
+              <Panel title="Coverage mix" className="coverage-mix-panel">
+                <CoverageMixChart {...data.charts!.coverageMix} />
+              </Panel>
+            ) : null;
+            if (!hero) return lookPanel;
+            return (
+              <WorkSplit>
+                {hero}
+                {lookPanel}
+              </WorkSplit>
+            );
+          })()}
 
           {data.charts && data.pulse.companies > 0 ? (
-            <>
-              <Panel title="Runway" className="runway-strip-panel">
-                <RunwayUrgencyStrip rows={data.charts.runwayByCompany ?? []} />
-              </Panel>
-              <div className="chart-grid chart-grid-command">
-                <Panel title="Coverage mix" className="coverage-mix-panel">
-                  <CoverageMixChart {...data.charts.coverageMix} />
-                </Panel>
-                <Panel title="Cash by company" className="chart-span-2">
-                  <CashByCompanyChart rows={data.charts.cashByCompany} />
-                </Panel>
-                <Panel title="Portfolio trend" className="chart-span-2">
-                  <PortfolioSeriesChart rows={data.charts.portfolioSeries} />
-                </Panel>
-              </div>
-            </>
+            <Panel title="Runway" className="runway-strip-panel">
+              <RunwayUrgencyStrip rows={data.charts.runwayByCompany ?? []} />
+            </Panel>
           ) : null}
 
           {data.pulse.companies === 0 && (
@@ -612,6 +623,12 @@ export default function CommandPage() {
               </div>
             </Panel>
           )}
+
+          {data.charts && data.pulse.companies > 0 && data.charts.cashByCompany.length > 0 ? (
+            <Panel title="Cash by company">
+              <CashByCompanyChart rows={data.charts.cashByCompany} />
+            </Panel>
+          ) : null}
         </>
       )}
     </>

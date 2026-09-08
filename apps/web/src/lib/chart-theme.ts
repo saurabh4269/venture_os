@@ -34,22 +34,40 @@ export function fmtChartNum(n: number) {
   return n.toLocaleString("en-IN", { maximumFractionDigits: 1 });
 }
 
-const TIP = {
-  backgroundColor: BOOK_CHART.paper,
-  titleColor: BOOK_CHART.ink,
-  bodyColor: BOOK_CHART.forest,
-  borderColor: BOOK_CHART.rule,
-  borderWidth: 1,
-  cornerRadius: 8,
-  padding: 10,
-  displayColors: true,
-  titleFont: { size: 12, weight: 600 as const, family: "inherit" },
-  bodyFont: { size: 12, family: "inherit" },
+/** Axis / tooltip chrome follows the book theme. Series colors stay in BOOK_CHART. */
+export function chartChrome() {
+  const dark = typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark";
+  return {
+    muted: dark ? "#a3a3a3" : "#6b6b6b",
+    ink: dark ? "#f5f5f5" : "#111111",
+    paper: dark ? "#161616" : "#ffffff",
+    rule: dark ? "#2a2a2a" : "#e2e2e2",
+    tip: (dark ? "dark" : "light") as "dark" | "light",
+  };
+}
+
+const TIP = () => {
+  const c = chartChrome();
+  return {
+    backgroundColor: c.paper,
+    titleColor: c.ink,
+    bodyColor: c.ink,
+    borderColor: c.rule,
+    borderWidth: 1,
+    cornerRadius: 8,
+    padding: 10,
+    displayColors: true,
+    titleFont: { size: 12, weight: 600 as const, family: "inherit" },
+    bodyFont: { size: 12, family: "inherit" },
+  };
 };
 
-const TICK = {
-  color: BOOK_CHART.muted,
-  font: { size: 11, family: "inherit" },
+const TICK = () => {
+  const c = chartChrome();
+  return {
+    color: c.muted,
+    font: { size: 11, family: "inherit" },
+  };
 };
 
 function motion(reduce: boolean) {
@@ -67,7 +85,7 @@ export function doughnutOptions(
     animation: motion(reduceMotion),
     plugins: {
       legend: { display: false },
-      tooltip: { ...TIP, callbacks: { label: onLabel } },
+      tooltip: { ...TIP(), callbacks: { label: onLabel } },
     },
     layout: { padding: 4 },
   } as ChartOptions<"doughnut">;
@@ -87,18 +105,18 @@ export function horizontalBarOptions(
     animation: motion(reduceMotion),
     plugins: {
       legend: { display: false },
-      tooltip: { ...TIP, callbacks: { title: opts.title, label: opts.label } },
+      tooltip: { ...TIP(), callbacks: { title: opts.title, label: opts.label } },
     },
     scales: {
       x: {
-        grid: { color: BOOK_CHART.rule },
+        grid: { color: chartChrome().rule },
         border: { display: false },
-        ticks: { ...TICK, callback: (v) => fmtChartNum(Number(v)) },
+        ticks: { ...TICK(), callback: (v) => fmtChartNum(Number(v)) },
       },
       y: {
         grid: { display: false },
         border: { display: false },
-        ticks: TICK,
+        ticks: TICK(),
       },
     },
   } as ChartOptions<"bar">;
@@ -120,23 +138,23 @@ export function lineOptions(
           boxHeight: 10,
           usePointStyle: true,
           pointStyle: "circle",
-          color: BOOK_CHART.muted,
+          color: chartChrome().muted,
           font: { size: 11, family: "inherit" },
           padding: 14,
         },
       },
-      tooltip: { ...TIP, callbacks: { label: onLabel } },
+      tooltip: { ...TIP(), callbacks: { label: onLabel } },
     },
     scales: {
       x: {
-        grid: { color: BOOK_CHART.rule },
+        grid: { color: chartChrome().rule },
         border: { display: false },
-        ticks: TICK,
+        ticks: TICK(),
       },
       y: {
-        grid: { color: BOOK_CHART.rule },
+        grid: { color: chartChrome().rule },
         border: { display: false },
-        ticks: { ...TICK, callback: (v) => fmtChartNum(Number(v)) },
+        ticks: { ...TICK(), callback: (v) => fmtChartNum(Number(v)) },
       },
     },
   } as ChartOptions<"line">;
@@ -158,23 +176,23 @@ export function groupedBarOptions(
           boxHeight: 10,
           usePointStyle: true,
           pointStyle: "circle",
-          color: BOOK_CHART.muted,
+          color: chartChrome().muted,
           font: { size: 11, family: "inherit" },
           padding: 14,
         },
       },
-      tooltip: { ...TIP, callbacks: { label: onLabel } },
+      tooltip: { ...TIP(), callbacks: { label: onLabel } },
     },
     scales: {
       x: {
         grid: { display: false },
         border: { display: false },
-        ticks: TICK,
+        ticks: TICK(),
       },
       y: {
-        grid: { color: BOOK_CHART.rule },
+        grid: { color: chartChrome().rule },
         border: { display: false },
-        ticks: { ...TICK, callback: (v) => fmtChartNum(Number(v)) },
+        ticks: { ...TICK(), callback: (v) => fmtChartNum(Number(v)) },
       },
     },
   } as ChartOptions<"bar">;
@@ -195,15 +213,16 @@ function apexZoomChrome(
     selection: { enabled: true },
     animations: { enabled: !reduceMotion, speed: 500 },
     fontFamily: "inherit",
-    foreColor: BOOK_CHART.muted,
+    foreColor: chartChrome().muted,
     background: "transparent",
   };
 }
 
 export function apexBookBase(reduceMotion: boolean): ApexOptions {
+  const c = chartChrome();
   return {
     chart: apexZoomChrome(reduceMotion, "x"),
-    grid: { borderColor: BOOK_CHART.rule, strokeDashArray: 4 },
+    grid: { borderColor: c.rule, strokeDashArray: 4 },
     legend: {
       position: "bottom",
       fontSize: "11px",
@@ -211,11 +230,12 @@ export function apexBookBase(reduceMotion: boolean): ApexOptions {
       itemMargin: { horizontal: 10 },
     },
     dataLabels: { enabled: false },
-    tooltip: { theme: "light", shared: true, intersect: false },
+    tooltip: { theme: c.tip, shared: true, intersect: false },
   };
 }
 
 export function apexBarToolbar(reduceMotion: boolean): ApexOptions {
+  const c = chartChrome();
   return {
     chart: {
       ...apexZoomChrome(reduceMotion, "x"),
@@ -224,12 +244,12 @@ export function apexBarToolbar(reduceMotion: boolean): ApexOptions {
     },
     colors: [BOOK_CHART.forest],
     grid: {
-      borderColor: BOOK_CHART.rule,
+      borderColor: c.rule,
       strokeDashArray: 4,
       xaxis: { lines: { show: true } },
       yaxis: { lines: { show: false } },
     },
-    tooltip: { theme: "light" },
+    tooltip: { theme: c.tip },
   };
 }
 
@@ -254,13 +274,14 @@ export function peerColor(i: number) {
 }
 
 export function apexRadarBase(reduceMotion: boolean): ApexOptions {
+  const c = chartChrome();
   return {
     chart: {
       type: "radar",
       toolbar: { show: false },
       animations: { enabled: !reduceMotion, speed: 450 },
       fontFamily: "inherit",
-      foreColor: BOOK_CHART.muted,
+      foreColor: c.muted,
       background: "transparent",
     },
     stroke: { width: 2 },
@@ -272,16 +293,16 @@ export function apexRadarBase(reduceMotion: boolean): ApexOptions {
       markers: { size: 5, shape: "circle" },
       itemMargin: { horizontal: 10 },
     },
-    tooltip: { theme: "light" },
-    grid: { borderColor: BOOK_CHART.rule },
+    tooltip: { theme: c.tip },
+    grid: { borderColor: c.rule },
     yaxis: { show: false, max: 100, min: 0, tickAmount: 4 },
     plotOptions: {
       radar: {
         size: undefined,
         polygons: {
-          strokeColors: BOOK_CHART.rule,
-          connectorColors: BOOK_CHART.rule,
-          fill: { colors: ["#f7faf8", "#ffffff"] },
+          strokeColors: c.rule,
+          connectorColors: c.rule,
+          fill: { colors: [c.paper, c.paper] },
         },
       },
     },
@@ -289,30 +310,32 @@ export function apexRadarBase(reduceMotion: boolean): ApexOptions {
 }
 
 export function apexScatterBase(reduceMotion: boolean): ApexOptions {
+  const c = chartChrome();
   return {
     chart: {
       ...apexZoomChrome(reduceMotion, "xy"),
       type: "scatter",
       animations: { enabled: !reduceMotion, speed: 450 },
     },
-    grid: { borderColor: BOOK_CHART.rule, strokeDashArray: 4 },
+    grid: { borderColor: c.rule, strokeDashArray: 4 },
     legend: { show: false },
-    tooltip: { theme: "light", shared: false, intersect: true },
-    markers: { size: 9, strokeWidth: 2, strokeColors: "#fff", hover: { size: 11 } },
+    tooltip: { theme: c.tip, shared: false, intersect: true },
+    markers: { size: 9, strokeWidth: 2, strokeColors: c.paper, hover: { size: 11 } },
   };
 }
 
 /** Peer bubble — x/y position + z radius from a third booked metric. */
 export function apexBubbleBase(reduceMotion: boolean): ApexOptions {
+  const c = chartChrome();
   return {
     chart: {
       ...apexZoomChrome(reduceMotion, "xy"),
       type: "bubble",
       animations: { enabled: !reduceMotion, speed: 450 },
     },
-    grid: { borderColor: BOOK_CHART.rule, strokeDashArray: 4 },
+    grid: { borderColor: c.rule, strokeDashArray: 4 },
     legend: { show: false },
-    tooltip: { theme: "light", shared: false, intersect: true },
+    tooltip: { theme: c.tip, shared: false, intersect: true },
     dataLabels: { enabled: false },
     fill: { opacity: 0.78 },
     plotOptions: {
@@ -352,7 +375,7 @@ export function apexSparkline(reduceMotion: boolean, color: string = String(BOOK
     colors: [color],
     tooltip: {
       enabled: true,
-      theme: "light",
+      theme: chartChrome().tip,
       y: { formatter: (v) => (v == null ? "" : fmtChartNum(v)) },
     },
     markers: { size: 0, hover: { size: 4 } },

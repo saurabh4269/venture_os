@@ -4,12 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { METRIC_CATALOG, metricByKey } from "@venture-os/core";
-import {
-  ComparePeerColumns,
-  ComparePeerRadar,
-  ComparePeerScatter,
-} from "@/components/BookCharts";
+import { ComparePeerRadar, ComparePeerScatter, RankTracks } from "@/components/BookCharts";
 import { CompanyMark, PageHead, Panel } from "@/components/BookUI";
+import { fmtChartNum } from "@/lib/chart-theme";
 import { Fact } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -336,7 +333,7 @@ export default function ComparePage() {
       <PageHead
         title="Compare"
         kicker="Peer book"
-        lede="Toggle peers to reshape the radar, columns, and scatter. Charts only include names you leave on that have values for the selected metrics."
+        lede="Toggle peers to reshape the ranks and charts. Only booked values appear — missing stays blank."
         actions={
           <button className="btn ghost sm" type="button" onClick={exportCsv} disabled={!visible.length}>
             Export
@@ -389,11 +386,11 @@ export default function ComparePage() {
           <select
             value={chartMetric}
             onChange={(e) => setChartMetric(e.target.value)}
-            aria-label="Column chart metric"
+            aria-label="Ranked metric"
           >
             {CHARTABLE.filter((m) => metrics.includes(m)).map((m) => (
               <option key={m} value={m}>
-                Columns: {metricLabel(m, data?.labels)}
+                Rank: {metricLabel(m, data?.labels)}
               </option>
             ))}
           </select>
@@ -498,7 +495,7 @@ export default function ComparePage() {
             <div>
               <strong>Peers in view · {peerCount}</strong>
               <p className="lede">
-                On = included in radar, columns, scatter, and matrix. Off removes that company immediately.
+                On = included in ranks, radar, scatter, and matrix. Off removes that company immediately.
               </p>
             </div>
             <div className="row" style={{ gap: 10 }}>
@@ -540,41 +537,27 @@ export default function ComparePage() {
       {!loading && data && visible.length > 0 ? (
         <div className="compare-stack">
           <Panel
-            title="Peer fingerprints"
-            kicker={peerCount > 6 ? `6 of ${peerCount} with complete metrics` : `${peerCount} peers`}
+            title={metricLabel(chartMetric, data.labels)}
+            kicker={chartRows.length ? `${chartRows.length} booked` : undefined}
           >
-            <ComparePeerRadar
-              peers={radarPeers}
-              metricKeys={data.metrics.filter((m) => (CHARTABLE as readonly string[]).includes(m))}
-              metricLabels={data.labels ?? {}}
+            <RankTracks
+              empty={`No booked ${metricLabel(chartMetric, data.labels).toLowerCase()} among selected peers.`}
+              rows={[...chartRows]
+                .sort((a, b) => b.value - a.value)
+                .map((r) => {
+                  const unit = unitHint(chartMetric);
+                  const peer = visible.find((row) => row.company.name === r.name);
+                  return {
+                    id: r.name,
+                    name: r.name,
+                    href: peer ? `/companies/${peer.company.id}` : undefined,
+                    value: r.value,
+                    display: `${fmtChartNum(r.value)}${unit ? ` ${unit}` : ""}`,
+                    tone: chartMetric === "runway_months" ? (r.value < 6 ? "warn" : "ok") : "neutral",
+                  };
+                })}
             />
           </Panel>
-
-          <div className="chart-grid chart-grid-single">
-            <Panel title={metricLabel(chartMetric, data.labels)}>
-              <ComparePeerColumns
-                rows={chartRows}
-                metricLabel={metricLabel(chartMetric, data.labels)}
-                unitHint={unitHint(chartMetric)}
-              />
-            </Panel>
-          </div>
-          {scatterPair && scatterPair.rows.length >= 2 ? (
-            <Panel
-              className="compare-scatter-panel"
-              title={`${metricLabel(scatterPair.xKey, data.labels)} × ${metricLabel(scatterPair.yKey, data.labels)}`}
-            >
-              <ComparePeerScatter
-                rows={scatterPair.rows}
-                xLabel={metricLabel(scatterPair.xKey, data.labels)}
-                yLabel={metricLabel(scatterPair.yKey, data.labels)}
-                zLabel={scatterPair.zKey ? metricLabel(scatterPair.zKey, data.labels) : undefined}
-                xUnit={unitHint(scatterPair.xKey)}
-                yUnit={unitHint(scatterPair.yKey)}
-                zUnit={scatterPair.zKey ? unitHint(scatterPair.zKey) : undefined}
-              />
-            </Panel>
-          ) : null}
 
           <Panel title="Matrix" kicker={`${visible.length} companies`} flush>
             <div className="table-scroll">
@@ -631,6 +614,33 @@ export default function ComparePage() {
               </table>
             </div>
           </Panel>
+
+          <Panel
+            title="Peer fingerprints"
+            kicker={peerCount > 6 ? `6 of ${peerCount} with complete metrics` : `${peerCount} peers`}
+          >
+            <ComparePeerRadar
+              peers={radarPeers}
+              metricKeys={data.metrics.filter((m) => (CHARTABLE as readonly string[]).includes(m))}
+              metricLabels={data.labels ?? {}}
+            />
+          </Panel>
+          {scatterPair && scatterPair.rows.length >= 2 ? (
+            <Panel
+              className="compare-scatter-panel"
+              title={`${metricLabel(scatterPair.xKey, data.labels)} × ${metricLabel(scatterPair.yKey, data.labels)}`}
+            >
+              <ComparePeerScatter
+                rows={scatterPair.rows}
+                xLabel={metricLabel(scatterPair.xKey, data.labels)}
+                yLabel={metricLabel(scatterPair.yKey, data.labels)}
+                zLabel={scatterPair.zKey ? metricLabel(scatterPair.zKey, data.labels) : undefined}
+                xUnit={unitHint(scatterPair.xKey)}
+                yUnit={unitHint(scatterPair.yKey)}
+                zUnit={scatterPair.zKey ? unitHint(scatterPair.zKey) : undefined}
+              />
+            </Panel>
+          ) : null}
         </div>
       ) : null}
     </div>

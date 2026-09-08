@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { defaultPriorAsOf, lastCalendarQuarterEnd } from "@venture-os/core";
-import { CompanyMark, formatOwnership, PageHead, Panel } from "@/components/BookUI";
+import { CompanyMark, formatOwnership, PageHead, Panel, WorkSplit } from "@/components/BookUI";
+import { NavPeriodAreaChart, RankTracks } from "@/components/BookCharts";
 import { IconLock, IconWarn } from "@/components/Icons";
 import { Fact, useBookSession } from "@/components/Shell";
 import { api, sourcePathFor } from "@/lib/api";
@@ -438,6 +439,47 @@ export default function NavPage() {
               <div className="v">{pctIrr(data.irr)}</div>
             </div>
           </div>
+
+          {(() => {
+            const priorTotal =
+              data.rollup.nav.total != null && data.bridge.deltaNav != null
+                ? data.rollup.nav.total - data.bridge.deltaNav
+                : null;
+            const movers = [...data.bridge.lines]
+              .filter((l): l is typeof l & { delta: number } => l.delta != null && l.delta !== 0)
+              .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+              .slice(0, 8)
+              .map((l) => {
+                const href = data.positions.find((p) => p.companyName === l.companyName)?.position.companyId;
+                return {
+                  id: l.companyName,
+                  name: l.companyName,
+                  href: href ? `/companies/${href}` : undefined,
+                  value: Math.abs(l.delta),
+                  display: `${l.delta > 0 ? "+" : ""}${inr(l.delta)}`,
+                  tone: l.delta > 0 ? ("up" as const) : ("down" as const),
+                };
+              });
+            const movement = (
+              <Panel title="Value movement" kicker="Booked marks only">
+                <RankTracks empty="No mark movement vs prior." rows={movers} />
+              </Panel>
+            );
+            if (priorTotal == null || data.rollup.nav.total == null) return movement;
+            return (
+              <WorkSplit>
+                <Panel title="NAV over time" kicker={`${quarterLabel(priorAsOf)} → ${quarterLabel(asOf)}`}>
+                  <NavPeriodAreaChart
+                    priorLabel={quarterLabel(priorAsOf)}
+                    currentLabel={quarterLabel(asOf)}
+                    priorTotal={priorTotal}
+                    currentTotal={data.rollup.nav.total}
+                  />
+                </Panel>
+                {movement}
+              </WorkSplit>
+            );
+          })()}
 
           {(unmarked.length > 0 || unprovenanced.length > 0) && (
             <div className="nav-attention">

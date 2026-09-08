@@ -136,6 +136,23 @@ export function IconOrg(p: IconProps) {
   );
 }
 
+export function IconSun(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="12" cy="12" r="3.25" />
+      <path d="M12 4.25v1.5M12 18.25v1.5M4.25 12h1.5M18.25 12h1.5M6.4 6.4l1.06 1.06M16.54 16.54l1.06 1.06M6.4 17.6l1.06-1.06M16.54 7.46l1.06-1.06" />
+    </Svg>
+  );
+}
+
+export function IconMoon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M15.6 4.75A7.5 7.5 0 1 0 19.25 14 6.1 6.1 0 0 1 15.6 4.75z" />
+    </Svg>
+  );
+}
+
 export function IconUser(p: IconProps) {
   return (
     <Svg {...p}>

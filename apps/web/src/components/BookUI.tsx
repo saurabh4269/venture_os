@@ -16,6 +16,7 @@ import {
   IconSearch,
 } from "@/components/Icons";
 import { companyLogoSrc } from "@/lib/company-logos";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { formatOwnership } from "@/lib/format";
 import { SPRING_INDICATOR } from "@/lib/motion-ease";
 
@@ -54,6 +55,17 @@ export function PageHead({
       {actions ? <div className="page-actions">{actions}</div> : null}
     </header>
   );
+}
+
+/** Primary visual + attention rail. Same fold on Command, NAV, company, Compare. */
+export function WorkSplit({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={`work-split${className ? ` ${className}` : ""}`}>{children}</div>;
 }
 
 export function Panel({
@@ -482,6 +494,9 @@ export function AuthFrame({
   const mode = tab ?? "other";
   return (
     <div className="auth-shell">
+      <div className="auth-theme">
+        <ThemeToggle />
+      </div>
       <div className="auth-brand">
         {mode === "other" ? (
           <p className="wordmark">

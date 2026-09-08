@@ -147,26 +147,7 @@ export default function AskPage() {
               <p className="lede">
                 Confirmed metrics only. Missing evidence returns a refusal, never a guess.
               </p>
-              {history.length > 0 ? (
-                <div className="ask-history" aria-label="Recent questions">
-                  <p className="page-kicker">Recent</p>
-                  <ul>
-                    {history.slice(0, 8).map((h) => (
-                      <li key={h.id}>
-                        <button
-                          type="button"
-                          className="ask-starter"
-                          disabled={busy}
-                          onClick={() => void ask(h.question)}
-                        >
-                          <span className="ask-starter-label">{h.question}</span>
-                          {h.refused ? <span className="lede">Refused</span> : null}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
+              <div className={history.length > 0 ? "ask-empty-split" : undefined}>
               <div className="ask-starters" role="list">
                 {STARTERS.map((s, i) => (
                   <motion.button
@@ -190,6 +171,27 @@ export default function AskPage() {
                     </span>
                   </motion.button>
                 ))}
+              </div>
+              {history.length > 0 ? (
+                <div className="ask-history" aria-label="Recent questions">
+                  <p className="page-kicker">Recent</p>
+                  <ul>
+                    {history.slice(0, 8).map((h) => (
+                      <li key={h.id}>
+                        <button
+                          type="button"
+                          className="ask-starter"
+                          disabled={busy}
+                          onClick={() => void ask(h.question)}
+                        >
+                          <span className="ask-starter-label">{h.question}</span>
+                          {h.refused ? <span className="lede">Refused</span> : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               </div>
             </div>
           ) : (

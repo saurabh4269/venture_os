@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
@@ -26,6 +27,7 @@ export function LandingHeader() {
           ))}
         </nav>
         <div className="mkt-header-actions">
+          <ThemeToggle />
           <Link href="/login" className="mkt-login">
             Log in
           </Link>

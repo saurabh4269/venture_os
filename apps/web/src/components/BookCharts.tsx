@@ -6,7 +6,7 @@
  */
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ComponentProps, type ReactNode } from "react";
 import {
   ArcElement,
   Chart as ChartJS,
@@ -45,11 +45,87 @@ function useReduceMotion() {
   return reduce;
 }
 
+function useBookTheme() {
+  const [theme, setTheme] = useState("light");
+  useEffect(() => {
+    const el = document.documentElement;
+    const sync = () => setTheme(el.getAttribute("data-theme") === "dark" ? "dark" : "light");
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(el, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
+  }, []);
+  return theme;
+}
+
+function ThemedApex(props: ComponentProps<typeof ApexChart>) {
+  const theme = useBookTheme();
+  return <ApexChart key={theme} {...props} />;
+}
+
 function ChartEmpty({ label }: { label: string }) {
   return (
     <div className="chart-empty" role="status">
       {label}
     </div>
+  );
+}
+
+export type RankTrackRow = {
+  id: string;
+  name: string;
+  href?: string;
+  value: number;
+  display: string;
+  tone?: "up" | "down" | "neutral" | "warn" | "danger" | "ok";
+};
+
+/**
+ * Ranked horizontal tracks — ecommerce/CashFlix scan pattern.
+ * Only booked values; missing rows are omitted, never drawn as zero.
+ */
+export function RankTracks({
+  rows,
+  empty,
+}: {
+  rows: RankTrackRow[];
+  empty: string;
+}) {
+  const reduce = useReduceMotion();
+  if (rows.length === 0) return <ChartEmpty label={empty} />;
+  const scale = Math.max(...rows.map((r) => Math.abs(r.value)), 0);
+  return (
+    <ul className="rank-tracks" data-testid="rank-tracks">
+      {rows.map((r, i) => {
+        const pct = scale > 0 ? Math.min(100, (Math.abs(r.value) / scale) * 100) : 0;
+        const name = r.href ? (
+          <Link className="rank-track-co" href={r.href}>
+            <CompanyMark name={r.name} size="sm" />
+            <span className="rank-track-name">{r.name}</span>
+          </Link>
+        ) : (
+          <span className="rank-track-co">
+            <CompanyMark name={r.name} size="sm" />
+            <span className="rank-track-name">{r.name}</span>
+          </span>
+        );
+        return (
+          <li key={r.id} className={`rank-track is-${r.tone ?? "neutral"}`}>
+            {name}
+            <div className="rank-track-bar" aria-hidden>
+              <div
+                className={`rank-track-fill${reduce ? "" : " is-anim"}`}
+                style={{
+                  width: `${Math.max(pct, 4)}%`,
+                  animationDelay: reduce ? undefined : `${Math.min(i, 10) * 40}ms`,
+                }}
+              />
+            </div>
+            <strong className="rank-track-val">{r.display}</strong>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -130,7 +206,7 @@ export function KpiSparkline({
   const options = apexSparkline(reduce, color ?? BOOK_CHART.limeDeep);
   return (
     <div className="kpi-spark" aria-hidden>
-      <ApexChart type="area" height={height} width="100%" options={options} series={[{ data: seriesData }]} />
+      <ThemedApex type="area" height={height} width="100%" options={options} series={[{ data: seriesData }]} />
     </div>
   );
 }
@@ -146,6 +222,7 @@ export function CoverageMixChart({
   review: number;
 }) {
   const reduce = useReduceMotion();
+  const theme = useBookTheme();
   const slices = useMemo(
     () =>
       [
@@ -173,6 +250,7 @@ export function CoverageMixChart({
       <div className="chart-donut-ring">
         <div className="chart-frame chart-frame-js chart-donut-canvas">
           <Doughnut
+            key={theme}
             data={{
               labels: slices.map((s) => s.name),
               datasets: [
@@ -265,7 +343,7 @@ export function CashByCompanyChart({
       filename="cash-by-company"
       label="Cash by company"
     >
-      <ApexChart type="bar" height={height} options={options} series={[{ name: "Cash", data: rows.map((r) => r.cash) }]} />
+      <ThemedApex type="bar" height={height} options={options} series={[{ name: "Cash", data: rows.map((r) => r.cash) }]} />
     </ChartShell>
   );
 }
@@ -449,7 +527,7 @@ export function RunwayByCompanyChart({
       filename="runway-by-company"
       label="Runway by company"
     >
-      <ApexChart type="bar" height={height} options={options} series={[{ name: "Runway", data: rows.map((r) => r.months) }]} />
+      <ThemedApex type="bar" height={height} options={options} series={[{ name: "Runway", data: rows.map((r) => r.months) }]} />
     </ChartShell>
   );
 }
@@ -536,7 +614,7 @@ export function PortfolioSeriesChart({
       filename="portfolio-trend"
       label="Portfolio booked series"
     >
-      <ApexChart
+      <ThemedApex
         type="area"
         height={280}
         options={options}
@@ -596,7 +674,7 @@ export function CompanyMetricHistoryChart({
       filename="company-metric-history"
       label="Company metric history"
     >
-      <ApexChart
+      <ThemedApex
         type="area"
         height={260}
         options={options}
@@ -654,7 +732,7 @@ export function FundRollupBars({
       filename="fund-rollup"
       label="Fund operating rollup"
     >
-      <ApexChart
+      <ThemedApex
         type="bar"
         height={240}
         options={options}
@@ -745,7 +823,7 @@ export function ComparePeerBars({
       filename={`${metricLabel.toLowerCase().replace(/\s+/g, "-")}-peers`}
       label={`${metricLabel} by peer`}
     >
-      <ApexChart
+      <ThemedApex
         type="bar"
         height={height}
         options={options}
@@ -829,7 +907,7 @@ export function ComparePeerRadar({
       filename="peer-radar"
       label="Peer metric fingerprints"
     >
-      <ApexChart type="radar" height={340} options={options} series={series} />
+      <ThemedApex type="radar" height={340} options={options} series={series} />
     </ChartShell>
   );
 }
@@ -900,7 +978,7 @@ export function ComparePeerColumns({
       filename={`${metricLabel.toLowerCase().replace(/\s+/g, "-")}-columns`}
       label={`${metricLabel} columns`}
     >
-      <ApexChart
+      <ThemedApex
         type="bar"
         height={280}
         options={options}
@@ -994,7 +1072,166 @@ export function ComparePeerScatter({
       filename="peer-bubble"
       label={`${xLabel} vs ${yLabel}`}
     >
-      <ApexChart type="bubble" height={420} options={options} series={series} />
+      <ThemedApex type="bubble" height={420} options={options} series={series} />
+    </ChartShell>
+  );
+}
+
+/** Two-point area: prior vs current fund NAV. Null stays a gap — never a fabricated curve. */
+export function NavPeriodAreaChart({
+  priorLabel,
+  currentLabel,
+  priorTotal,
+  currentTotal,
+}: {
+  priorLabel: string;
+  currentLabel: string;
+  priorTotal: number | null;
+  currentTotal: number | null;
+}) {
+  const reduce = useReduceMotion();
+  const chartId = useApexChartId();
+  const points = [
+    { period: priorLabel, nav: priorTotal },
+    { period: currentLabel, nav: currentTotal },
+  ];
+  if (points.filter((p) => p.nav != null).length < 2) {
+    return <ChartEmpty label="Need a prior and current NAV to draw the period." />;
+  }
+  const options: ApexOptions = withChartId(
+    {
+      ...apexBookBase(reduce),
+      chart: { ...apexBookBase(reduce).chart, type: "area", toolbar: { show: false } },
+      colors: [BOOK_CHART.forest],
+      stroke: { curve: "straight", width: 2 },
+      fill: {
+        type: "gradient",
+        gradient: { shadeIntensity: 0, opacityFrom: 0.22, opacityTo: 0, stops: [0, 100] },
+      },
+      xaxis: {
+        categories: points.map((p) => p.period),
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" } },
+        axisBorder: { color: BOOK_CHART.rule },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" }, formatter: (v) => fmtChartNum(v) },
+      },
+      tooltip: {
+        theme: "light",
+        y: { formatter: (val) => (val == null ? "" : fmtChartNum(val)) },
+      },
+    },
+    chartId,
+  );
+  return (
+    <ChartShell chartId={chartId} filename="nav-period" label="NAV prior to current">
+      <ThemedApex
+        type="area"
+        height={240}
+        options={options}
+        series={[{ name: "NAV", data: points.map((p) => p.nav) }]}
+      />
+    </ChartShell>
+  );
+}
+
+/** Stacked pad + change bars: booked prior → company deltas → current. Missing delta skipped. */
+export function NavBridgeChart({
+  priorTotal,
+  currentTotal,
+  lines,
+}: {
+  priorTotal: number | null;
+  currentTotal: number | null;
+  lines: { companyName: string; delta: number | null }[];
+}) {
+  const reduce = useReduceMotion();
+  const chartId = useApexChartId();
+  if (priorTotal == null || currentTotal == null) {
+    return <ChartEmpty label="Need prior and current NAV to draw the bridge." />;
+  }
+  const moved = lines
+    .filter((l): l is { companyName: string; delta: number } => l.delta != null && l.delta !== 0)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  const top = moved.slice(0, 6);
+  const rest = moved.slice(6).reduce((s, l) => s + l.delta, 0);
+  const steps = [
+    ...top,
+    ...(rest !== 0 ? [{ companyName: "Other", delta: rest }] : []),
+  ];
+  if (steps.length === 0) {
+    return <ChartEmpty label="No mark movement vs prior." />;
+  }
+
+  const categories = ["Opening", ...steps.map((s) => s.companyName), "Closing"];
+  const pad: number[] = [];
+  const rise: number[] = [];
+  const fall: number[] = [];
+  pad.push(0);
+  rise.push(priorTotal);
+  fall.push(0);
+  let cursor = priorTotal;
+  for (const s of steps) {
+    if (s.delta >= 0) {
+      pad.push(cursor);
+      rise.push(s.delta);
+      fall.push(0);
+      cursor += s.delta;
+    } else {
+      pad.push(cursor + s.delta);
+      rise.push(0);
+      fall.push(-s.delta);
+      cursor += s.delta;
+    }
+  }
+  pad.push(0);
+  rise.push(currentTotal);
+  fall.push(0);
+
+  const options: ApexOptions = withChartId(
+    {
+      ...apexBarToolbar(reduce),
+      chart: { ...apexBarToolbar(reduce).chart, stacked: true, toolbar: { show: false } },
+      colors: ["transparent", BOOK_CHART.forest, BOOK_CHART.muted],
+      legend: { show: false },
+      plotOptions: { bar: { columnWidth: "52%", borderRadius: 3 } },
+      xaxis: {
+        categories,
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "10px" }, rotate: -20, hideOverlappingLabels: true },
+        axisBorder: { color: BOOK_CHART.rule },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" }, formatter: (v) => fmtChartNum(v) },
+      },
+      tooltip: {
+        theme: "light",
+        shared: false,
+        intersect: true,
+        y: {
+          formatter: (val, opts) => {
+            if (!val || opts?.seriesIndex === 0) return "";
+            return fmtChartNum(val);
+          },
+        },
+      },
+    },
+    chartId,
+  );
+
+  return (
+    <ChartShell chartId={chartId} filename="nav-bridge" label="NAV bridge">
+      <ThemedApex
+        type="bar"
+        height={240}
+        options={options}
+        series={[
+          { name: "Base", data: pad },
+          { name: "Up / level", data: rise },
+          { name: "Down", data: fall },
+        ]}
+      />
     </ChartShell>
   );
 }

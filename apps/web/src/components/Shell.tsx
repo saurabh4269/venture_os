@@ -18,6 +18,7 @@ import {
   IconUser,
   IconVault,
 } from "@/components/Icons";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { WakingBook } from "@/components/WakingBook";
 import { api, UPSTREAM_UNAVAILABLE_MESSAGE } from "@/lib/api";
 import { authClient, type Me } from "@/lib/auth-client";
@@ -503,6 +504,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </select>
             </label>
           )}
+          <ThemeToggle variant="menu" />
           <button type="button" className="account-menu-item" role="menuitem" onClick={signOut}>
             Sign out
           </button>
@@ -534,6 +536,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           >
             Sections
           </button>
+          <ThemeToggle />
           {accountMenu}
         </header>
         <div className="settings-shell">

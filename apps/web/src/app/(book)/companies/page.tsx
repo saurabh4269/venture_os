@@ -11,6 +11,7 @@ import {
   PageHead,
   Panel,
 } from "@/components/BookUI";
+import { KpiSparkline } from "@/components/BookCharts";
 import { Fact, useBookSession } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -58,6 +59,9 @@ export default function CompaniesPage() {
   const { data: cmdData } = useSWR<{
     coverage: Coverage[];
     sourceRefs?: { id: string; documentId: string }[];
+    charts?: {
+      runwayByCompany?: { companyId: string; months: number; priorMonths?: number | null }[];
+    };
   }>("/api/command", bookFetcher);
   const rows = cosData?.companies ?? [];
   const coverage = cmdData?.coverage ?? [];
@@ -70,6 +74,14 @@ export default function CompaniesPage() {
 
   const stages = useMemo(() => [...new Set(rows.map((c) => c.stage).filter(Boolean))] as string[], [rows]);
   const covById = useMemo(() => new Map(coverage.map((c) => [c.company.id, c])), [coverage]);
+  const runwaySpark = useMemo(() => {
+    const m = new Map<string, Array<number | null>>();
+    for (const r of cmdData?.charts?.runwayByCompany ?? []) {
+      if (r.priorMonths == null || r.months == null) continue;
+      m.set(r.companyId, [r.priorMonths, r.months]);
+    }
+    return m;
+  }, [cmdData?.charts?.runwayByCompany]);
   const stats = useMemo(() => {
     let booked = 0;
     let gap = 0;
@@ -259,6 +271,7 @@ export default function CompaniesPage() {
                     <th>Cash</th>
                     <th>Burn</th>
                     <th>Runway</th>
+                    <th>Trend</th>
                     <th>Flags</th>
                     <th>Coverage</th>
                   </tr>
@@ -318,6 +331,11 @@ export default function CompaniesPage() {
                         <td>
                           {cov?.runway ? (
                             <Fact {...cov.runway} sourcePath={sourcePathFor(sourceRefs, cov.runway.sourceRefId)} />
+                          ) : null}
+                        </td>
+                        <td className="companies-spark">
+                          {runwaySpark.has(c.id) ? (
+                            <KpiSparkline values={runwaySpark.get(c.id)!} height={28} />
                           ) : null}
                         </td>
                         <td>
