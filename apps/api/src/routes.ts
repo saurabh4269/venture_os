@@ -1111,18 +1111,29 @@ routes.get("/api/command", async (c) => {
     const runwayBars = coverage
       .map((row) => {
         const cm = metrics.filter((m) => m.companyId === row.company.id);
-        const cash = seriesFor(cm, "cash")[0];
+        const cashS = seriesFor(cm, "cash");
         const burns = seriesFor(cm, "burn");
+        const cash = cashS[0];
         const months = runwayMonthsFromBurns(
           cash?.valueNumeric ?? null,
           burns.slice(0, 3).map((b) => b.valueNumeric ?? null),
         );
+        const priorCash = cashS[1];
+        const priorMonths = runwayMonthsFromBurns(
+          priorCash?.valueNumeric ?? null,
+          burns.slice(1, 4).map((b) => b.valueNumeric ?? null),
+        );
+        const deltaMonths =
+          months != null && priorMonths != null ? months - priorMonths : null;
         return months != null && cash
           ? {
               companyId: row.company.id,
               name: row.company.name,
               months,
+              priorMonths,
+              deltaMonths,
               periodEnd: String(cash.periodEnd).slice(0, 10),
+              priorPeriodEnd: priorCash ? String(priorCash.periodEnd).slice(0, 10) : null,
             }
           : null;
       })

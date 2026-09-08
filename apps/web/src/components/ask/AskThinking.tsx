@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Thinking status — beUI Agent Loading States (shimmer + cycling phrases), book-toned.
+ * Thinking status — Beautiful UI Thinking + beUI Agent Loading (shimmer phrases).
  */
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -23,6 +23,7 @@ export function AskThinking({
 }) {
   const reduce = useReducedMotion();
   const [i, setI] = useState(0);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (phrases.length <= 1) return;
@@ -33,26 +34,51 @@ export function AskThinking({
   const phrase = `${phrases[i % phrases.length] ?? "Thinking"}…`;
 
   return (
-    <div className="ask-thinking" role="status" aria-live="polite">
-      <span className="ask-thinking-dots" aria-hidden>
-        <i />
-        <i />
-        <i />
-      </span>
-      <span className="ask-thinking-copy">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={phrase}
-            className="ask-thinking-phrase ask-text-shimmer"
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8, filter: "blur(6px)" }}
-            animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6, filter: "blur(4px)" }}
-            transition={reduce ? { duration: 0.2, ease: EASE_OUT } : SPRING_SOFT}
+    <div className="ask-thinking-card" role="status" aria-live="polite">
+      <button
+        type="button"
+        className="ask-thinking-head"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="ask-thinking-dots" aria-hidden>
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="ask-thinking-copy">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={phrase}
+              className="ask-thinking-phrase ask-text-shimmer"
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8, filter: "blur(6px)" }}
+              animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6, filter: "blur(4px)" }}
+              transition={reduce ? { duration: 0.2, ease: EASE_OUT } : SPRING_SOFT}
+            >
+              {phrase}
+            </motion.span>
+          </AnimatePresence>
+        </span>
+        <span className="ask-thinking-label">Thinking</span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.ul
+            className="ask-thinking-steps"
+            initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={SPRING_SOFT}
           >
-            {phrase}
-          </motion.span>
-        </AnimatePresence>
-      </span>
+            {phrases.map((p, idx) => (
+              <li key={p} className={idx === i % phrases.length ? "is-on" : undefined}>
+                {p}
+              </li>
+            ))}
+          </motion.ul>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

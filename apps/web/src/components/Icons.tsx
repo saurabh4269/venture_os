@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 type IconProps = { className?: string; title?: string };
 
-/** Shared stroke icon: 24 viewBox, rendered ~20px for calm rail weight. */
+/** Shared stroke icon: soft 24 viewBox, calm rail weight. */
 function Svg({ className, title, children }: IconProps & { children: ReactNode }) {
   return (
     <svg
@@ -12,7 +12,7 @@ function Svg({ className, title, children }: IconProps & { children: ReactNode }
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.75"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden={title ? undefined : true}
@@ -27,10 +27,10 @@ function Svg({ className, title, children }: IconProps & { children: ReactNode }
 export function IconCommand(p: IconProps) {
   return (
     <Svg {...p}>
-      <rect x="3.5" y="3.5" width="7" height="7" rx="1.75" />
-      <rect x="13.5" y="3.5" width="7" height="7" rx="1.75" />
-      <rect x="3.5" y="13.5" width="7" height="7" rx="1.75" />
-      <rect x="13.5" y="13.5" width="7" height="7" rx="1.75" />
+      <rect x="3.5" y="3.5" width="7" height="7" rx="2.25" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="2.25" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="2.25" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="2.25" />
     </Svg>
   );
 }
@@ -38,8 +38,9 @@ export function IconCommand(p: IconProps) {
 export function IconCompanies(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M4 20V8.2L12 3.5l8 4.7V20" />
-      <path d="M9.5 20v-6h5v6" />
+      <path d="M4.5 19.5h15" />
+      <path d="M6.5 19.5V8.75c0-.69.42-1.3 1.06-1.55L12 5.5l4.44 1.7c.64.25 1.06.86 1.06 1.55V19.5" />
+      <path d="M10 19.5v-5.25c0-.41.34-.75.75-.75h2.5c.41 0 .75.34.75.75V19.5" />
     </Svg>
   );
 }
@@ -47,8 +48,8 @@ export function IconCompanies(p: IconProps) {
 export function IconInbox(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M3.5 8.5 5.2 4.8A2 2 0 0 1 7 3.5h10a2 2 0 0 1 1.8 1.3l1.7 3.7" />
-      <path d="M3.5 8.5h4.2l1.3 2.4h6l1.3-2.4h4.2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-9z" />
+      <path d="M4 8.75 5.55 5.4A2.25 2.25 0 0 1 7.6 4.25h8.8a2.25 2.25 0 0 1 2.05 1.15L20 8.75" />
+      <path d="M4 8.75h4.1l1.15 2.1h5.5l1.15-2.1H20v8.5A2.25 2.25 0 0 1 17.75 19.5H6.25A2.25 2.25 0 0 1 4 17.25v-8.5z" />
     </Svg>
   );
 }
@@ -56,8 +57,8 @@ export function IconInbox(p: IconProps) {
 export function IconFlags(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M5 21V4" />
-      <path d="M5 5.2h10.2l-1.8 3.4 1.8 3.4H5" />
+      <path d="M5.5 20.5V4.75" />
+      <path d="M5.5 5.25h9.75c.9 0 1.4 1.05.82 1.72L14.2 9.25l1.87 2.28c.58.67.08 1.72-.82 1.72H5.5" />
     </Svg>
   );
 }
@@ -65,8 +66,8 @@ export function IconFlags(p: IconProps) {
 export function IconNav(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M4 19 10.2 5h3.6L20 19" />
-      <path d="M6.6 14.5h10.8" />
+      <path d="M5.25 18.75 10.4 5.5h3.2l5.15 13.25" />
+      <path d="M7.6 14.25h8.8" />
     </Svg>
   );
 }
@@ -74,10 +75,13 @@ export function IconNav(p: IconProps) {
 export function IconCompare(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M6 19V10" />
-      <path d="M12 19V5" />
-      <path d="M18 19v-6" />
-      <path d="M4 19h16" />
+      <path d="M6.5 18.75V10.5" />
+      <path d="M12 18.75V5.5" />
+      <path d="M17.5 18.75v-5.5" />
+      <path d="M4.5 18.75h15" />
+      <circle cx="6.5" cy="10.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="5.5" r="1.15" fill="currentColor" stroke="none" />
+      <circle cx="17.5" cy="13.25" r="1.15" fill="currentColor" stroke="none" />
     </Svg>
   );
 }
@@ -85,9 +89,9 @@ export function IconCompare(p: IconProps) {
 export function IconAsk(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.2 9.4a2.8 2.8 0 0 1 5.4 1.2c0 1.9-2.7 2.4-2.7 4" />
-      <path d="M12 17.2h.01" />
+      <circle cx="12" cy="12" r="8.75" />
+      <path d="M9.35 9.55a2.65 2.65 0 0 1 5.15 1.15c0 1.75-2.5 2.25-2.5 3.85" />
+      <circle cx="12" cy="17.15" r="0.85" fill="currentColor" stroke="none" />
     </Svg>
   );
 }
@@ -95,9 +99,9 @@ export function IconAsk(p: IconProps) {
 export function IconReports(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M7 3.5h7.2L19.5 9v10.5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-14a2 2 0 0 1 2-2z" />
-      <path d="M14 3.5V9h5.5" />
-      <path d="M8.5 13h7M8.5 16.5h5" />
+      <path d="M7.25 3.75h6.6L19.25 9.1v10.4a1.85 1.85 0 0 1-1.85 1.85H7.25a1.85 1.85 0 0 1-1.85-1.85V5.6a1.85 1.85 0 0 1 1.85-1.85z" />
+      <path d="M13.75 3.75v4.6c0 .4.32.72.72.72h4.78" />
+      <path d="M8.75 13h6.5M8.75 16.25h4.5" />
     </Svg>
   );
 }
@@ -105,9 +109,10 @@ export function IconReports(p: IconProps) {
 export function IconVault(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M5 9.5h14a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7.5a2 2 0 0 1 2-2z" />
-      <path d="M8 9.5V7.2a4 4 0 0 1 8 0v2.3" />
-      <path d="M12 14v3" />
+      <rect x="4" y="10" width="16" height="10" rx="2.5" />
+      <path d="M8.25 10V7.6a3.75 3.75 0 0 1 7.5 0V10" />
+      <circle cx="12" cy="14.75" r="1.15" fill="currentColor" stroke="none" />
+      <path d="M12 15.9v1.85" />
     </Svg>
   );
 }
@@ -115,8 +120,8 @@ export function IconVault(p: IconProps) {
 export function IconSettings(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="12" cy="12" r="3.15" />
-      <path d="M12 2.75v2.35M12 18.9v2.35M2.75 12h2.35M18.9 12h2.35M5.2 5.2l1.66 1.66M17.14 17.14l1.66 1.66M18.8 5.2l-1.66 1.66M6.86 17.14l-1.66 1.66" />
+      <circle cx="12" cy="12" r="2.85" />
+      <path d="M19.4 14.1a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H4a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9.9a1.65 1.65 0 0 0 1-1.51V4a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9.9a1.65 1.65 0 0 0 1.51 1H20a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.1z" />
     </Svg>
   );
 }
@@ -124,9 +129,9 @@ export function IconSettings(p: IconProps) {
 export function IconOrg(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M4 20h16" />
-      <path d="M6.5 20V8.5L12 4.5l5.5 4V20" />
-      <path d="M10 20v-4.5h4V20" />
+      <path d="M4.5 19.5h15" />
+      <path d="M6.75 19.5V9c0-.69.42-1.3 1.06-1.55L12 5.75l4.19 1.7c.64.25 1.06.86 1.06 1.55v9.5" />
+      <path d="M10.25 19.5v-4c0-.41.34-.75.75-.75h2c.41 0 .75.34.75.75v4" />
     </Svg>
   );
 }
@@ -134,8 +139,8 @@ export function IconOrg(p: IconProps) {
 export function IconUser(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="12" cy="8" r="3.4" />
-      <path d="M5 19.5c.8-3.4 3.2-5.1 7-5.1s6.2 1.7 7 5.1" />
+      <circle cx="12" cy="8" r="3.25" />
+      <path d="M5.25 19.25c.9-3.35 3.35-5 6.75-5s5.85 1.65 6.75 5" />
     </Svg>
   );
 }
@@ -143,8 +148,8 @@ export function IconUser(p: IconProps) {
 export function IconRefresh(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M20 12a8 8 0 1 1-2.3-5.6" />
-      <path d="M20 4.5v5h-5" />
+      <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+      <path d="M19.5 4.75v4.6h-4.6" />
     </Svg>
   );
 }
@@ -152,8 +157,8 @@ export function IconRefresh(p: IconProps) {
 export function IconWarn(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M12 4.2 3.6 19.2h16.8L12 4.2z" />
-      <path d="M12 10v4.2M12 16.8h.01" />
+      <path d="M12 4.5 3.9 18.6c-.35.6.08 1.35.78 1.35h14.64c.7 0 1.13-.75.78-1.35L12 4.5z" />
+      <path d="M12 10v4.1M12 16.85h.01" />
     </Svg>
   );
 }
@@ -165,8 +170,8 @@ export function IconFlagSmall(p: IconProps) {
 export function IconLock(p: IconProps) {
   return (
     <Svg {...p}>
-      <rect x="5" y="10.5" width="14" height="9.5" rx="2" />
-      <path d="M8.5 10.5V7.8a3.5 3.5 0 0 1 7 0v2.7" />
+      <rect x="5.25" y="10.5" width="13.5" height="9" rx="2.5" />
+      <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
     </Svg>
   );
 }
@@ -174,8 +179,8 @@ export function IconLock(p: IconProps) {
 export function IconKey(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="8" cy="12" r="3.4" />
-      <path d="M11 12h9.5l-1.6 2.2v2.3h-2.2v-1.8H15v1.8h-2.2v-2.3" />
+      <circle cx="8" cy="12" r="3.25" />
+      <path d="M11.1 12h8.4l-1.35 1.85v2.1h-2.1v-1.55h-1.7v1.55h-2.1v-2.1" />
     </Svg>
   );
 }
@@ -183,8 +188,8 @@ export function IconKey(p: IconProps) {
 export function IconSearch(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="11" cy="11" r="6.2" />
-      <path d="M16 16.2 20.5 20.5" />
+      <circle cx="11" cy="11" r="6" />
+      <path d="M15.75 15.75 20 20" />
     </Svg>
   );
 }
@@ -192,8 +197,8 @@ export function IconSearch(p: IconProps) {
 export function IconRailLeft(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M14.5 5.5 9 12l5.5 6.5" />
-      <path d="M18.5 5.5v13" />
+      <path d="M14.25 6 9.5 12l4.75 6" />
+      <path d="M18.25 6.25v11.5" />
     </Svg>
   );
 }
@@ -201,8 +206,8 @@ export function IconRailLeft(p: IconProps) {
 export function IconRailRight(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M9.5 5.5 15 12l-5.5 6.5" />
-      <path d="M5.5 5.5v13" />
+      <path d="M9.75 6 14.5 12 9.75 18" />
+      <path d="M5.75 6.25v11.5" />
     </Svg>
   );
 }
@@ -210,7 +215,7 @@ export function IconRailRight(p: IconProps) {
 export function IconChevronDown(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M6 9.5 12 15.5 18 9.5" />
+      <path d="M6.5 9.75 12 15.25 17.5 9.75" />
     </Svg>
   );
 }
@@ -218,9 +223,9 @@ export function IconChevronDown(p: IconProps) {
 export function IconDownload(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M12 4v10" />
-      <path d="M7.5 10.5 12 15l4.5-4.5" />
-      <path d="M5 19.5h14" />
+      <path d="M12 4.5v10" />
+      <path d="M8 11.25 12 15.25 16 11.25" />
+      <path d="M5.5 19.25h13" />
     </Svg>
   );
 }
@@ -228,8 +233,8 @@ export function IconDownload(p: IconProps) {
 export function IconEdit(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M14 4.8 19.2 10 8.5 20.7H3.3v-5.2z" />
-      <path d="M12.2 6.6 17.4 11.8" />
+      <path d="M13.75 5.25 18.75 10.25 9 20H4v-5z" />
+      <path d="M12.25 6.75 17.25 11.75" />
     </Svg>
   );
 }
@@ -238,9 +243,9 @@ export function IconEdit(p: IconProps) {
 export function IconFormula(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M4.5 5.5c2.4-1 4.6-1 7.5 0v13c-2.9-1-5.1-1-7.5 0v-13z" />
-      <path d="M19.5 5.5c-2.4-1-4.6-1-7.5 0v13c2.9-1 5.1-1 7.5 0v-13z" />
-      <path d="M9.2 10.2h2.2M9.2 13.2h1.4" />
+      <path d="M4.75 6c2.2-.85 4.35-.85 7.25 0v12.25c-2.9-.9-5.05-.9-7.25 0V6z" />
+      <path d="M19.25 6c-2.2-.85-4.35-.85-7.25 0v12.25c2.9-.9 5.05-.9 7.25 0V6z" />
+      <path d="M9.5 10.5h2M9.5 13.25h1.35" />
     </Svg>
   );
 }
@@ -249,10 +254,10 @@ export function IconFormula(p: IconProps) {
 export function IconConnectors(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M8.5 7V4.8a2 2 0 0 1 4 0V7" />
-      <path d="M7 7h7v3.8l-1.4 1.4V19H8.4v-6.8L7 10.8V7z" />
-      <path d="M4.5 11.5H2.8M18.2 11.5h1.7" />
-      <path d="M4.5 14.5H2.8M18.2 14.5h1.7" />
+      <circle cx="7" cy="7" r="2.35" />
+      <circle cx="17" cy="7" r="2.35" />
+      <circle cx="12" cy="17" r="2.35" />
+      <path d="M8.85 8.35 10.6 14.4M15.15 8.35 13.4 14.4" />
     </Svg>
   );
 }
@@ -260,9 +265,10 @@ export function IconConnectors(p: IconProps) {
 export function IconFirm(p: IconProps) {
   return (
     <Svg {...p}>
-      <path d="M4 20h16" />
-      <path d="M6 20V6.5a1.5 1.5 0 0 1 1.5-1.5H12v15" />
-      <path d="M12 9.5h5.5A1.5 1.5 0 0 1 19 11V20" />
+      <path d="M4.5 19.5h15" />
+      <path d="M6.5 19.5V7.25c0-.97.78-1.75 1.75-1.75H12v14" />
+      <path d="M12 9.75h4.75c.97 0 1.75.78 1.75 1.75V19.5" />
+      <path d="M8.75 10h1.5M8.75 13h1.5M8.75 16h1.5M14.25 13h1.5M14.25 16h1.5" />
     </Svg>
   );
 }
@@ -270,9 +276,9 @@ export function IconFirm(p: IconProps) {
 export function IconFunds(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 7.2v9.6" />
-      <path d="M9.4 9.4c.7-1 2-1.6 3.4-1.2 1.6.4 2.2 1.6 2.2 2.6 0 2-3.2 2.4-3.2 4.2 0 .9.6 1.8 2.2 2.1 1.2.2 2.4-.2 3.1-1.1" />
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M12 7.5v9" />
+      <path d="M9.6 9.6c.65-.9 1.9-1.45 3.15-1.1 1.45.4 2.05 1.5 2.05 2.45 0 1.85-3 2.2-3 3.9 0 .85.55 1.65 2.05 1.95 1.1.2 2.2-.2 2.9-1" />
     </Svg>
   );
 }
@@ -280,10 +286,10 @@ export function IconFunds(p: IconProps) {
 export function IconPeople(p: IconProps) {
   return (
     <Svg {...p}>
-      <circle cx="9" cy="8" r="3" />
-      <path d="M3.5 19c.7-3 2.7-4.5 5.5-4.5" />
-      <circle cx="16.5" cy="9" r="2.4" />
-      <path d="M13.2 19c.5-2.4 2-3.6 4-3.6 1.4 0 2.6.5 3.5 1.5" />
+      <circle cx="9" cy="8" r="2.85" />
+      <path d="M3.75 19c.7-2.85 2.6-4.25 5.25-4.25" />
+      <circle cx="16.35" cy="9" r="2.25" />
+      <path d="M13.35 19c.5-2.25 1.9-3.4 3.75-3.4 1.3 0 2.45.5 3.3 1.4" />
     </Svg>
   );
 }

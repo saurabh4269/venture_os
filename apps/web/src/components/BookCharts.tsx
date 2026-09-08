@@ -5,49 +5,31 @@
  * Theme: `@/lib/chart-theme` (Vestberry-inspired screenshot + Chart.js / Apex docs).
  */
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   ArcElement,
-  BarElement,
-  CategoryScale,
   Chart as ChartJS,
-  Filler,
-  Legend,
-  LinearScale,
-  LineElement,
-  PointElement,
   Tooltip,
 } from "chart.js";
-import { Bar, Doughnut, Line } from "react-chartjs-2";
+import { Doughnut } from "react-chartjs-2";
 import type { ApexOptions } from "apexcharts";
 import {
   BOOK_CHART,
   apexBarToolbar,
   apexBookBase,
+  apexBubbleBase,
   apexRadarBase,
-  apexScatterBase,
   apexSparkline,
   doughnutOptions,
   fmtChartNum,
   fmtChartPeriod,
-  groupedBarOptions,
-  horizontalBarOptions,
-  lineOptions,
   peerColor,
 } from "@/lib/chart-theme";
+import { CompanyMark } from "@/components/BookUI";
 import { IconDownload } from "@/components/Icons";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-  Filler,
-);
+ChartJS.register(ArcElement, Tooltip);
 
 const ApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -230,109 +212,254 @@ export function CoverageMixChart({
   );
 }
 
-/** Chart.js horizontal bars — cash by company. */
+/** ApexCharts horizontal bars — cash by company (drag to zoom). */
 export function CashByCompanyChart({
   rows,
 }: {
   rows: { name: string; cash: number; periodEnd: string }[];
 }) {
   const reduce = useReduceMotion();
+  const chartId = useApexChartId();
   if (rows.length === 0) return <ChartEmpty label="No booked cash to chart." />;
 
-  const labels = rows.map((r) => (r.name.length > 16 ? `${r.name.slice(0, 14)}…` : r.name));
-  const full = rows.map((r) => r.name);
-  const periods = rows.map((r) => fmtChartPeriod(r.periodEnd));
   const height = Math.max(220, rows.length * 28 + 56);
-
-  const options = useMemo(
-    () =>
-      horizontalBarOptions(reduce, {
-        title: (items) => {
-          const i = items[0]?.dataIndex ?? 0;
-          return full[i] ?? "";
+  const base = apexBarToolbar(reduce);
+  const options: ApexOptions = withChartId(
+    {
+      ...base,
+      plotOptions: {
+        bar: { horizontal: true, borderRadius: 6, barHeight: "68%" },
+      },
+      dataLabels: { enabled: false },
+      xaxis: {
+        categories: rows.map((r) => (r.name.length > 16 ? `${r.name.slice(0, 14)}…` : r.name)),
+        labels: {
+          style: { colors: BOOK_CHART.muted, fontSize: "11px" },
+          formatter: (v) => fmtChartNum(Number(v)),
         },
-        label: (ctx) => ` Cash ${fmtChartNum(Number(ctx.raw))} · as of ${periods[ctx.dataIndex] ?? ""}`,
-      }),
-    [reduce, full, periods],
+      },
+      yaxis: {
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" }, maxWidth: 120 },
+      },
+      tooltip: {
+        theme: "light",
+        y: {
+          formatter: (val, opts) => {
+            const row = rows[opts?.dataPointIndex ?? 0];
+            const when = row ? ` · as of ${fmtChartPeriod(row.periodEnd)}` : "";
+            return `${fmtChartNum(Number(val))}${when}`;
+          },
+          title: { formatter: () => "Cash" },
+        },
+        x: {
+          formatter: (_val, opts) => rows[opts?.dataPointIndex ?? 0]?.name ?? "Cash",
+        },
+      },
+    },
+    chartId,
   );
 
   return (
-    <div className="chart-frame chart-frame-js" style={{ height }} aria-label="Cash by company">
-      <Bar
-        data={{
-          labels,
-          datasets: [
-            {
-              data: rows.map((r) => r.cash),
-              backgroundColor: BOOK_CHART.forest,
-              hoverBackgroundColor: BOOK_CHART.limeDeep,
-              borderRadius: 6,
-              borderSkipped: false,
-              maxBarThickness: 18,
-            },
-          ],
-        }}
-        options={options}
-      />
-    </div>
+    <ChartShell
+      chartId={chartId}
+      filename="cash-by-company"
+      label="Cash by company"
+      foot={<p className="chart-foot">Drag to zoom · double-click to reset. Booked cash only.</p>}
+    >
+      <ApexChart type="bar" height={height} options={options} series={[{ name: "Cash", data: rows.map((r) => r.cash) }]} />
+    </ChartShell>
   );
 }
 
 function runwayBarColor(months: number) {
-  if (months < 6) return BOOK_CHART.danger;
-  if (months < 12) return BOOK_CHART.warn;
+  if (months < 3) return BOOK_CHART.danger;
+  if (months < 6) return BOOK_CHART.warn;
+  if (months < 12) return "#6b8f3a";
   return BOOK_CHART.forest;
 }
 
-/** Chart.js horizontal bars — runway months by company (booked cash ÷ burn only). */
+function runwayBand(months: number): "critical" | "short" | "watch" | "ok" {
+  if (months < 3) return "critical";
+  if (months < 6) return "short";
+  if (months < 12) return "watch";
+  return "ok";
+}
+
+export type RunwayUrgencyRow = {
+  companyId: string;
+  name: string;
+  months: number;
+  priorMonths?: number | null;
+  deltaMonths?: number | null;
+  periodEnd: string;
+  priorPeriodEnd?: string | null;
+};
+
+/**
+ * Urgency list: company · colored months-left bar · value · Δ when prior exists.
+ * Missing prior → blank delta (never invent movement).
+ */
+export function RunwayUrgencyStrip({ rows }: { rows: RunwayUrgencyRow[] }) {
+  const reduce = useReduceMotion();
+  if (rows.length === 0) {
+    return <ChartEmpty label="No runway yet — need booked cash and burn for at least one company." />;
+  }
+
+  const scaleMax = Math.max(12, ...rows.map((r) => r.months));
+  const counts = { critical: 0, short: 0, watch: 0, ok: 0 };
+  for (const r of rows) counts[runwayBand(r.months)] += 1;
+
+  return (
+    <div className="runway-strip" data-testid="runway-urgency-strip">
+      <div className="runway-strip-legend" aria-label="Runway thresholds">
+        <span className="runway-leg runway-leg-critical">
+          &lt;3 mo · {counts.critical}
+        </span>
+        <span className="runway-leg runway-leg-short">
+          &lt;6 mo · {counts.short}
+        </span>
+        <span className="runway-leg runway-leg-watch">
+          &lt;12 mo · {counts.watch}
+        </span>
+        <span className="runway-leg runway-leg-ok">
+          ≥12 mo · {counts.ok}
+        </span>
+      </div>
+      <ul className="runway-strip-list">
+        {rows.map((r, i) => {
+          const band = runwayBand(r.months);
+          const pct = Math.min(100, (r.months / scaleMax) * 100);
+          const delta = r.deltaMonths;
+          const deltaLabel =
+            delta == null
+              ? null
+              : `${delta > 0 ? "+" : ""}${fmtChartNum(delta)} mo`;
+          return (
+            <li key={r.companyId} className={`runway-strip-row is-${band}`}>
+              <Link className="runway-strip-co" href={`/companies/${r.companyId}`}>
+                <CompanyMark name={r.name} size="sm" />
+                <span className="runway-strip-name">{r.name}</span>
+              </Link>
+              <div className="runway-strip-track" aria-hidden>
+                <div
+                  className={`runway-strip-fill${reduce ? "" : " is-anim"}`}
+                  style={{
+                    width: `${pct}%`,
+                    background: runwayBarColor(r.months),
+                    animationDelay: reduce ? undefined : `${Math.min(i, 10) * 40}ms`,
+                  }}
+                />
+                {/* Threshold ticks at 3 / 6 / 12 mo */}
+                {[3, 6, 12].map((t) =>
+                  t < scaleMax ? (
+                    <span
+                      key={t}
+                      className="runway-strip-tick"
+                      style={{ left: `${(t / scaleMax) * 100}%` }}
+                    />
+                  ) : null,
+                )}
+              </div>
+              <div className="runway-strip-meta">
+                <strong className="runway-strip-mo">
+                  {fmtChartNum(r.months)}
+                  <span className="runway-strip-unit"> mo left</span>
+                </strong>
+                {deltaLabel ? (
+                  <span
+                    className={`runway-strip-delta${delta! < 0 ? " is-down" : delta! > 0 ? " is-up" : ""}`}
+                    title={
+                      r.priorPeriodEnd && r.priorMonths != null
+                        ? `vs ${fmtChartPeriod(r.priorPeriodEnd)} (${fmtChartNum(r.priorMonths)} mo)`
+                        : undefined
+                    }
+                  >
+                    {deltaLabel}
+                  </span>
+                ) : (
+                  <span className="runway-strip-delta is-miss" aria-label="No prior period" />
+                )}
+                <span className="runway-strip-asof">{fmtChartPeriod(r.periodEnd)}</span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="chart-foot">
+        Cash ÷ avg of up to three booked burns · shortest first · Δ blank when prior cash or burn is missing.
+      </p>
+    </div>
+  );
+}
+
+/** ApexCharts horizontal bars — runway months by company. */
 export function RunwayByCompanyChart({
   rows,
 }: {
   rows: { name: string; months: number; periodEnd: string }[];
 }) {
   const reduce = useReduceMotion();
+  const chartId = useApexChartId();
   if (rows.length === 0) return <ChartEmpty label="No runway to chart — need booked cash and burn." />;
 
-  const labels = rows.map((r) => (r.name.length > 16 ? `${r.name.slice(0, 14)}…` : r.name));
-  const full = rows.map((r) => r.name);
-  const periods = rows.map((r) => fmtChartPeriod(r.periodEnd));
   const height = Math.max(220, rows.length * 28 + 56);
   const colors = rows.map((r) => runwayBarColor(r.months));
-
-  const options = useMemo(
-    () =>
-      horizontalBarOptions(reduce, {
-        title: (items) => {
-          const i = items[0]?.dataIndex ?? 0;
-          return full[i] ?? "";
+  const base = apexBarToolbar(reduce);
+  const options: ApexOptions = withChartId(
+    {
+      ...base,
+      colors,
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          borderRadius: 6,
+          barHeight: "68%",
+          distributed: true,
         },
-        label: (ctx) => {
-          const mo = Number(ctx.raw);
-          return ` ${fmtChartNum(mo)} mo · as of ${periods[ctx.dataIndex] ?? ""}`;
+      },
+      dataLabels: { enabled: false },
+      legend: { show: false },
+      xaxis: {
+        categories: rows.map((r) => (r.name.length > 16 ? `${r.name.slice(0, 14)}…` : r.name)),
+        labels: {
+          style: { colors: BOOK_CHART.muted, fontSize: "11px" },
+          formatter: (v) => fmtChartNum(Number(v)),
         },
-      }),
-    [reduce, full, periods],
+      },
+      yaxis: {
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" }, maxWidth: 120 },
+      },
+      tooltip: {
+        theme: "light",
+        y: {
+          formatter: (val, opts) => {
+            const row = rows[opts?.dataPointIndex ?? 0];
+            const when = row ? ` · as of ${fmtChartPeriod(row.periodEnd)}` : "";
+            return `${fmtChartNum(Number(val))} mo${when}`;
+          },
+          title: { formatter: () => "Runway" },
+        },
+        x: {
+          formatter: (_val, opts) => rows[opts?.dataPointIndex ?? 0]?.name ?? "Runway",
+        },
+      },
+    },
+    chartId,
   );
 
   return (
-    <div className="chart-frame chart-frame-js" style={{ height }} aria-label="Runway by company">
-      <Bar
-        data={{
-          labels,
-          datasets: [
-            {
-              data: rows.map((r) => r.months),
-              backgroundColor: colors,
-              hoverBackgroundColor: colors,
-              borderRadius: 6,
-              borderSkipped: false,
-              maxBarThickness: 18,
-            },
-          ],
-        }}
-        options={options}
-      />
-    </div>
+    <ChartShell
+      chartId={chartId}
+      filename="runway-by-company"
+      label="Runway by company"
+      foot={
+        <p className="chart-foot">
+          Drag to zoom · double-click to reset. Booked cash ÷ burn only — missing stays off the chart.
+        </p>
+      }
+    >
+      <ApexChart type="bar" height={height} options={options} series={[{ name: "Runway", data: rows.map((r) => r.months) }]} />
+    </ChartShell>
   );
 }
 
@@ -419,8 +546,8 @@ export function PortfolioSeriesChart({
       label="Portfolio booked series"
       foot={
         <p className="chart-foot">
-          Zoom or pan the trend. Legend toggles series. Sums only include companies with a booked value that
-          period — missing is not zero.
+          Drag to zoom · double-click to reset. Legend toggles series. Sums only include companies with a
+          booked value that period — missing is not zero.
         </p>
       }
     >
@@ -438,129 +565,127 @@ export function PortfolioSeriesChart({
   );
 }
 
-/** Chart.js multi-line — company booked history. */
+/** ApexCharts multi-line — company booked history. */
 export function CompanyMetricHistoryChart({
   points,
 }: {
   points: { periodEnd: string; cash: number | null; burn: number | null; revenue: number | null }[];
 }) {
   const reduce = useReduceMotion();
-  const labels = points.map((p) => fmtChartPeriod(p.periodEnd));
+  const chartId = useApexChartId();
   const hasSeries = points.filter((d) => d.cash != null || d.burn != null || d.revenue != null).length >= 2;
   if (!hasSeries) return <ChartEmpty label="Need at least two booked periods for a company trend." />;
 
-  const options = useMemo(
-    () =>
-      lineOptions(reduce, (ctx) => {
-        const v = ctx.parsed.y;
-        if (v == null) return ` ${ctx.dataset.label}: `;
-        return ` ${ctx.dataset.label}: ${fmtChartNum(v)}`;
-      }),
-    [reduce],
+  const base = apexBookBase(reduce);
+  const options: ApexOptions = withChartId(
+    {
+      ...base,
+      chart: { ...base.chart, type: "area" },
+      colors: [BOOK_CHART.forest, BOOK_CHART.limeDeep, BOOK_CHART.warn],
+      stroke: { curve: "smooth", width: [2.5, 2.5, 2], dashArray: [0, 0, 5] },
+      fill: {
+        type: ["gradient", "gradient", "solid"],
+        gradient: { shadeIntensity: 0.3, opacityFrom: 0.28, opacityTo: 0.03, stops: [0, 90, 100] },
+        opacity: [1, 1, 0],
+      },
+      markers: { size: 3, hover: { size: 6 } },
+      xaxis: {
+        categories: points.map((p) => fmtChartPeriod(p.periodEnd)),
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" } },
+      },
+      yaxis: {
+        labels: {
+          style: { colors: BOOK_CHART.muted, fontSize: "11px" },
+          formatter: (v) => fmtChartNum(v),
+        },
+      },
+    },
+    chartId,
   );
 
   return (
-    <div className="chart-frame chart-frame-js" style={{ height: 260 }} aria-label="Company metric history">
-      <Line
-        data={{
-          labels,
-          datasets: [
-            {
-              label: "Cash",
-              data: points.map((p) => p.cash),
-              borderColor: BOOK_CHART.forest,
-              backgroundColor: BOOK_CHART.forest,
-              tension: 0.25,
-              pointRadius: 3,
-              pointHoverRadius: 6,
-              borderWidth: 2.2,
-              spanGaps: false,
-            },
-            {
-              label: "Revenue",
-              data: points.map((p) => p.revenue),
-              borderColor: BOOK_CHART.limeDeep,
-              backgroundColor: BOOK_CHART.limeDeep,
-              tension: 0.25,
-              pointRadius: 3,
-              pointHoverRadius: 6,
-              borderWidth: 2.2,
-              spanGaps: false,
-            },
-            {
-              label: "Burn",
-              data: points.map((p) => p.burn),
-              borderColor: BOOK_CHART.warn,
-              backgroundColor: BOOK_CHART.warn,
-              tension: 0.25,
-              pointRadius: 0,
-              pointHoverRadius: 5,
-              borderWidth: 2,
-              borderDash: [4, 3],
-              spanGaps: false,
-            },
-          ],
-        }}
+    <ChartShell
+      chartId={chartId}
+      filename="company-metric-history"
+      label="Company metric history"
+      foot={
+        <p className="chart-foot">
+          Drag to zoom · double-click to reset. Legend toggles series. Gaps stay blank.
+        </p>
+      }
+    >
+      <ApexChart
+        type="area"
+        height={260}
         options={options}
+        series={[
+          { name: "Cash", data: points.map((p) => p.cash) },
+          { name: "Revenue", data: points.map((p) => p.revenue) },
+          { name: "Burn", data: points.map((p) => p.burn) },
+        ]}
       />
-      <p className="chart-foot">Click a legend item to hide a series. Gaps stay blank.</p>
-    </div>
+    </ChartShell>
   );
 }
 
-/** Chart.js grouped columns — fund operating rollup. */
+/** ApexCharts grouped columns — fund operating rollup. */
 export function FundRollupBars({
   rows,
 }: {
   rows: { fundName: string; cashSum: number | null; burnSum: number | null; revenueSum: number | null }[];
 }) {
   const reduce = useReduceMotion();
+  const chartId = useApexChartId();
   const filtered = rows.filter((r) => r.cashSum != null || r.burnSum != null || r.revenueSum != null);
   if (filtered.length === 0) return <ChartEmpty label="No fund rollup figures to chart." />;
 
-  const labels = filtered.map((r) => (r.fundName.length > 16 ? `${r.fundName.slice(0, 14)}…` : r.fundName));
-  const options = useMemo(
-    () =>
-      groupedBarOptions(reduce, (ctx) => {
-        const v = ctx.parsed.y;
-        if (v == null) return ` ${ctx.dataset.label}: `;
-        return ` ${ctx.dataset.label}: ${fmtChartNum(v)}`;
-      }),
-    [reduce],
+  const base = apexBookBase(reduce);
+  const options: ApexOptions = withChartId(
+    {
+      ...base,
+      chart: { ...base.chart, type: "bar" },
+      colors: [BOOK_CHART.forest, BOOK_CHART.limeDeep, BOOK_CHART.slate],
+      plotOptions: {
+        bar: { borderRadius: 4, columnWidth: "55%" },
+      },
+      xaxis: {
+        categories: filtered.map((r) => (r.fundName.length > 16 ? `${r.fundName.slice(0, 14)}…` : r.fundName)),
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" } },
+      },
+      yaxis: {
+        labels: {
+          style: { colors: BOOK_CHART.muted, fontSize: "11px" },
+          formatter: (v) => fmtChartNum(v),
+        },
+      },
+      tooltip: {
+        ...base.tooltip,
+        y: { formatter: (val) => (val == null ? "" : fmtChartNum(val)) },
+      },
+    },
+    chartId,
   );
 
   return (
-    <div className="chart-frame chart-frame-js" style={{ height: 240 }} aria-label="Fund operating rollup">
-      <Bar
-        data={{
-          labels,
-          datasets: [
-            {
-              label: "Cash Σ",
-              data: filtered.map((r) => r.cashSum),
-              backgroundColor: BOOK_CHART.forest,
-              borderRadius: 4,
-              maxBarThickness: 28,
-            },
-            {
-              label: "Revenue Σ",
-              data: filtered.map((r) => r.revenueSum),
-              backgroundColor: BOOK_CHART.limeDeep,
-              borderRadius: 4,
-              maxBarThickness: 28,
-            },
-            {
-              label: "Burn Σ",
-              data: filtered.map((r) => r.burnSum),
-              backgroundColor: BOOK_CHART.slate,
-              borderRadius: 4,
-              maxBarThickness: 28,
-            },
-          ],
-        }}
+    <ChartShell
+      chartId={chartId}
+      filename="fund-rollup"
+      label="Fund operating rollup"
+      foot={<p className="chart-foot">Drag to zoom · double-click to reset. Booked rollups only.</p>}
+    >
+      <ApexChart
+        type="bar"
+        height={240}
         options={options}
+        series={[
+          { name: "Cash Σ", data: filtered.map((r) => r.cashSum) },
+          { name: "Revenue Σ", data: filtered.map((r) => r.revenueSum) },
+          { name: "Burn Σ", data: filtered.map((r) => r.burnSum) },
+        ]}
       />
-    </div>
+    </ChartShell>
   );
 }
 
@@ -643,7 +768,7 @@ export function ComparePeerBars({
       foot={
         <p className="chart-foot">
           Booked facts only
-          {rows.length > 12 ? ` (top 12 of ${rows.length})` : ""}. Absent values stay off the chart.
+          {rows.length > 12 ? ` (top 12 of ${rows.length})` : ""}. Drag to zoom · double-click to reset.
         </p>
       }
     >
@@ -743,7 +868,7 @@ export function ComparePeerRadar({
   );
 }
 
-/** Chart.js vertical columns — primary metric for selected peers (distinct colors). */
+/** ApexCharts vertical columns — primary metric for selected peers. */
 export function ComparePeerColumns({
   rows,
   metricLabel,
@@ -754,81 +879,97 @@ export function ComparePeerColumns({
   unitHint?: string;
 }) {
   const reduce = useReduceMotion();
+  const chartId = useApexChartId();
   if (rows.length === 0) {
     return <ChartEmpty label={`No booked ${metricLabel.toLowerCase()} among selected peers.`} />;
   }
 
   const sorted = [...rows].sort((a, b) => b.value - a.value).slice(0, 14);
   const unit = unitHint ? ` ${unitHint}` : "";
-  const labels = sorted.map((r) => (r.name.length > 12 ? `${r.name.slice(0, 10)}…` : r.name));
-  const options = useMemo(
-    () =>
-      groupedBarOptions(reduce, (ctx) => {
-        const row = sorted[ctx.dataIndex];
-        const when = row?.periodEnd ? ` · ${fmtChartPeriod(row.periodEnd)}` : "";
-        return ` ${fmtChartNum(Number(ctx.raw))}${unit}${when}`;
-      }),
-    [reduce, sorted, unit],
-  );
-  // Hide bottom legend — one series with colored bars
-  const opts = useMemo(
-    () =>
-      ({
-        ...options,
-        plugins: {
-          ...options.plugins,
-          legend: { display: false },
-          tooltip: {
-            ...options.plugins?.tooltip,
-            callbacks: {
-              title: (items: { dataIndex?: number }[]) => sorted[items[0]?.dataIndex ?? 0]?.name ?? metricLabel,
-              label: (ctx: { raw: unknown }) => ` ${fmtChartNum(Number(ctx.raw))}${unit}`,
-            },
-          },
+  const base = apexBarToolbar(reduce);
+  const options: ApexOptions = withChartId(
+    {
+      ...base,
+      colors: sorted.map((_, i) => peerColor(i)),
+      plotOptions: {
+        bar: {
+          borderRadius: 6,
+          columnWidth: "55%",
+          distributed: true,
         },
-      }) as typeof options,
-    [options, sorted, metricLabel, unit],
+      },
+      dataLabels: { enabled: false },
+      legend: { show: false },
+      xaxis: {
+        categories: sorted.map((r) => (r.name.length > 12 ? `${r.name.slice(0, 10)}…` : r.name)),
+        labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" } },
+      },
+      yaxis: {
+        labels: {
+          style: { colors: BOOK_CHART.muted, fontSize: "11px" },
+          formatter: (v) => fmtChartNum(v),
+        },
+      },
+      tooltip: {
+        theme: "light",
+        y: {
+          formatter: (val, opts) => {
+            const row = sorted[opts?.dataPointIndex ?? 0];
+            const when = row?.periodEnd ? ` · ${fmtChartPeriod(row.periodEnd)}` : "";
+            return `${fmtChartNum(Number(val))}${unit}${when}`;
+          },
+          title: { formatter: () => metricLabel },
+        },
+        x: {
+          formatter: (_val, opts) => sorted[opts?.dataPointIndex ?? 0]?.name ?? metricLabel,
+        },
+      },
+    },
+    chartId,
   );
 
   return (
-    <div className="chart-frame chart-frame-js" style={{ height: 280 }} aria-label={`${metricLabel} columns`}>
-      <Bar
-        data={{
-          labels,
-          datasets: [
-            {
-              label: metricLabel,
-              data: sorted.map((r) => r.value),
-              backgroundColor: sorted.map((_, i) => peerColor(i)),
-              borderRadius: 6,
-              borderSkipped: false,
-              maxBarThickness: 36,
-            },
-          ],
-        }}
-        options={opts}
+    <ChartShell
+      chartId={chartId}
+      filename={`${metricLabel.toLowerCase().replace(/\s+/g, "-")}-columns`}
+      label={`${metricLabel} columns`}
+      foot={
+        <p className="chart-foot">
+          Drag to zoom · double-click to reset. Selected peers only · booked {metricLabel.toLowerCase()}
+          {rows.length > 14 ? ` (top 14 of ${rows.length})` : ""}.
+        </p>
+      }
+    >
+      <ApexChart
+        type="bar"
+        height={280}
+        options={options}
+        series={[{ name: metricLabel, data: sorted.map((r) => r.value) }]}
       />
-      <p className="chart-foot">
-        Selected peers only · booked {metricLabel.toLowerCase()}
-        {rows.length > 14 ? ` (top 14 of ${rows.length})` : ""}.
-      </p>
-    </div>
+    </ChartShell>
   );
 }
 
-/** ApexCharts scatter — two metrics for selected peers (e.g. cash × runway). */
+/**
+ * ApexCharts bubble — two axes for position, third booked metric for size
+ * (e.g. cash × runway, size = burn). Missing size uses a small floor — never invented.
+ */
 export function ComparePeerScatter({
   rows,
   xLabel,
   yLabel,
+  zLabel,
   xUnit,
   yUnit,
+  zUnit,
 }: {
-  rows: { name: string; x: number; y: number }[];
+  rows: { name: string; x: number; y: number; z: number | null }[];
   xLabel: string;
   yLabel: string;
+  zLabel?: string;
   xUnit?: string;
   yUnit?: string;
+  zUnit?: string;
 }) {
   const reduce = useReduceMotion();
   const chartId = useApexChartId();
@@ -836,14 +977,20 @@ export function ComparePeerScatter({
     return <ChartEmpty label={`Need two peers with booked ${xLabel.toLowerCase()} and ${yLabel.toLowerCase()}.`} />;
   }
 
-  const base = apexScatterBase(reduce);
+  const sizeLabel = zLabel ?? "Size";
+  const bookedZ = rows.map((r) => r.z).filter((z): z is number => z != null && Number.isFinite(z) && z > 0);
+  const zFloor = bookedZ.length ? Math.min(...bookedZ) * 0.35 : 1;
+  const base = apexBubbleBase(reduce);
   const xu = xUnit ? ` ${xUnit}` : "";
   const yu = yUnit ? ` ${yUnit}` : "";
+  const zu = zUnit ? ` ${zUnit}` : "";
+
   const options: ApexOptions = withChartId(
     {
       ...base,
       colors: rows.map((_, i) => peerColor(i)),
       xaxis: {
+        type: "numeric",
         title: { text: xLabel, style: { color: BOOK_CHART.muted, fontSize: "11px" } },
         labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" }, formatter: (v) => fmtChartNum(Number(v)) },
         tickAmount: 5,
@@ -856,36 +1003,45 @@ export function ComparePeerScatter({
         theme: "light",
         shared: false,
         intersect: true,
-        y: {
-          formatter: (val, opts) => {
-            const row = rows[opts?.seriesIndex ?? 0];
-            if (!row) return fmtChartNum(Number(val));
-            return `${xLabel} ${fmtChartNum(row.x)}${xu} · ${yLabel} ${fmtChartNum(row.y)}${yu}`;
-          },
+        custom: ({ seriesIndex }) => {
+          const row = rows[seriesIndex ?? 0];
+          if (!row) return "";
+          const sizeLine =
+            row.z != null && Number.isFinite(row.z)
+              ? `${sizeLabel} ${fmtChartNum(row.z)}${zu}`
+              : `${sizeLabel} not booked`;
+          return `<div class="apex-bubble-tip"><strong>${row.name}</strong><br/>${xLabel} ${fmtChartNum(row.x)}${xu}<br/>${yLabel} ${fmtChartNum(row.y)}${yu}<br/>${sizeLine}</div>`;
         },
       },
     },
     chartId,
   );
 
-  // One series per peer so colors / legend stay distinct
   const series = rows.map((r) => ({
     name: r.name,
-    data: [[r.x, r.y]],
+    data: [
+      {
+        x: r.x,
+        y: r.y,
+        z: r.z != null && Number.isFinite(r.z) && r.z > 0 ? r.z : zFloor,
+      },
+    ],
   }));
 
   return (
     <ChartShell
       chartId={chartId}
-      filename="peer-scatter"
+      filename="peer-bubble"
       label={`${xLabel} vs ${yLabel}`}
       foot={
         <p className="chart-foot">
-          Each point is a selected peer. Zoom to cluster. Missing either axis stays off the plot.
+          Bubble size = booked {sizeLabel.toLowerCase()}
+          {bookedZ.length < rows.length ? " (small floor when that metric is missing — never invented)" : ""}.
+          Drag to zoom · double-click to reset.
         </p>
       }
     >
-      <ApexChart type="scatter" height={300} options={options} series={series} />
+      <ApexChart type="bubble" height={420} options={options} series={series} />
     </ChartShell>
   );
 }

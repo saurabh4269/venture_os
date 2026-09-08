@@ -280,15 +280,21 @@ export default function ComparePage() {
         ? "runway_months"
         : metrics.find((m) => m !== xKey && (CHARTABLE as readonly string[]).includes(m));
     if (!xKey || !yKey) return null;
+    const sizePrefs = ["burn", "net_revenue", "cash", "headcount"] as const;
+    const zKey =
+      sizePrefs.find((k) => k !== xKey && k !== yKey && metrics.includes(k)) ??
+      metrics.find((m) => m !== xKey && m !== yKey && (CHARTABLE as readonly string[]).includes(m)) ??
+      null;
     const rows = visible
       .map((row) => {
         const x = chartValue(row.cells[xKey], xKey);
         const y = chartValue(row.cells[yKey], yKey);
         if (x == null || y == null) return null;
-        return { name: row.company.name, x, y };
+        const z = zKey ? chartValue(row.cells[zKey], zKey) : null;
+        return { name: row.company.name, x, y, z };
       })
-      .filter((r): r is { name: string; x: number; y: number } => r != null);
-    return { xKey, yKey, rows };
+      .filter((r): r is { name: string; x: number; y: number; z: number | null } => r != null);
+    return { xKey, yKey, zKey, rows };
   }, [visible, metrics]);
 
   function exportCsv() {
@@ -548,8 +554,8 @@ export default function ComparePage() {
             />
           </Panel>
 
-          <div className={`chart-grid${scatterPair && scatterPair.rows.length >= 2 ? "" : " chart-grid-single"}`}>
-            <Panel title={metricLabel(chartMetric, data.labels)} kicker="Chart.js columns">
+          <div className="chart-grid chart-grid-single">
+            <Panel title={metricLabel(chartMetric, data.labels)} kicker="Peer columns">
               <p className="lede compare-chart-why">
                 Ranked {metricLabel(chartMetric, data.labels).toLowerCase()} for selected peers only.
               </p>
@@ -559,24 +565,35 @@ export default function ComparePage() {
                 unitHint={unitHint(chartMetric)}
               />
             </Panel>
-            {scatterPair && scatterPair.rows.length >= 2 ? (
-              <Panel
-                title={`${metricLabel(scatterPair.xKey, data.labels)} × ${metricLabel(scatterPair.yKey, data.labels)}`}
-                kicker="Apex scatter"
-              >
-                <p className="lede compare-chart-why">
-                  Position of each selected peer on two booked axes. Zoom if the cluster is tight.
-                </p>
-                <ComparePeerScatter
-                  rows={scatterPair.rows}
-                  xLabel={metricLabel(scatterPair.xKey, data.labels)}
-                  yLabel={metricLabel(scatterPair.yKey, data.labels)}
-                  xUnit={unitHint(scatterPair.xKey)}
-                  yUnit={unitHint(scatterPair.yKey)}
-                />
-              </Panel>
-            ) : null}
           </div>
+          {scatterPair && scatterPair.rows.length >= 2 ? (
+            <Panel
+              className="compare-scatter-panel"
+              title={`${metricLabel(scatterPair.xKey, data.labels)} × ${metricLabel(scatterPair.yKey, data.labels)}`}
+              kicker={
+                scatterPair.zKey
+                  ? `Bubble · size ${metricLabel(scatterPair.zKey, data.labels)}`
+                  : "Peer bubble"
+              }
+            >
+              <p className="lede compare-chart-why">
+                Position on two booked axes
+                {scatterPair.zKey
+                  ? `; bubble size is booked ${metricLabel(scatterPair.zKey, data.labels).toLowerCase()}`
+                  : ""}
+                . Drag to zoom · double-click to reset.
+              </p>
+              <ComparePeerScatter
+                rows={scatterPair.rows}
+                xLabel={metricLabel(scatterPair.xKey, data.labels)}
+                yLabel={metricLabel(scatterPair.yKey, data.labels)}
+                zLabel={scatterPair.zKey ? metricLabel(scatterPair.zKey, data.labels) : undefined}
+                xUnit={unitHint(scatterPair.xKey)}
+                yUnit={unitHint(scatterPair.yKey)}
+                zUnit={scatterPair.zKey ? unitHint(scatterPair.zKey) : undefined}
+              />
+            </Panel>
+          ) : null}
 
           <Panel title="Matrix" kicker={`${visible.length} companies`} flush>
             <div className="table-scroll">

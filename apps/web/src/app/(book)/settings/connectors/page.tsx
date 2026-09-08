@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import {
@@ -316,7 +315,7 @@ function ConnectorCards() {
               className={`connector-tile${on ? " is-on" : ""}`}
               data-testid={`connector-card-${k}`}
               aria-pressed={on}
-              onClick={() => setSelected(k)}
+              onClick={() => setSelected((cur) => (cur === k ? null : k))}
             >
               <span className="connector-tile-ico">
                 <Icon />
@@ -333,12 +332,7 @@ function ConnectorCards() {
         })}
       </div>
 
-      {!kind ? (
-        <div className="empty connector-empty">
-          <strong>Select a connector</strong>
-          Open OneDrive, Affinity, or Granola to paste keys and test the link.
-        </div>
-      ) : (
+      {kind ? (
         <Panel
           className="connector-detail"
           kicker="Connector"
@@ -554,9 +548,7 @@ function ConnectorCards() {
                 </button>
               </div>
             </form>
-          ) : (
-            <p className="lede">Only Org Admin can paste keys.</p>
-          )}
+          ) : null}
           {err[kind] && (
             <p className="sev-high" role="alert" data-testid={`connector-form-error-${kind}`}>
               {err[kind]}
@@ -568,28 +560,7 @@ function ConnectorCards() {
             </p>
           )}
         </Panel>
-      )}
-
-      <p className="lede" style={{ marginTop: 16 }}>
-        Map OneDrive, Affinity, or Granola ids on each <Link href="/companies">company</Link>, then sync into Confirm.
-      </p>
-      <Panel title="How keys are stored">
-        <div className="vault-card" style={{ marginTop: 0 }}>
-          <div className="vault-ico" aria-hidden>
-            <IconLock />
-          </div>
-          <div>
-            <p style={{ margin: "0 0 8px" }}>
-              Org keys are sealed with AES-256-GCM. Postgres holds ciphertext, nonce, and key version, never the
-              envelope key. After save, this form clears secrets from memory.
-            </p>
-            <p className="lede" style={{ margin: 0 }}>
-              Only Org Admin can paste or rotate. Disconnect clears the envelope. Status stays not connected without a
-              real health check.
-            </p>
-          </div>
-        </div>
-      </Panel>
+      ) : null}
     </>
   );
 }

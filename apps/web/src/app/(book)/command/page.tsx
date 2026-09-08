@@ -11,7 +11,7 @@ import {
   FundRollupBars,
   KpiSparkline,
   PortfolioSeriesChart,
-  RunwayByCompanyChart,
+  RunwayUrgencyStrip,
 } from "@/components/BookCharts";
 import { IconFlagSmall, IconRefresh, IconWarn } from "@/components/Icons";
 import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
@@ -43,7 +43,15 @@ type Pulse = {
   charts?: {
     coverageMix: { booked: number; gap: number; review: number };
     cashByCompany: { companyId: string; name: string; cash: number; periodEnd: string }[];
-    runwayByCompany: { companyId: string; name: string; months: number; periodEnd: string }[];
+    runwayByCompany: {
+      companyId: string;
+      name: string;
+      months: number;
+      priorMonths?: number | null;
+      deltaMonths?: number | null;
+      periodEnd: string;
+      priorPeriodEnd?: string | null;
+    }[];
     portfolioSeries: {
       periodEnd: string;
       cashSum: number | null;
@@ -417,20 +425,26 @@ export default function CommandPage() {
           </Panel>
 
           {data.charts && data.pulse.companies > 0 ? (
-            <div className="chart-grid chart-grid-command">
-              <Panel title="Coverage mix" kicker="Booked · gap · review" className="coverage-mix-panel">
-                <CoverageMixChart {...data.charts.coverageMix} />
+            <>
+              <Panel
+                title="Runway months left"
+                kicker="Shortest first · color = urgency · Δ vs prior when both sides booked"
+                className="runway-strip-panel"
+              >
+                <RunwayUrgencyStrip rows={data.charts.runwayByCompany ?? []} />
               </Panel>
-              <Panel title="Cash by company" kicker="Latest booked period">
-                <CashByCompanyChart rows={data.charts.cashByCompany} />
-              </Panel>
-              <Panel title="Runway by company" kicker="Cash ÷ avg burn · booked only">
-                <RunwayByCompanyChart rows={data.charts.runwayByCompany ?? []} />
-              </Panel>
-              <Panel title="Portfolio trend" kicker="Sum of booked values" className="chart-span-2">
-                <PortfolioSeriesChart rows={data.charts.portfolioSeries} />
-              </Panel>
-            </div>
+              <div className="chart-grid chart-grid-command">
+                <Panel title="Coverage mix" kicker="Booked · gap · review" className="coverage-mix-panel">
+                  <CoverageMixChart {...data.charts.coverageMix} />
+                </Panel>
+                <Panel title="Cash by company" kicker="Latest booked period" className="chart-span-2">
+                  <CashByCompanyChart rows={data.charts.cashByCompany} />
+                </Panel>
+                <Panel title="Portfolio trend" kicker="Sum of booked values" className="chart-span-2">
+                  <PortfolioSeriesChart rows={data.charts.portfolioSeries} />
+                </Panel>
+              </div>
+            </>
           ) : null}
 
           {data.pulse.companies === 0 && (

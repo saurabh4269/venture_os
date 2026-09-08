@@ -180,28 +180,29 @@ export function groupedBarOptions(
   } as ChartOptions<"bar">;
 }
 
+/**
+ * Interactive Apex chrome: drag-to-zoom, no toolbar icons.
+ * PNG export lives in ChartShell (single download control).
+ * Double-click the plot to reset zoom.
+ */
+function apexZoomChrome(
+  reduceMotion: boolean,
+  zoomType: "x" | "xy" = "x",
+): NonNullable<ApexOptions["chart"]> {
+  return {
+    toolbar: { show: false },
+    zoom: { enabled: true, type: zoomType, autoScaleYaxis: true },
+    selection: { enabled: true },
+    animations: { enabled: !reduceMotion, speed: 500 },
+    fontFamily: "inherit",
+    foreColor: BOOK_CHART.muted,
+    background: "transparent",
+  };
+}
+
 export function apexBookBase(reduceMotion: boolean): ApexOptions {
   return {
-    chart: {
-      toolbar: {
-        show: true,
-        offsetY: 0,
-        tools: {
-          download: false,
-          selection: true,
-          zoom: true,
-          zoomin: true,
-          zoomout: true,
-          pan: true,
-          reset: true,
-        },
-      },
-      zoom: { enabled: true, type: "x" },
-      animations: { enabled: !reduceMotion, speed: 500 },
-      fontFamily: "inherit",
-      foreColor: BOOK_CHART.muted,
-      background: "transparent",
-    },
+    chart: apexZoomChrome(reduceMotion, "x"),
     grid: { borderColor: BOOK_CHART.rule, strokeDashArray: 4 },
     legend: {
       position: "bottom",
@@ -217,12 +218,9 @@ export function apexBookBase(reduceMotion: boolean): ApexOptions {
 export function apexBarToolbar(reduceMotion: boolean): ApexOptions {
   return {
     chart: {
+      ...apexZoomChrome(reduceMotion, "x"),
       type: "bar",
-      toolbar: { show: false },
       animations: { enabled: !reduceMotion, speed: 450 },
-      fontFamily: "inherit",
-      foreColor: BOOK_CHART.muted,
-      background: "transparent",
     },
     colors: [BOOK_CHART.forest],
     grid: {
@@ -293,29 +291,37 @@ export function apexRadarBase(reduceMotion: boolean): ApexOptions {
 export function apexScatterBase(reduceMotion: boolean): ApexOptions {
   return {
     chart: {
+      ...apexZoomChrome(reduceMotion, "xy"),
       type: "scatter",
-      toolbar: {
-        show: true,
-        tools: {
-          download: false,
-          selection: false,
-          zoom: true,
-          zoomin: true,
-          zoomout: true,
-          pan: true,
-          reset: true,
-        },
-      },
-      zoom: { enabled: true, type: "xy" },
       animations: { enabled: !reduceMotion, speed: 450 },
-      fontFamily: "inherit",
-      foreColor: BOOK_CHART.muted,
-      background: "transparent",
     },
     grid: { borderColor: BOOK_CHART.rule, strokeDashArray: 4 },
     legend: { show: false },
     tooltip: { theme: "light", shared: false, intersect: true },
     markers: { size: 9, strokeWidth: 2, strokeColors: "#fff", hover: { size: 11 } },
+  };
+}
+
+/** Peer bubble — x/y position + z radius from a third booked metric. */
+export function apexBubbleBase(reduceMotion: boolean): ApexOptions {
+  return {
+    chart: {
+      ...apexZoomChrome(reduceMotion, "xy"),
+      type: "bubble",
+      animations: { enabled: !reduceMotion, speed: 450 },
+    },
+    grid: { borderColor: BOOK_CHART.rule, strokeDashArray: 4 },
+    legend: { show: false },
+    tooltip: { theme: "light", shared: false, intersect: true },
+    dataLabels: { enabled: false },
+    fill: { opacity: 0.78 },
+    plotOptions: {
+      bubble: {
+        minBubbleRadius: 7,
+        maxBubbleRadius: 32,
+        zScaling: true,
+      },
+    },
   };
 }
 

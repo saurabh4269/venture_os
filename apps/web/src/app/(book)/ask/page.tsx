@@ -5,9 +5,11 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { AskComposer } from "@/components/ask/AskComposer";
 import { AskReveal } from "@/components/ask/AskReveal";
 import { AskScroller } from "@/components/ask/AskScroller";
+import { AskSources } from "@/components/ask/AskSources";
 import { AskThinking } from "@/components/ask/AskThinking";
-import { ContextCard, PageHead } from "@/components/BookUI";
+import { PageHead } from "@/components/BookUI";
 import { useCite } from "@/components/Cite";
+import { IconAsk } from "@/components/Icons";
 import { api } from "@/lib/api";
 import { EASE_OUT, SPRING_SOFT } from "@/lib/motion-ease";
 import { bookErrorMessage } from "@/lib/wake";
@@ -44,6 +46,7 @@ export default function AskPage() {
   const [cos, setCos] = useState<{ id: string; name: string }[]>([]);
   const [companyId, setCompanyId] = useState("");
   const [followKey, setFollowKey] = useState(0);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     api<{ companies: { id: string; name: string }[] }>("/api/companies")
@@ -105,6 +108,16 @@ export default function AskPage() {
     bumpFollow();
   }
 
+  async function copyAnswer(id: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1600);
+    } catch {
+      /* ignore */
+    }
+  }
+
   return (
     <div className="ask-chat">
       <PageHead
@@ -120,34 +133,39 @@ export default function AskPage() {
         }
       />
 
-      <div className="ask-chat-toolbar">
-        <label className="field table-tools-field">
-          <span className="sr-only">Company scope</span>
-          <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company scope">
-            <option value="">All companies</option>
-            {cos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="lede ask-chat-hint">Answers need locators. Missing evidence returns a refusal, not a guess.</p>
-      </div>
-
       <div className="ask-chat-frame">
         <AskScroller followKey={`${followKey}-${turns.length}-${busy ? 1 : 0}`} busy={busy}>
           {turns.length === 0 ? (
             <div className="ask-chat-empty">
+              <div className="ask-empty-mark" aria-hidden>
+                <IconAsk />
+              </div>
               <strong>Ask the book</strong>
               <p className="lede">
-                Start with a confirmed metric, flag, or coverage question. Follow-ups stay in this thread.
+                Confirmed metrics only. Missing evidence returns a refusal — never a guess.
               </p>
-              <div className="ask-starters">
-                {STARTERS.map((s) => (
-                  <button key={s} type="button" className="ask-starter" onClick={() => void ask(s)} disabled={busy}>
-                    {s}
-                  </button>
+              <div className="ask-starters" role="list">
+                {STARTERS.map((s, i) => (
+                  <motion.button
+                    key={s}
+                    type="button"
+                    role="listitem"
+                    className="ask-starter"
+                    onClick={() => void ask(s)}
+                    disabled={busy}
+                    initial={reduce ? false : { opacity: 0, y: 10, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={
+                      reduce
+                        ? { duration: 0.15 }
+                        : { ...SPRING_SOFT, delay: 0.05 + i * 0.06 }
+                    }
+                  >
+                    <span className="ask-starter-label">{s}</span>
+                    <span className="ask-starter-go" aria-hidden>
+                      →
+                    </span>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -158,61 +176,73 @@ export default function AskPage() {
                   <motion.li
                     key={t.id}
                     className={`ask-turn ask-turn-${t.role}${t.refused ? " is-refused" : ""}`}
-                    initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14, filter: "blur(4px)" }}
-                    animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={reduce ? { duration: 0.2, ease: EASE_OUT } : SPRING_SOFT}
+                    initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10, scale: 0.97 }}
+                    animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+                    transition={reduce ? { duration: 0.2, ease: EASE_OUT } : { type: "spring", stiffness: 420, damping: 30, mass: 0.7 }}
+                    style={{ transformOrigin: t.role === "user" ? "100% 100%" : "0% 100%" }}
                     layout={!reduce}
                   >
-                    <div className="ask-turn-role">{t.role === "user" ? "You" : "Ask"}</div>
-                    <div
-                      className="ask-turn-body"
-                      data-testid={t.role === "assistant" ? (t.refused ? "ask-refused" : "ask-answer") : undefined}
-                    >
-                      {t.role === "assistant" && t.reveal ? (
-                        <AskReveal
-                          text={t.text}
-                          onTick={bumpFollow}
-                          onDone={() =>
-                            setTurns((cur) => cur.map((x) => (x.id === t.id ? { ...x, reveal: false } : x)))
-                          }
-                        />
-                      ) : (
-                        <p className="body">{t.text}</p>
-                      )}
-                      {t.role === "assistant" && t.citations?.length && !t.reveal ? (
-                        <ul className="ask-cites">
-                          {t.citations.map((c, i) => (
-                            <li key={`${t.id}-${c.documentId}-${i}`}>
-                              <ContextCard
-                                kicker={`Source ${i + 1}`}
-                                body={c.excerpt || "Source excerpt"}
-                                onOpen={
-                                  c.documentId || c.excerpt
-                                    ? () =>
-                                        openCite({
-                                          display: c.excerpt?.slice(0, 80) || "Source",
-                                          documentId: c.documentId ?? undefined,
-                                          sourcePath: c.documentId
-                                            ? `/api/documents/${c.documentId}/file`
-                                            : undefined,
-                                          excerpt: c.excerpt,
-                                        })
-                                    : undefined
-                                }
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
+                    <div className="ask-turn-avatar" aria-hidden>
+                      {t.role === "user" ? "You" : <IconAsk />}
+                    </div>
+                    <div className="ask-turn-main">
+                      <div className="ask-turn-role">{t.role === "user" ? "You" : "Ask"}</div>
+                      <div
+                        className="ask-turn-body"
+                        data-testid={t.role === "assistant" ? (t.refused ? "ask-refused" : "ask-answer") : undefined}
+                      >
+                        {t.role === "assistant" && t.reveal ? (
+                          <AskReveal
+                            text={t.text}
+                            onTick={bumpFollow}
+                            onDone={() =>
+                              setTurns((cur) => cur.map((x) => (x.id === t.id ? { ...x, reveal: false } : x)))
+                            }
+                          />
+                        ) : (
+                          <p className="body">{t.text}</p>
+                        )}
+                        {t.role === "assistant" && t.citations?.length && !t.reveal ? (
+                          <AskSources
+                            citations={t.citations}
+                            onOpen={(c) =>
+                              openCite({
+                                display: c.excerpt?.slice(0, 80) || "Source",
+                                documentId: c.documentId ?? undefined,
+                                sourcePath: c.documentId
+                                  ? `/api/documents/${c.documentId}/file`
+                                  : undefined,
+                                excerpt: c.excerpt,
+                              })
+                            }
+                          />
+                        ) : null}
+                        {t.role === "assistant" && !t.reveal ? (
+                          <div className="ask-turn-actions">
+                            <button
+                              type="button"
+                              className="ask-turn-action"
+                              onClick={() => void copyAnswer(t.id, t.text)}
+                            >
+                              {copiedId === t.id ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </motion.li>
                 ))}
               </AnimatePresence>
               {busy ? (
                 <li className="ask-turn ask-turn-assistant ask-turn-thinking">
-                  <div className="ask-turn-role">Ask</div>
-                  <div className="ask-turn-body">
-                    <AskThinking />
+                  <div className="ask-turn-avatar" aria-hidden>
+                    <IconAsk />
+                  </div>
+                  <div className="ask-turn-main">
+                    <div className="ask-turn-role">Ask</div>
+                    <div className="ask-turn-body">
+                      <AskThinking />
+                    </div>
                   </div>
                 </li>
               ) : null}
@@ -232,6 +262,19 @@ export default function AskPage() {
           onSubmit={() => void ask(q)}
           busy={busy}
           placeholder={turns.length ? "Ask a follow-up…" : "Ask about confirmed cash, runway, flags…"}
+          leading={
+            <label className="ask-scope">
+              <span className="sr-only">Company scope</span>
+              <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} aria-label="Company scope">
+                <option value="">All companies</option>
+                {cos.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
         />
       </div>
     </div>

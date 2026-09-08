@@ -2,12 +2,16 @@
  * FIXTURE_ONLY — opt-in labelled demo. Never run against a live book.
  *   SEED_DEMO=1 pnpm seed:demo
  *
- * Seeds Confirm (pending inbox) + booked metrics that fire Flags detectors.
- * Safe to re-run: upserts portfolio rows and refreshes pending/flags for fixture cos.
+ * Seeds:
+ * - Confirm: pending metric / unit_ambiguity / commentary rows
+ * - Booked metrics that fire Flags detectors (runway, burn, plan, cash missing, …)
+ * - Provenanced NAV marks for last calendar quarter + prior (rollup, bridge, MOIC)
+ *
+ * Safe to re-run: upserts portfolio rows and refreshes pending/flags/marks for fixture cos.
  */
 import { randomUUID } from "node:crypto";
 import { loadEnv } from "@venture-os/config";
-import { toEur, toInrCrore } from "@venture-os/core";
+import { toEur, toInrCrore, defaultPriorAsOf, lastCalendarQuarterEnd } from "@venture-os/core";
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb, withOrgRaw, closeDb } from "./client.js";
 import { runFlagJob } from "./flags-job.js";
@@ -18,6 +22,7 @@ import {
   flagEvents,
   funds,
   inboxItems,
+  marks,
   member,
   metricValues,
   orgSettings,
@@ -30,19 +35,79 @@ import {
 
 const FX = { fxRate: 0.011, fxDate: "2026-09-01", fxSource: "FIXTURE_RBI_SAMPLE" };
 
+/** Default NAV page as-of (last calendar quarter) + prior for PoP bridge. */
+const NAV_AS_OF = lastCalendarQuarterEnd(new Date("2026-09-08"));
+const NAV_PRIOR_AS_OF = defaultPriorAsOf(NAV_AS_OF);
+
 type CoSpec = {
   name: string;
   sector: string;
   stage: string;
   slug: string;
+  costBasis: number;
+  ownershipPct: number;
+  investedAt: string;
+  /** Fair value of the position (INR crore), prior then current quarter. */
+  markPrior: number;
+  markCurrent: number;
 };
 
 const PORTFOLIO: CoSpec[] = [
-  { name: "Fixture Apparel Co (FIXTURE_ONLY)", sector: "consumer", stage: "Series A", slug: "fixture-apparel" },
-  { name: "Salad Days", sector: "Food & drinks", stage: "Series A", slug: "salad-days" },
-  { name: "Deconstruct", sector: "Wellness & beauty", stage: "Series B", slug: "deconstruct" },
-  { name: "Go Zero", sector: "Food & drinks", stage: "Seed", slug: "go-zero" },
-  { name: "The Hosteller", sector: "Lifestyle / travel", stage: "Series A", slug: "hosteller" },
+  {
+    name: "Fixture Apparel Co (FIXTURE_ONLY)",
+    sector: "consumer",
+    stage: "Series A",
+    slug: "fixture-apparel",
+    costBasis: 5,
+    ownershipPct: 0.12,
+    investedAt: "2024-06-01",
+    markPrior: 6.2,
+    markCurrent: 7.1,
+  },
+  {
+    name: "Salad Days",
+    sector: "Food & drinks",
+    stage: "Series A",
+    slug: "salad-days",
+    costBasis: 3.2,
+    ownershipPct: 0.14,
+    investedAt: "2024-03-15",
+    markPrior: 2.9,
+    markCurrent: 2.45,
+  },
+  {
+    name: "Deconstruct",
+    sector: "Wellness & beauty",
+    stage: "Series B",
+    slug: "deconstruct",
+    costBasis: 8,
+    ownershipPct: 0.08,
+    investedAt: "2023-11-01",
+    markPrior: 11.2,
+    markCurrent: 12.6,
+  },
+  {
+    name: "Go Zero",
+    sector: "Food & drinks",
+    stage: "Seed",
+    slug: "go-zero",
+    costBasis: 1.8,
+    ownershipPct: 0.18,
+    investedAt: "2025-01-20",
+    markPrior: 2.0,
+    markCurrent: 2.35,
+  },
+  {
+    name: "The Hosteller",
+    sector: "Lifestyle / travel",
+    stage: "Series A",
+    slug: "hosteller",
+    costBasis: 4.5,
+    ownershipPct: 0.1,
+    investedAt: "2024-08-01",
+    markPrior: 5.4,
+    markCurrent: 5.9,
+  },
 ];
 
 async function ensureCompany(
@@ -53,30 +118,51 @@ async function ensureCompany(
   spec: CoSpec,
 ) {
   const existing = await tx.select().from(companies).where(eq(companies.name, spec.name));
-  if (existing[0]) return existing[0];
-  const [co] = await tx
-    .insert(companies)
-    .values({
+  let co = existing[0];
+  if (!co) {
+    const [created] = await tx
+      .insert(companies)
+      .values({
+        orgId,
+        name: spec.name,
+        sector: spec.sector,
+        stage: spec.stage,
+        country: "IN",
+        fyStartMonth: 4,
+        unitHint: "crore",
+        currencyHint: "INR",
+      })
+      .returning();
+    co = created!;
+  } else {
+    await tx
+      .update(companies)
+      .set({ sector: spec.sector, stage: spec.stage })
+      .where(eq(companies.id, co.id));
+  }
+  const [pos] = await tx.select().from(positions).where(eq(positions.companyId, co.id));
+  if (!pos) {
+    await tx.insert(positions).values({
       orgId,
-      name: spec.name,
-      sector: spec.sector,
-      stage: spec.stage,
-      country: "IN",
-      fyStartMonth: 4,
-      unitHint: "crore",
-      currencyHint: "INR",
-    })
-    .returning();
-  await tx.insert(positions).values({
-    orgId,
-    fundId,
-    companyId: co!.id,
-    costBasis: 5,
-    costCurrency: "INR",
-    ownershipPct: 0.1,
-    investedAt: "2024-06-01",
-  });
-  return co!;
+      fundId,
+      companyId: co.id,
+      costBasis: spec.costBasis,
+      costCurrency: "INR",
+      ownershipPct: spec.ownershipPct,
+      investedAt: spec.investedAt,
+    });
+  } else {
+    await tx
+      .update(positions)
+      .set({
+        costBasis: spec.costBasis,
+        ownershipPct: spec.ownershipPct,
+        investedAt: spec.investedAt,
+        fundId,
+      })
+      .where(eq(positions.id, pos.id));
+  }
+  return co;
 }
 
 async function ensureDoc(
@@ -201,6 +287,51 @@ async function bookMetric(
   });
 }
 
+async function bookMark(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tx: any,
+  args: {
+    orgId: string;
+    positionId: string;
+    asOf: string;
+    value: number;
+    sourceRefId: string;
+    rationale: string;
+  },
+) {
+  const prior = await tx
+    .select()
+    .from(marks)
+    .where(and(eq(marks.positionId, args.positionId), eq(marks.asOf, args.asOf)));
+  if (prior.length) {
+    await tx
+      .update(marks)
+      .set({
+        value: args.value,
+        currency: "INR",
+        method: "last_round",
+        rationale: args.rationale,
+        sourceRefId: args.sourceRefId,
+        ...FX,
+        createdBy: "fixture",
+      })
+      .where(eq(marks.id, prior[0]!.id));
+    return;
+  }
+  await tx.insert(marks).values({
+    orgId: args.orgId,
+    positionId: args.positionId,
+    asOf: args.asOf,
+    method: "last_round",
+    value: args.value,
+    currency: "INR",
+    rationale: args.rationale,
+    sourceRefId: args.sourceRefId,
+    ...FX,
+    createdBy: "fixture",
+  });
+}
+
 async function main() {
   const env = loadEnv();
   if (env.NODE_ENV === "production") {
@@ -287,7 +418,7 @@ async function main() {
       (await tx.select().from(companies).where(inArray(companies.id, companyIds))).map((c) => [c.name, c]),
     );
 
-    // —— Salad Days: short runway (~1.9 mo) + below plan (booked → Flags)
+    // —— Salad Days: very short runway (~1.3 mo) + below plan (booked → Flags)
     {
       const co = byName.get("Salad Days")!;
       const doc = await ensureDoc(
@@ -312,7 +443,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "cash",
-        value: 1.6,
+        value: 1.1,
         periodStart: "2026-06-01",
         periodEnd: priorEnd,
       });
@@ -321,7 +452,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "burn",
-        value: 0.3,
+        value: 0.45,
         periodStart: "2026-06-01",
         periodEnd: priorEnd,
       });
@@ -339,7 +470,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "cash",
-        value: 0.9,
+        value: 0.7,
         periodStart: "2026-07-01",
         periodEnd: curEnd,
       });
@@ -348,7 +479,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "burn",
-        value: 0.48,
+        value: 0.55,
         periodStart: "2026-07-01",
         periodEnd: curEnd,
       });
@@ -379,6 +510,28 @@ async function main() {
         periodStart: "2026-07-01",
         periodEnd: curEnd,
         unit: "percent",
+        currency: "INR",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "headcount",
+        value: 62,
+        periodStart: "2026-06-01",
+        periodEnd: priorEnd,
+        unit: "unit",
+        currency: "INR",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "headcount",
+        value: 51,
+        periodStart: "2026-07-01",
+        periodEnd: curEnd,
+        unit: "unit",
         currency: "INR",
       });
     }
@@ -440,7 +593,7 @@ async function main() {
       });
     }
 
-    // —— Hosteller: burn up + short runway (~3.6 mo)
+    // —— Hosteller: short-mid runway (~3.3 mo) + rising burn
     {
       const co = byName.get("The Hosteller")!;
       const doc = await ensureDoc(
@@ -457,7 +610,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "burn",
-        value: 0.28,
+        value: 0.4,
         periodStart: "2026-06-01",
         periodEnd: "2026-06-30",
       });
@@ -475,9 +628,18 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "cash",
-        value: 1.8,
+        value: 1.5,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "net_revenue",
+        value: 2.15,
+        periodStart: "2026-06-01",
+        periodEnd: "2026-06-30",
       });
       await bookMetric(tx, {
         orgId,
@@ -488,9 +650,31 @@ async function main() {
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "gross_margin_pct",
+        value: 0.48,
+        periodStart: "2026-06-01",
+        periodEnd: "2026-06-30",
+        unit: "percent",
+        currency: "INR",
+      });
+      await bookMetric(tx, {
+        orgId,
+        companyId: co.id,
+        sourceRefId: ref.id,
+        metricKey: "gross_margin_pct",
+        value: 0.41,
+        periodStart: "2026-07-01",
+        periodEnd: "2026-07-31",
+        unit: "percent",
+        currency: "INR",
+      });
     }
 
-    // —— Apparel: healthy long runway (~16.8 mo) + pending Confirm burn
+    // —— Apparel: long runway (~27 mo) + pending Confirm burn
     {
       const co = byName.get("Fixture Apparel Co (FIXTURE_ONLY)")!;
       const doc = await ensureDoc(tx, orgId, co.id, "FIXTURE_ONLY-mis-fy26-m5.xlsx", "2026-07-01", "2026-07-31");
@@ -499,14 +683,14 @@ async function main() {
         orgId,
         doc.id,
         "B12",
-        "FIXTURE_ONLY · Cash 4.2 (INR crore) · not a live book figure",
+        "FIXTURE_ONLY · Cash 7.5 (INR crore) · not a live book figure",
       );
       await bookMetric(tx, {
         orgId,
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "cash",
-        value: 4.2,
+        value: 7.5,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });
@@ -515,7 +699,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "burn",
-        value: 0.25,
+        value: 0.28,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });
@@ -530,7 +714,7 @@ async function main() {
       });
     }
 
-    // —— Go Zero: mid runway (~8.8 mo); ambiguous-unit row stays in Confirm
+    // —— Go Zero: mid runway (~8 mo); ambiguous-unit row stays in Confirm
     {
       const co = byName.get("Go Zero")!;
       const doc = await ensureDoc(
@@ -547,7 +731,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "cash",
-        value: 3.5,
+        value: 2.8,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });
@@ -556,7 +740,7 @@ async function main() {
         companyId: co.id,
         sourceRefId: ref.id,
         metricKey: "burn",
-        value: 0.4,
+        value: 0.35,
         periodStart: "2026-07-01",
         periodEnd: "2026-07-31",
       });
@@ -600,6 +784,13 @@ async function main() {
         .from(documents)
         .where(and(eq(documents.companyId, apparel.id), eq(documents.filename, "FIXTURE_ONLY-mis-fy26-m5.xlsx")))
     )[0]!;
+    const host = byName.get("The Hosteller")!;
+    const hostDoc = (
+      await tx
+        .select()
+        .from(documents)
+        .where(and(eq(documents.companyId, host.id), eq(documents.filename, "FIXTURE_ONLY-hosteller-Aug2025-lakhs.xlsx")))
+    )[0]!;
 
     await tx.insert(inboxItems).values([
       {
@@ -640,6 +831,26 @@ async function main() {
         },
         confidence: 0.81,
         locator: { sheet: "MIS", cell: "B10", excerpt: "Net revenue 3.1 Cr" },
+        proposedBy: "system",
+      },
+      {
+        orgId,
+        companyId: apparel.id,
+        documentId: apparelDoc.id,
+        kind: "metric",
+        status: "pending",
+        proposed: {
+          metricKey: "cash",
+          valueNumeric: 7.8,
+          unit: "crore",
+          currency: "INR",
+          periodStart: "2026-08-01",
+          periodEnd: "2026-08-31",
+          grain: "month",
+          fixtureOnly: true,
+        },
+        confidence: 0.86,
+        locator: { sheet: "MIS", cell: "C12", excerpt: "Cash 7.8 Cr (M6 draft)" },
         proposedBy: "system",
       },
       {
@@ -687,6 +898,27 @@ async function main() {
       },
       {
         orgId,
+        companyId: go.id,
+        documentId: goDoc.id,
+        kind: "unit_ambiguity",
+        status: "pending",
+        proposed: {
+          metricKey: "burn",
+          valueNumeric: 0.9,
+          unit: "unknown",
+          currency: "INR",
+          periodStart: "2026-07-01",
+          periodEnd: "2026-07-31",
+          grain: "month",
+          fixtureOnly: true,
+          label: "Burn (units unclear)",
+        },
+        confidence: 0.48,
+        locator: { sheet: "Sheet1", cell: "B4", excerpt: "Burn 0.9 — no unit token" },
+        proposedBy: "system",
+      },
+      {
+        orgId,
         companyId: salad.id,
         documentId: saladDoc.id,
         kind: "metric",
@@ -703,6 +935,26 @@ async function main() {
         },
         confidence: 0.88,
         locator: { sheet: "Performance", cell: "B9", excerpt: "Headcount 55" },
+        proposedBy: "system",
+      },
+      {
+        orgId,
+        companyId: salad.id,
+        documentId: saladDoc.id,
+        kind: "metric",
+        status: "pending",
+        proposed: {
+          metricKey: "plan_revenue",
+          valueNumeric: 2.9,
+          unit: "crore",
+          currency: "INR",
+          periodStart: "2026-08-01",
+          periodEnd: "2026-08-31",
+          grain: "month",
+          fixtureOnly: true,
+        },
+        confidence: 0.77,
+        locator: { sheet: "Performance", cell: "C6", excerpt: "Plan revenue 2.9 Cr" },
         proposedBy: "system",
       },
       {
@@ -725,13 +977,124 @@ async function main() {
         locator: { sheet: "Monthly MIS", cell: "B3", excerpt: "Gross margin % 68" },
         proposedBy: "system",
       },
+      {
+        orgId,
+        companyId: host.id,
+        documentId: hostDoc.id,
+        kind: "metric",
+        status: "pending",
+        proposed: {
+          metricKey: "cash",
+          valueNumeric: 1.35,
+          unit: "crore",
+          currency: "INR",
+          periodStart: "2026-08-01",
+          periodEnd: "2026-08-31",
+          grain: "month",
+          fixtureOnly: true,
+        },
+        confidence: 0.83,
+        locator: { sheet: "MIS", cell: "B5", excerpt: "Cash 1.35 Cr" },
+        proposedBy: "system",
+      },
+      {
+        orgId,
+        companyId: host.id,
+        documentId: hostDoc.id,
+        kind: "metric",
+        status: "pending",
+        proposed: {
+          metricKey: "burn",
+          valueNumeric: 0.52,
+          unit: "crore",
+          currency: "INR",
+          periodStart: "2026-08-01",
+          periodEnd: "2026-08-31",
+          grain: "month",
+          fixtureOnly: true,
+        },
+        confidence: 0.8,
+        locator: { sheet: "MIS", cell: "B6", excerpt: "Burn 0.52 Cr" },
+        proposedBy: "system",
+      },
+      {
+        orgId,
+        companyId: host.id,
+        documentId: hostDoc.id,
+        kind: "commentary",
+        status: "pending",
+        proposed: {
+          lane: "subjective",
+          body: "FIXTURE_ONLY · Partner call: occupancy soft in Aug; watch burn vs. openings.",
+          periodStart: "2026-08-01",
+          periodEnd: "2026-08-31",
+          fixtureOnly: true,
+        },
+        confidence: 0.7,
+        locator: { excerpt: "Partner call note · not from MIS" },
+        proposedBy: "system",
+      },
     ]);
 
-    // Clear open flags for these cos so recompute is clean.
+    // —— NAV marks (provenanced) for default quarter + prior so rollup/bridge/MOIC work
+    const portfolioPositionIds: string[] = [];
+    for (const spec of PORTFOLIO) {
+      const co = byName.get(spec.name)!;
+      const [pos] = await tx.select().from(positions).where(eq(positions.companyId, co.id));
+      if (pos) portfolioPositionIds.push(pos.id);
+    }
+    if (portfolioPositionIds.length) {
+      await tx.delete(marks).where(inArray(marks.positionId, portfolioPositionIds));
+    }
+    for (const spec of PORTFOLIO) {
+      const co = byName.get(spec.name)!;
+      const doc = await ensureDoc(
+        tx,
+        orgId,
+        co.id,
+        `FIXTURE_ONLY-nav-pack-${spec.slug}.xlsx`,
+        NAV_PRIOR_AS_OF,
+        NAV_AS_OF,
+      );
+      const [pos] = await tx.select().from(positions).where(eq(positions.companyId, co.id));
+      if (!pos) continue;
+      const priorRef = await ensureRef(
+        tx,
+        orgId,
+        doc.id,
+        "M1",
+        `FIXTURE_ONLY · ${spec.name} mark ${NAV_PRIOR_AS_OF} · ${spec.markPrior} Cr`,
+      );
+      const curRef = await ensureRef(
+        tx,
+        orgId,
+        doc.id,
+        "M2",
+        `FIXTURE_ONLY · ${spec.name} mark ${NAV_AS_OF} · ${spec.markCurrent} Cr`,
+      );
+      await bookMark(tx, {
+        orgId,
+        positionId: pos.id,
+        asOf: NAV_PRIOR_AS_OF,
+        value: spec.markPrior,
+        sourceRefId: priorRef.id,
+        rationale: `FIXTURE_ONLY last_round mark as of ${NAV_PRIOR_AS_OF}`,
+      });
+      await bookMark(tx, {
+        orgId,
+        positionId: pos.id,
+        asOf: NAV_AS_OF,
+        value: spec.markCurrent,
+        sourceRefId: curRef.id,
+        rationale: `FIXTURE_ONLY last_round mark as of ${NAV_AS_OF}`,
+      });
+    }
+
+    // Clear all open flags in the fixture org, then recompute for portfolio cos only.
     await tx
       .update(flagEvents)
       .set({ status: "cleared" })
-      .where(and(eq(flagEvents.orgId, orgId), inArray(flagEvents.companyId, companyIds), eq(flagEvents.status, "open")));
+      .where(and(eq(flagEvents.orgId, orgId), eq(flagEvents.status, "open")));
   });
 
   let raised = 0;
@@ -739,9 +1102,26 @@ async function main() {
     const r = await runFlagJob(orgId, id);
     raised += r.raised;
   }
-  console.log(
-    `FIXTURE_ONLY seed applied for org_fixture_only · pending Confirm rows refreshed · flags raised=${raised}. Do not treat as the book.`,
+
+  // Sanity: Confirm / Flags / NAV tables must be non-empty after seed.
+  const pending = await withOrgRaw(orgId, async (tx) =>
+    tx.select().from(inboxItems).where(and(eq(inboxItems.orgId, orgId), eq(inboxItems.status, "pending"))),
   );
+  const openFlags = await withOrgRaw(orgId, async (tx) =>
+    tx
+      .select()
+      .from(flagEvents)
+      .where(and(eq(flagEvents.orgId, orgId), eq(flagEvents.status, "open"), inArray(flagEvents.companyId, companyIds))),
+  );
+  const markRows = await withOrgRaw(orgId, async (tx) => tx.select().from(marks).where(eq(marks.orgId, orgId)));
+  const flagKeys = [...new Set(openFlags.map((f) => f.flagKey))].sort();
+  console.log(
+    `FIXTURE_ONLY seed applied for org_fixture_only · confirm_pending=${pending.length} · flags_open=${openFlags.length} (${flagKeys.join(", ")}) · marks=${markRows.length} · asOf=${NAV_AS_OF} prior=${NAV_PRIOR_AS_OF}. Do not treat as the book.`,
+  );
+  if (pending.length < 8 || openFlags.length < 4 || markRows.length < 8) {
+    console.error("FIXTURE_ONLY seed underfilled Confirm/Flags/NAV — check detectors and mark upserts.");
+    process.exit(1);
+  }
   await closeDb();
 }
 
