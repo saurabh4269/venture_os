@@ -36,6 +36,12 @@ function parseNumber(raw: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Explicit dash in a matched metric cell is missing, not a skipped blank. */
+function isExplicitMissingMarker(raw: unknown): boolean {
+  if (typeof raw !== "string") return false;
+  return /^[-–—]+$/.test(raw.trim());
+}
+
 export function extractFromRows(
   rows: unknown[][],
   sheet: string,
@@ -60,7 +66,7 @@ export function extractFromRows(
       detectCurrency(headerCtx) === "unknown" ? headerCurrency : detectCurrency(headerCtx);
     for (let c = 1; c < Math.min(row.length, 16); c++) {
       const valueNumeric = parseNumber(row[c]);
-      if (valueNumeric === null && row[c] !== 0) continue;
+      if (valueNumeric === null && row[c] !== 0 && !isExplicitMissingMarker(row[c])) continue;
       const colPeriod = parsePeriodHint(headerRow[c] ?? "", fyStartMonth);
       const period = colPeriod ?? labelPeriod ?? sheetPeriod;
       const cell = `${colName(c)}${r + 1}`;

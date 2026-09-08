@@ -51,6 +51,21 @@ describe("extract", () => {
     expect(cash!.confidence).toBeLessThanOrEqual(0.55);
   });
 
+  it("proposes null for an explicit missing marker, not a skipped blank", () => {
+    const out = extractFromRows(
+      [
+        ["Metric", "FY26 M6 (INR Cr)"],
+        ["Closing cash", "—"],
+        ["Monthly burn", "0.4"],
+      ],
+      "MIS",
+    );
+    const cash = out.find((p) => p.metricKey === "cash");
+    const burn = out.find((p) => p.metricKey === "burn");
+    expect(cash?.valueNumeric).toBeNull();
+    expect(burn?.valueNumeric).toBe(0.4);
+  });
+
   it("assigns distinct periods per month column", () => {
     const out = extractFromRows(
       [

@@ -305,72 +305,85 @@
       "subjective commentary (Granola)"
     ]
   },
-  "historyGeneratedAt": "2026-09-07",
+  "historyGeneratedAt": "2026-09-08",
   "history": [
     {
-      "company": "Creme Castle",
-      "slug": "creme-castle",
-      "file": "FIXTURE_ONLY-creme-castle-FY26-M1-M6-history.xlsx"
+      "company": "Salad Days",
+      "slug": "salad-days",
+      "file": "FIXTURE_ONLY-salad-days-FY26-M1-M6-history.xlsx",
+      "runwayMo": 1.6
     },
     {
       "company": "The Hosteller",
       "slug": "hosteller",
-      "file": "FIXTURE_ONLY-hosteller-FY26-M1-M6-history.xlsx"
+      "file": "FIXTURE_ONLY-hosteller-FY26-M1-M6-history.xlsx",
+      "runwayMo": 3.2
     },
     {
-      "company": "Ugaoo",
-      "slug": "ugaoo",
-      "file": "FIXTURE_ONLY-ugaoo-FY26-M1-M6-history.xlsx"
-    },
-    {
-      "company": "Wild",
-      "slug": "wild",
-      "file": "FIXTURE_ONLY-wild-FY26-M1-M6-history.xlsx"
-    },
-    {
-      "company": "Holy",
-      "slug": "holy",
-      "file": "FIXTURE_ONLY-holy-FY26-M1-M6-history.xlsx"
-    },
-    {
-      "company": "Yepoda",
-      "slug": "yepoda",
-      "file": "FIXTURE_ONLY-yepoda-FY26-M1-M6-history.xlsx"
+      "company": "Creme Castle",
+      "slug": "creme-castle",
+      "file": "FIXTURE_ONLY-creme-castle-FY26-M1-M6-history.xlsx",
+      "runwayMo": 4.5
     },
     {
       "company": "Go Zero",
       "slug": "go-zero",
-      "file": "FIXTURE_ONLY-go-zero-FY26-M1-M6-history.xlsx"
+      "file": "FIXTURE_ONLY-go-zero-FY26-M1-M6-history.xlsx",
+      "runwayMo": 6.2
     },
     {
-      "company": "KatKin",
-      "slug": "katkin",
-      "file": "FIXTURE_ONLY-katkin-FY26-M1-M6-history.xlsx"
-    },
-    {
-      "company": "Deconstruct",
-      "slug": "deconstruct",
-      "file": "FIXTURE_ONLY-deconstruct-FY26-M1-M6-history.xlsx"
-    },
-    {
-      "company": "Salad Days",
-      "slug": "salad-days",
-      "file": "FIXTURE_ONLY-salad-days-FY26-M1-M6-history.xlsx"
-    },
-    {
-      "company": "CAVA Athleisure",
-      "slug": "cava",
-      "file": "FIXTURE_ONLY-cava-FY26-M1-M6-history.xlsx"
-    },
-    {
-      "company": "Lightfury Games",
-      "slug": "lightfury-games",
-      "file": "FIXTURE_ONLY-lightfury-games-FY26-M1-M6-history.xlsx"
+      "company": "Ugaoo",
+      "slug": "ugaoo",
+      "file": "FIXTURE_ONLY-ugaoo-FY26-M1-M6-history.xlsx",
+      "runwayMo": 8.1
     },
     {
       "company": "SuperYou",
       "slug": "superyou",
-      "file": "FIXTURE_ONLY-superyou-FY26-M1-M6-history.xlsx"
+      "file": "FIXTURE_ONLY-superyou-FY26-M1-M6-history.xlsx",
+      "runwayMo": 9.8
+    },
+    {
+      "company": "CAVA Athleisure",
+      "slug": "cava",
+      "file": "FIXTURE_ONLY-cava-FY26-M1-M6-history.xlsx",
+      "runwayMo": 11.4
+    },
+    {
+      "company": "Wild",
+      "slug": "wild",
+      "file": "FIXTURE_ONLY-wild-FY26-M1-M6-history.xlsx",
+      "runwayMo": 14.5
+    },
+    {
+      "company": "Lightfury Games",
+      "slug": "lightfury-games",
+      "file": "FIXTURE_ONLY-lightfury-games-FY26-M1-M6-history.xlsx",
+      "runwayMo": 17
+    },
+    {
+      "company": "KatKin",
+      "slug": "katkin",
+      "file": "FIXTURE_ONLY-katkin-FY26-M1-M6-history.xlsx",
+      "runwayMo": 21
+    },
+    {
+      "company": "Holy",
+      "slug": "holy",
+      "file": "FIXTURE_ONLY-holy-FY26-M1-M6-history.xlsx",
+      "runwayMo": 26
+    },
+    {
+      "company": "Yepoda",
+      "slug": "yepoda",
+      "file": "FIXTURE_ONLY-yepoda-FY26-M1-M6-history.xlsx",
+      "runwayMo": 34
+    },
+    {
+      "company": "Deconstruct",
+      "slug": "deconstruct",
+      "file": "FIXTURE_ONLY-deconstruct-FY26-M1-M6-history.xlsx",
+      "runwayMo": null
     }
   ]
 }
