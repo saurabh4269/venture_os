@@ -2,8 +2,8 @@
 
 **Status:** Locked for design-partner V1 + SaaS-ready tenancy from day one  
 **Functional SoT:** Gargi brief v3, 3 Sep 2026  
-**Pack date:** 2026-09-07  
-**Ship picture:** Book + rituals + Ask/Reports are live in this repo; live connectors wait on operator secrets; LP room / billing remain Phase 6.
+**Pack date:** 2026-09-08  
+**Ship picture:** Book + rituals + Ask/Reports are live (including slim reports composer). Live site: https://www.ventureos.xyz. Live connectors wait on operator secrets; LP room / billing remain Phase 6.
 
 ---
 
@@ -15,7 +15,7 @@ Build a **cited portfolio operating system** for VC investment teams:
 - Messy company packs are standardized into a firm schema.
 - **Objective commentary** (from numbers / MIS) and **subjective commentary** (from founder calls / Granola) stay **visibly separate**.
 - Command, NAV, flags, Ask, and reports read **only** from the standardized book — never from ad-hoc Excel.
-- Every figure is citeable: drawer opens sheet window or PDF page text when locators resolve; missing stays `—`.
+- Every figure is citeable: drawer opens sheet window or PDF page text when locators resolve; missing stays blank.
 
 **Design partner:** V3 Ventures (India + Europe/US evergreen vehicles; consumer brands). Brief shapes workflows and schema; **public product chrome does not name the partner**.  
 **Commercial future:** same product sold to other VC firms as **multi-tenant SaaS** (org per firm, domain join, connectors, firm-specific metric schema and flag policy).
@@ -103,7 +103,7 @@ Must implement for V3 design partner:
    - Mixed units (lakh / crore / USD) — detect explicitly, never infer from magnitude.
    - FY April–March (“Q1” = Apr–Jun); calendar-month reporters allowed via company profile.
    - Restatements — hold both; mark which is current.
-   - **Missing ≠ 0** — “not reported”, never silent zero.
+   - **Missing ≠ 0** — blank / “not reported”, never silent zero.
    - Dual **INR crore + EUR** with FX rate + date on every converted figure.
 4. **User logins**; attributable corrections that survive re-parse; one-click source cell/page check (cite drawer with sheet/page preview; bbox OCR overlay later).
 5. **Company time series + fund roll-up.**

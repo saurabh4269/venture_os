@@ -4,7 +4,7 @@
 **Film:** https://v3.heisenbug.in/demo/v3-agentic-os-demo.mp4  
 **Statuses:** **done** (real end-to-end) · **mock** (UI/logic on synthetic corpus) · **partial** · **missing**  
 **Functional SoT:** Gargi brief 2026-09-03. Adishree 2026-08-26 is historical subset.  
-**This-repo as-of:** 2026-09-07 — Phases 0–4 shipped; Phase 5 connector infra ready; cite-to-source sheet/page preview in cite drawer.
+**This-repo as-of:** 2026-09-08. Phases 0–4 shipped; Phase 5 connector infra ready; cite-to-source sheet/page preview in cite drawer. Ritual chrome quiet; reports composer slim; missing figures stay blank; NAV position cost/ownership writable.
 
 Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth · OpenAI “Luna” for ask/extract/draft · lexical RAG · deterministic flags · inbox confirm = ephemeral `useState` · no real PDF parse · no OneDrive / Affinity / Granola connectors · UI surfaces exist: command, companies, inbox, flags, NAV, compare, reports, ask, documents, exports.
 
@@ -29,16 +29,16 @@ Demo facts (do not invent beyond these): seed corpus JSON · no DB · no auth ·
 | 10 | Units (lakh/crore/USD) explicit | **missing** | **done** | Ambiguous → Confirm `unit_ambiguity` |
 | 11 | FY Apr–Mar + calendar mix | **missing** / **partial** seed | **done** | Company `fyStartMonth` override; month-named Settings/onboard selects |
 | 12 | Restatements (keep both, mark current) | **missing** | **done** | `version` + `restatement_of_id` |
-| 13 | missing ≠ 0 | **partial** (Ask declines) | **done** | Core math + UI `—` |
+| 13 | missing ≠ 0 | **partial** (Ask declines) | **done** | Core math; UI blank (`Miss`), never an em dash |
 | 14 | Dual currency INR Cr + EUR + FX audit | **mock** (illustrative FX) | **done** | Converted EUR only with complete FX triple; else refuse |
 | 15 | Attributable corrections survive re-parse | **missing** | **done** | Ledger + extract merge; golden test in `packages/core` |
 | 16 | One-click source to cell/page | **mock** (page chips) | **partial** | Cite drawer + `SourceViewer`: bounded sheet window around A1 + PDF page text; evidence pills (`cited`/`weak`/`unverifiable`); download still available. **No** bbox OCR overlay inside the binary yet |
-| 17 | Live dashboard | **mock** | **done** | Command reads the book; Needs-a-look aggregated by company; coverage Source/Stage honesty; 3-mo runway; 0 flags is 0 |
-| 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay `—` |
+| 17 | Live dashboard | **mock** | **done** | Command reads the book; Needs-a-look aggregated by company; coverage Source/Stage honesty; 3-mo runway strip + booked charts; 0 flags is 0 |
+| 18 | Fund roll-up NAV/MOIC/IRR | **mock** | **done** | Deterministic; IRR only with `investedAt` + dated mark (Pass 21); incomplete stay blank; cost/ownership via `PATCH /api/positions/:id` |
 | 19 | Quarterly NAV + bridge + history | **mock** | **partial** | Marks + bridge + period lock + frozen official pack snapshot (Pass 23/37). Multi-approver / LP sign-off later |
 | 20 | Objective commentary from MIS | **missing** | **partial** | Lane + human confirm; LLM propose objective draft → Confirm (never auto-writes book) |
 | 21 | Subjective commentary from calls | **missing** | **partial** | Lane gate; Granola → transcript inbox; LLM propose call draft → Confirm when key set |
-| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Monthly pack lanes + worker artifact (Pass 25); curated one-pager; cookie-auth download |
+| 22 | Reports PDF/PPTX/XLSX | **partial** (demo exports) | **done** | Monthly pack lanes + worker artifact (Pass 25); slim composer + searchable company; draft editor; cookie-auth PDF/PPTX/XLSX |
 | 23 | Cited Ask | **mock** (lexical + Luna) | **done** | Org-scoped FTS; refuse without overlap; `refuseUnsourcedDigits` + golden harness (Pass 26); cite panel + route |
 | 24 | Flags with evidence | **mock** (rules on seed) | **done** | Catalog + evidence; firm `flag_policy` jsonb (Pass 24); mute/snooze; restatement-safe reads |
 | 25 | Cross-company compare | **mock** | **done** | Stage/sector peer filter; catalog labels; hide-empty; objective-lane only (Pass 21) |

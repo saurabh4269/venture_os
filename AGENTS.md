@@ -3,7 +3,7 @@
 **Repo:** https://github.com/saurabh4269/venture_os  
 **Domain:** ventureos.xyz  
 **Design partner:** V3 Ventures (brief SoT; public chrome does not name the partner)  
-**Pack date:** 2026-09-07 (Asia/Calcutta)
+**Pack date:** 2026-09-08 (Asia/Calcutta)
 
 This file is mandatory reading for every coding agent before any code change.
 
@@ -61,8 +61,8 @@ Not Clerk, WorkOS, Inngest, Trigger, or Claude-as-default.
 | 0 Platform | Shipped (auth, RLS, CI, shell, marketing landing). Pass 01 + same-origin BFF / session hardening |
 | 1 Book | Shipped (upload → parse → **Confirm** → book). Sources list + parse-phase stall UX |
 | 2 Standardization | Shipped (units, FY, FX triple, corrections, restatements). Optional high-confidence auto-confirm via org setting |
-| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge + period lock + pack snapshot, Compare). Honest coverage Source/Stage |
-| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX). Cite drawer: sheet window + PDF page preview (`SourceViewer`) |
+| 3 Rituals | Shipped (Command, Flags, NAV + PoP bridge + period lock + pack snapshot, Compare). Runway strip + booked charts. Position cost/ownership via `PATCH /api/positions/:id`. Honest coverage Source/Stage. Quiet chrome (no lecture kickers) |
+| 4 Ask + Reports | Shipped (FTS + refuse; on-demand PDF/PPTX/XLSX). Reports: slim list + compose drawer + draft editor. Cite drawer: sheet window + PDF page preview (`SourceViewer`) |
 | 5 Live connectors | Infra ready (Pass 42). UI honest until healthCheck. Live Graph/Affinity/Granola wait on operator secrets |
 | 6 LP room + billing | Out of scope |
 
@@ -131,7 +131,7 @@ If Redis is up and the worker is down, parse jobs sit queued — start the worke
 ## Anti-hallucination (absolute)
 
 1. Never invent portfolio companies, metrics, NAVs, ownership, runway, flags, document contents, or connector fields.
-2. Missing is not zero. Null stays null. UI shows dash or not reported.
+2. Missing is not zero. Null stays null. UI stays blank or says not reported. Never show an em dash as a missing figure.
 3. LLM never writes objective financial facts into SoR. Propose then review then confirm only.
 4. Headline numbers computed by deterministic code only.
 5. Every user-visible figure needs provenance (document_id + locator) or must not display as fact.

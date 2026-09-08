@@ -1,7 +1,7 @@
-# Next — remaining after cite-to-source + ritual polish (2026-09-07)
+# Next — remaining after reports chrome + ritual quieting (2026-09-08)
 
 **Branch:** `main`  
-**Prior:** passes 35–42; then cite/Confirm/Sources deepening + ritual honesty polish on `main`.
+**Prior:** passes 35–42; cite/Confirm/Sources deepening; ritual honesty polish; then reports slim + missing-blank UI on `main`.
 
 ## Closed since Pass 42
 
@@ -9,6 +9,11 @@
 - **Parse-phase UX** — Sources list shows queued / running / done / error / stalled.
 - **Extract assist** — fuzzy catalog suggest (capped confidence); structured-LLM salvage; table-aware PDF layout path; optional org auto-confirm threshold + `ops_events`.
 - **Ritual honesty** — Confirm without Mentions/Owner; Command Needs-a-look by company; coverage Source/Stage; month-named FY selects; connector ids under optional mapping; public chrome without design-partner naming.
+- **Ritual quieting (2026-09-08)** — dropped lecture kickers on Command / Compare / Ask / NAV; no design-intent captions in product chrome.
+- **Reports composer (2026-09-08)** — slim list, compose drawer, searchable company pick, draft editor; no redundant template manifesto.
+- **Missing display (2026-09-08)** — UI stays blank (`Miss`); em/en dashes stripped from product copy.
+- **NAV positions (2026-09-08)** — `PATCH /api/positions/:id` writes cost and ownership.
+- **Command charts** — runway urgency strip; booked cash / trend charts; fixture runways spread so the strip is not a flat cluster.
 - Draft upstream PR harvest closed; do not revive those branches.
 
 ## Still later (do not invent)
@@ -34,4 +39,4 @@
 3. Write `docs/improvements/pass-NN-*.md` (≥15 items) then fix P0/P1 when doing a numbered pass.
 4. `pnpm typecheck && pnpm test` before push. CI also builds web and runs Playwright.
 5. Update `docs/02_GAP_MATRIX.md` This-repo column in the same PR as behaviour.
-6. Do not copy v3.heisenbug.in. Missing ≠ 0. LLM never commits facts. Public chrome stays partner-anonymous.
+6. Do not copy v3.heisenbug.in. Missing ≠ 0. Missing stays blank. LLM never commits facts. Public chrome stays partner-anonymous.

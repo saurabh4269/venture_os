@@ -4,7 +4,9 @@ Production-grade multi-tenant operating system for **VC investment teams**.
 Design partner: **V3 Ventures**. Domain: **ventureos.xyz**.  
 Repo: https://github.com/saurabh4269/venture_os
 
-This is the book — Command, Inbox (HITL), Flags, NAV, Compare, Ask, Reports, Vault — not a chatbot over PDFs and not a founder portal.
+This is the book: Command, Confirm, Flags, NAV, Compare, Ask, Reports, Sources. Not a chatbot over PDFs and not a founder portal.
+
+Live: [https://www.ventureos.xyz](https://www.ventureos.xyz) (web on Vercel; API on Render).
 
 ## Docs
 
@@ -91,9 +93,9 @@ Manual empty-book path:
 1. Open `/signup`. Create your user + organisation (you are Org Admin). A user with no org lands on `/onboard`. Invites are copy-link from **Settings → People** (`/invite?id=`). Email delivery is not connected.
 2. **Settings → Add fund** (or skip — the first company creates “Main fund”).
 3. **Companies → Add company**. Complete the 15-minute path: profile (optional connector ids) → upload `fixtures/FIXTURE_ONLY-sample-mis.csv` (or pull from OneDrive when connected).
-4. **Inbox** — confirm rows. Ambiguous units must be set by you. Nothing auto-posts.
+4. **Confirm** (`/confirm`, legacy `/inbox`) — confirm rows. Ambiguous units must be set by you. Nothing auto-posts unless the org sets a high-confidence auto-confirm threshold.
 5. **Command / Flags / NAV / Compare / Ask / Reports** now read the **book**.
-6. Click a number — it opens the source file when a `source_ref` exists (downloads use the session cookie). Missing shows **—**. Dual EUR display appears only with `fx_rate` + `fx_date` + source. Runway is cash / average of the last three reported burns. Flags can be snoozed or muted (survives recompute). One-pagers require a company. Invites are copy-link from Settings (no SMTP).
+6. Click a number to open the cite drawer (sheet or PDF page when the locator resolves). Missing stays **blank**. Dual EUR display appears only with `fx_rate` + `fx_date` + source. Runway is cash / average of the last three reported burns. Flags can be snoozed or muted (survives recompute). One-pagers require a company (searchable pick). Cost and ownership on NAV can be written via `PATCH /api/positions/:id`. Invites are copy-link from Settings (no SMTP).
 
 ### Optional labelled fixture (never production)
 
@@ -118,7 +120,7 @@ CI (`.github/workflows/ci.yml`) runs the same against a Postgres service, includ
 
 ## What is real vs stubbed
 
-**Real:** signup/org/roles, vault upload, XLSX/CSV + PDF-text parse → durable inbox, confirm → metric book, provenance chips, missing≠0, dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command, Flags (catalog + firm policy), NAV rollup + period-over-period bridge + as-of lock, Compare, Ask (FTS + refuse + digit harness), Reports + monthly pack + PDF/PPTX/XLSX, onboarding wizard, RLS, Vitest.
+**Real:** signup/org/roles, Sources upload, XLSX/CSV + PDF-text parse → durable Confirm queue, confirm → metric book, provenance chips, missing≠0 (UI blank), dual-currency fields + refused conversion without an FX triple, correction ledger + restatement versions, Command (runway strip + booked charts), Flags (catalog + firm policy), NAV rollup + period-over-period bridge + as-of lock + position cost/ownership write, Compare, Ask (FTS + refuse + digit harness), Reports (slim composer, searchable company, PDF/PPTX/XLSX), Settings formula book, onboarding wizard, RLS, Vitest. Live web at ventureos.xyz.
 
 **Stub / honest “not connected”:** live OneDrive / Affinity / Granola until keys pass Test connection (infra is ready — [`docs/connectors/ADDING_KEYS.md`](docs/connectors/ADDING_KEYS.md)), NAV multi-approver / LP sign-off, LP/ILPA room, billing, perfect OCR, domain auto-join, SMTP.
 

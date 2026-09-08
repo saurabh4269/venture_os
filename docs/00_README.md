@@ -5,7 +5,8 @@
 **Domain:** ventureos.xyz  
 **First customer / design partner:** V3 Ventures (workflows and schema shaped by the Gargi brief; public product chrome does not name the partner)  
 **Long-term:** Multi-tenant B2B SaaS sold to other VC firms  
-**Pack date:** 2026-09-07 (Asia/Calcutta)  
+**Pack date:** 2026-09-08 (Asia/Calcutta)  
+**Live:** https://www.ventureos.xyz  
 **Author intent:** Production-grade **greenfield** build. Do **not** extend the demo architecture.
 
 ---
@@ -14,13 +15,13 @@
 
 Venture OS is the **book**: messy MIS and source files in → human confirm → Command / Flags / NAV / Compare / Reports / Ask read **only** confirmed facts with provenance.
 
-| Layer | Status (2026-09-07) |
+| Layer | Status (2026-09-08) |
 | --- | --- |
 | Platform (auth, RLS, CI, shell) | **Shipped** |
 | Book (upload → parse → Confirm → facts) | **Shipped** |
 | Standardization (units, FY, FX, corrections, restatements) | **Shipped** |
-| Rituals (Command, Flags, NAV lock + pack, Compare) | **Shipped** |
-| Ask + Reports (FTS cite-or-refuse; PDF/PPTX/XLSX from the book) | **Shipped** |
+| Rituals (Command, Flags, NAV lock + pack, Compare) | **Shipped** (runway strip, position cost/ownership write, quiet chrome) |
+| Ask + Reports (FTS cite-or-refuse; PDF/PPTX/XLSX from the book) | **Shipped** (slim composer + searchable company pick) |
 | Cite-to-source (sheet window + PDF page preview in the cite drawer) | **Shipped** (bbox OCR highlight still later) |
 | Live connectors (OneDrive / Affinity / Granola) | **Infra ready** — honest not-connected until operator secrets + healthCheck |
 | LP room + billing | **Out of scope** this phase |
@@ -91,7 +92,7 @@ Full detail: `03_ARCHITECTURE.md`.
 
 1. **Never invent** portfolio companies, metrics, NAVs, ownership %, runway, flags, document contents, or connector API fields.
 2. **Never invent Affinity / OneDrive / Granola / ILPA / Microsoft Graph field names.** Stub + `TODO(source-of-truth)`.
-3. **Missing ≠ 0.** `null` stays `null`. Aggregations skip nulls; UI shows "—" / "not reported".
+3. **Missing ≠ 0.** `null` stays `null`. Aggregations skip nulls; UI stays blank or says not reported.
 4. **LLM never writes objective financial facts into SoR.** Propose → review → confirm only.
 5. **Headline numbers** computed by **deterministic code** from stored facts.
 6. **Every user-visible figure** needs provenance (`document_id` + locator) or must not display as fact.

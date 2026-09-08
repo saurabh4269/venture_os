@@ -1,8 +1,8 @@
 # Build plan — Venture OS (phases 0–6)
 
 **Status:** Locked delivery order  
-**Pack date:** 2026-09-07 (Asia/Calcutta)  
-**Implementation:** Phases 0–4 **shipped**; Phase 5 connector **infra** shipped (Pass 42) — live vendor calls wait on operator secrets. Cite-to-source deepened (sheet/page preview in cite drawer; bbox OCR still later). Tick boxes in the same PR as behaviour — do not rewrite the plan.  
+**Pack date:** 2026-09-08 (Asia/Calcutta)  
+**Implementation:** Phases 0–4 **shipped**; Phase 5 connector **infra** shipped (Pass 42). Live vendor calls wait on operator secrets. Cite-to-source deepened (sheet/page preview in cite drawer; bbox OCR still later). 2026-09-08: ritual chrome quiet; reports composer slim; missing UI blank; `PATCH /api/positions/:id`. Tick boxes in the same PR as behaviour. Do not rewrite the plan.  
 **Rule:** Port UX patterns from the demo; **do not** port the demo data plane (corpus-JSON, ephemeral inbox, OpenAI-coupled Luna, serverless-heavy parse).
 
 Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`). Architecture: `03_ARCHITECTURE.md`. Invariants: `05_DATA_MODEL.md`. Residual backlog: `improvements/NEXT.md`.
@@ -54,7 +54,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Org select refuses non-members (403). Invite accept matches email. Copy-link until SMTP exists.
 - [x] Direct SQL as role without `org_id` session cannot read another org rows (RLS proof test).
 - [x] No corpus-JSON loaded as production path.
-- [x] Empty shell renders; every number surface shows empty / “—” not illustrative demo NAV.
+- [x] Empty shell renders; every number surface shows empty / blank, not illustrative demo NAV. (UI used `—` historically; 2026-09-08: `Miss` / blank.)
 - [x] Public `/` is the Stitch marketing landing; anonymous first paint does not wait on `/api/me` (2026-09-05).
 - [x] Heavy parse/flag jobs run in `worker` (inline fallback only if Redis is down).
 - [x] CI builds web and runs a Playwright signup→confirm smoke (Pass 33) plus viewer storageState / rituals / optional axe (Pass 35). Same-origin BFF (Pass 31).
@@ -106,7 +106,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Every dual-currency display shows rate + date or refuses conversion.
 - [x] Restatement keeps prior reported period; marks current.
 - [x] Correction survives re-parse automated test (golden).
-- [x] Rollups / charts skip nulls; UI “—” / “not reported”.
+- [x] Rollups / charts skip nulls; UI blank / “not reported”.
 - [x] Objective cells never authored by LLM commit path.
 
 ---
@@ -133,6 +133,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Period-over-period NAV bridge from booked marks (Pass 23: as-of lock / unlock with reason).
 - [x] Runway uses last-three-month average burn; flag mute/snooze survive refresh; plan variance is below-plan only (Pass 07/04).
 - [x] Compare pickers (company / metric / period) + CSV; NAV MOIC from rollup only; bridge by position (Pass 08/10).
+- [x] Position cost / ownership writable (`PATCH /api/positions/:id`) so NAV can show a complete table (2026-09-08).
 
 ---
 
@@ -155,6 +156,7 @@ Functional SoT: Gargi brief v3 (`V3_Requirement_Brief_v3_Gargi_2026-09-03.pdf`).
 - [x] Subjective commentary pipeline rejects MIS-only input (no transcript → no subjective draft).
 - [x] Report job does not run inside serverless HTTP; artifacts land in the object store when Redis is up; inline fallback if Redis is down (Pass 25).
 - [x] Report headlines match book queries bit-for-bit for fixture org.
+- [x] Reports list + compose drawer + draft editor; one-pager company is a searchable pick; no invented fill (2026-09-08).
 
 ---
 

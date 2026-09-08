@@ -3,8 +3,8 @@
 **Audience:** Product / UI designer producing IA, wireframes, and a first-principles visual system  
 **Product:** Venture OS — cited portfolio operating system for VC investment teams  
 **Design partner:** V3 Ventures (brief SoT; public chrome does not name the partner)  
-**Live preview (working product, not a visual template):** https://venture-os-saurabh-gupta.vercel.app  
-**Pack / ship note:** 2026-09-07 — book + rituals + Ask/Reports live; cite drawer previews sheet/page; connectors infra-ready  
+**Live preview (working product, not a visual template):** https://www.ventureos.xyz  
+**Pack / ship note:** 2026-09-08. Book + rituals + Ask/Reports live; reports composer slim; missing stays blank; cite drawer previews sheet/page; connectors infra-ready  
 **This file is not source of truth.** It cites locked product docs. If this brief and those docs disagree, **the numbered docs win**. If those docs and the Gargi brief disagree on **V3 functional behavior**, **the Gargi brief wins**.
 
 **Shipped visual system:** [`BOOK_UI.md`](BOOK_UI.md) — paper / forest / dual-lane tokens, 220px rail, Command KPI + pulse layout. Packaging intent: [`design.md`](design.md).

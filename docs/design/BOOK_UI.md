@@ -1,6 +1,6 @@
 # Book UI — institutional paper system
 
-**Status:** Implemented in `apps/web` (updated 2026-09-07). Visual north star: Stitch Command mock + cadence IA in `design.md`.  
+**Status:** Implemented in `apps/web` (updated 2026-09-08). Visual north star: Stitch Command mock + cadence IA in `design.md`. Missing figures stay blank. Ritual pages do not carry lecture kickers.  
 **Not a product SoT.** Invariants stay in `01_PRODUCT_SPEC.md` / Gargi brief / `AGENTS.md`.
 
 ## Tokens
@@ -18,7 +18,7 @@ Type: **Source Serif 4** headlines + KPI figures; **IBM Plex Sans** UI. Tabular 
 
 **PWA:** `app/manifest.ts` (paper `#f3efe6` / forest `#244c3c`), 192+512 icons, Apple touch icon. Production-only `/sw.js` is network-first for documents and **never intercepts `/api/*`** (so `/api/me` cannot be cached). Install from the browser “Add to Home Screen” / app menu after a production build.
 
-**Public landing:** `/` is the long-scroll Stitch marketing homepage. Desktop keeps the two-column hero and five-up pipeline. Below 960px the page matches the mobile mock: logo + Get started, stacked full-width hero CTAs, trust kicker, Uncompromising Clarity cards (honest `—`, no invented portfolio figures), vertical STAGE 1–5 timeline, stacked Cite / Verify / Report, forest CTA panel, centered footer. CTAs are **Get started** → `/signup` and **Log in** → `/login` — no waitlist, no Request access, no fake customer logos, **no design-partner firm names**. Footer is in-page Methodology / Support plus Log in; there are no fake Terms or Privacy routes. Anonymous visitors see it immediately. Signed-in users soft-redirect after paint. `/security` is optional methodology (no invented certifications or contracts).
+**Public landing:** `/` is the long-scroll Stitch marketing homepage. Desktop keeps the two-column hero and five-up pipeline. Below 960px the page matches the mobile mock: logo + Get started, stacked full-width hero CTAs, trust kicker, Uncompromising Clarity cards (honest blank missings, no invented portfolio figures), vertical STAGE 1–5 timeline, stacked Cite / Verify / Report, forest CTA panel, centered footer. CTAs are **Get started** → `/signup` and **Log in** → `/login` — no waitlist, no Request access, no fake customer logos, **no design-partner firm names**. Footer is in-page Methodology / Support plus Log in; there are no fake Terms or Privacy routes. Anonymous visitors see it immediately. Signed-in users soft-redirect after paint. `/security` is optional methodology (no invented certifications or contracts).
 
 ## Command mapping (mock → book)
 
@@ -27,7 +27,7 @@ Type: **Source Serif 4** headlines + KPI figures; **IBM Plex Sans** UI. Tabular 
 | Companies | `pulse.companies` | Count of names |
 | Open flags | `pulse.openFlags` | Catalog events only |
 | Coverage gaps | companies with no booked MIS period | Derived; not invented docs |
-| Uncited figures | booked displays without provenance | `—` if the book has no figures yet |
+| Uncited figures | booked displays without provenance | Blank if the book has no figures yet |
 | Needs a look | pending Confirm items aggregated by company (+ open flags) | Flags tagged **Objective**. No fake subjective notes. Empty copy is honest when queue is empty |
 | Coverage | Source + Stage columns from booked evidence / pending confirm | Never invent “Cap table” / quarter labels; pending confirm is not “booked” |
 | Portfolio pulse | existing coverage row | Coverage chip is `Booked` / `Gap` / `Review` from evidence — not a health score |
@@ -45,9 +45,10 @@ NAV / MOIC remain as headline chips under the KPI strip (product pulse). They ar
 | Sources (`/sources`) | Document list + parse phase | `queued` / `running` / `done` / `error` / `stalled` from `deriveParsePhase`. Legacy `/vault` redirects. |
 | Connectors | ORG ADMIN badge, masked keys, Rotate / Disconnect / Connect | Save-when-already-has-credentials is **Rotate**. `secretHint` only. Status stays not connected until healthCheck. No plaintext after save. No Billing / Danger zone. |
 | Companies | Centered search, STAGE pills, Ownership/Coverage, initial marks, table | Ownership and last MIS from Command coverage only. Coverage chip is Booked / Gap / Review — never a %. Last-note column mapped to Last MIS (no invented partner notes). No Columns control. Onboard: FY month select; connector ids under optional mapping. |
-| Flags | Queue table + selected inspector | Severity dots, cite chips, status pills. Inspector: Snooze/Mute (not invented Acknowledge/Resolve). Objective evidence from the detector. Subjective lane is booked partner commentary only — empty shows —. No generated analysis or notification bell. |
-| NAV | Unofficial/locked badges, unmarked + unprovenanced cards, Cost/NAV/MOIC/IRR, Company marks table | Quarter label is derived from the selected as-of. Totals stay — when incomplete. Per-row MOIC only when mark and cost exist. Provenance is Cite or Pending — never a fake memo. Lock does not invent a block on unprovenanced (API still locks). No notification chrome. |
+| Flags | Queue table + selected inspector | Severity dots, cite chips, status pills. Inspector: Snooze/Mute (not invented Acknowledge/Resolve). Objective evidence from the detector. Subjective lane is booked partner commentary only; empty stays blank. No generated analysis or notification bell. |
+| NAV | Unofficial/locked badges, unmarked + unprovenanced cards, Cost/NAV/MOIC/IRR, Company marks table | Quarter label is derived from the selected as-of. Totals stay blank when incomplete. Cost/ownership writable. Per-row MOIC only when mark and cost exist. Provenance is Cite or Pending, never a fake memo. Lock does not invent a block on unprovenanced (API still locks). No notification chrome. |
 | Ask | Compose + cite-or-refuse panel / route, provenance tiles, Recent | Sparkle “synthesized intelligence” is not used. Refuse card is the insufficient-evidence state. History is real Ask queries, not invented related questions. Citations pass `documentId` into the cite drawer. |
+| Reports | Template cards, compose drawer, draft editor | Pick template, set period/company, create draft. One-pager company is a searchable combobox. Preview is structure only until draft time. No lecture kickers. Missing stays blank. |
 
 ## Loop (polish)
 
@@ -55,7 +56,7 @@ On every ritual page the chrome is: **know what matters → see why → verify (
 
 ## Atoms
 
-- **Fact chip** — click opens the citation drawer (file, locator, excerpt, period, confirmed by/at) plus `SourceViewer` when jump is allowed. Unfact = `—`. Open / download source file from the drawer. Missing fields stay `—`.
+- **Fact chip** — click opens the citation drawer (file, locator, excerpt, period, confirmed by/at) plus `SourceViewer` when jump is allowed. Unfact / missing stay blank (`Miss`). Open / download source file from the drawer.
 - **Evidence pill** — Confirm triage shows cited / weak / unverifiable from locator quality (`evidenceStatusOf`).
 - **Objective / subjective** — forest vs violet surfaces; never a single “notes” column.
 - **Empty book** — expensive paper, no demo charts, no celebratory “all clear” on an empty org.

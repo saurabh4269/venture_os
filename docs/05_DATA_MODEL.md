@@ -1,9 +1,10 @@
 # Data model — entities & hard invariants
 
 **Status:** Locked for design-partner V1  
-**Pack date:** 2026-09-07 (Asia/Calcutta)  
+**Pack date:** 2026-09-08 (Asia/Calcutta)  
 **Rule:** Schema changes require migrations. Demo seed JSON is not a model.  
-**Recent schema (migration `0011`):** company revenue/last-round fields; `positions.prior_ownership_pct`; org `auto_confirm_min_confidence` + monthly pack schedule flags; `ops_events` for closed success counters.
+**Recent schema (migration `0011`):** company revenue/last-round fields; `positions.prior_ownership_pct`; org `auto_confirm_min_confidence` + monthly pack schedule flags; `ops_events` for closed success counters.  
+**Write path (2026-09-08):** `PATCH /api/positions/:id` updates cost and ownership (firm-written, not MIS facts).
 
 ---
 
