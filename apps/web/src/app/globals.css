@@ -4039,6 +4039,26 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   align-items: center;
   gap: 8px;
 }
+
+/* Scroll-pinned hero → rise morph */
+.mkt-hero-pin {
+  position: relative;
+  min-height: 100vh;
+}
+.mkt-hero-layer {
+  position: relative;
+  z-index: 2;
+  will-change: transform, opacity, filter;
+}
+.mkt-rise-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 1;
+  will-change: transform, opacity;
+  padding-top: 48px;
+}
 .mkt-hero-copy {
   max-width: 640px;
 }
@@ -4194,6 +4214,79 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   font-size: 14px;
   line-height: 1.45;
 }
+
+/* Feature card inner micro-anims */
+.mkt-mini-bars {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 52px;
+  margin: 4px 0 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(9, 9, 11, 0.03);
+}
+.mkt-mini-bar {
+  flex: 1;
+  height: 100%;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(180deg, #3f3f46 0%, #18181b 100%);
+  transform-origin: bottom center;
+}
+.mkt-mini-bars-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.mkt-mini-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 14px;
+  min-height: 32px;
+}
+.mkt-mini-badge {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--mkt-ink);
+  color: #fafafa;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.mkt-mini-badge-hint {
+  font-size: 12px;
+  color: var(--mkt-muted);
+}
+.mkt-mini-list {
+  list-style: none;
+  margin: 4px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mkt-mini-list li {
+  font-size: 12px;
+  color: var(--mkt-muted);
+  padding-left: 14px;
+  position: relative;
+}
+.mkt-mini-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--mkt-ink);
+  opacity: 0.35;
+}
 .mkt-trust {
   max-width: 1120px;
   margin: 0 auto;
@@ -4347,6 +4440,17 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
 .mkt-arc {
   margin-top: 28px;
   padding: 12px 0 8px;
+  position: relative;
+}
+.mkt-arc-path {
+  position: absolute;
+  left: 50%;
+  top: 42px;
+  width: min(520px, 92vw);
+  height: 80px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  color: var(--mkt-ink);
 }
 .mkt-arc-stage {
   position: relative;
@@ -4478,12 +4582,17 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   text-transform: uppercase;
   color: var(--mkt-muted);
 }
+.mkt-testimonial-card-solo {
+  position: relative;
+  left: auto;
+  transform: none !important;
+}
 .mkt-testimonial-live {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--mkt-muted);
+  letter-spacing: 0.04em;
 }
 
 .mkt-pipeline {
@@ -4632,6 +4741,13 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   .mkt-arc-card,
   .mkt-testimonial-card {
     animation: none !important;
+  }
+  .mkt-hero-pin {
+    min-height: auto;
+  }
+  .mkt-rise-layer {
+    position: relative;
+    padding-top: 0;
   }
 }
 .mkt-legal {

@@ -1,10 +1,9 @@
 import { LandingShell } from "./LandingChrome";
 import { ArcCarousel } from "./motion/ArcCarousel";
 import { BlurHeadline } from "./motion/BlurHeadline";
-import { HeroConstellation } from "./motion/HeroConstellation";
+import { LandingHeroSequence } from "./motion/LandingHeroSequence";
 import { MotionCta } from "./motion/MotionCta";
 import { RiseOnScroll } from "./motion/RiseOnScroll";
-import { RotatingHeroHeadline } from "./motion/RotatingHeroHeadline";
 import { TestimonialCarousel } from "./motion/TestimonialCarousel";
 
 function IcoCompanies() {
@@ -65,63 +64,11 @@ const PIPELINE = [
   { stage: 5, name: "Analysis", body: "Ask, reports, and compare. Book only." },
 ] as const;
 
-const FEATURE_CARDS = [
-  {
-    title: "Attendance-style coverage",
-    body: "Schematic Command view. Labels show gaps; we do not invent portfolio KPIs.",
-    tag: "Schematic",
-  },
-  {
-    title: "Real-time book state",
-    body: "Command reads confirmed rows only. Incomplete NAV says how many values are missing.",
-    tag: "Book only",
-  },
-  {
-    title: "Access cited insights",
-    body: "Ask and reports cite locators. Insufficient evidence returns a refusal.",
-    tag: "Cite or refuse",
-  },
-] as const;
-
 export function MarketingLanding() {
   return (
     <LandingShell>
       <main id="main">
-        <section className="mkt-hero mkt-hero-centered">
-          <HeroConstellation />
-          <div className="mkt-hero-copy">
-            <BlurHeadline as="h1" className="mkt-hero-title">
-              The book for the investment team.
-            </BlurHeadline>
-            <p className="mkt-sub">Command, cite, and act on the truth of your portfolio.</p>
-            <div className="mkt-hero-ctas">
-              <MotionCta href="/signup" data-testid="landing-get-started">
-                Get started
-              </MotionCta>
-              <MotionCta href="/login" variant="ghost" data-testid="landing-log-in">
-                Log in
-              </MotionCta>
-            </div>
-          </div>
-        </section>
-
-        <section className="mkt-rise-section" aria-label="Product motion">
-          <RotatingHeroHeadline className="mkt-rise-headline" />
-          <p className="mkt-rise-sub">
-            Investment teams use Venture OS to standardize packs, confirm facts, and run rituals from one book.
-          </p>
-          <div className="mkt-rise-grid">
-            {FEATURE_CARDS.map((card, i) => (
-              <RiseOnScroll key={card.title} className="mkt-rise-card-wrap" delay={i * 0.08}>
-                <article className="mkt-rise-card">
-                  <span className="mkt-rise-tag">{card.tag}</span>
-                  <h3>{card.title}</h3>
-                  <p>{card.body}</p>
-                </article>
-              </RiseOnScroll>
-            ))}
-          </div>
-        </section>
+        <LandingHeroSequence />
 
         <section className="mkt-trust" id="trust" aria-label="Trust">
           <p className="mkt-trust-kicker">Institutional portfolio management for VCs</p>

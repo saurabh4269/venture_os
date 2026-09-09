@@ -51,12 +51,23 @@ const SOURCES: ArcItem[] = [
 
 function arcOffset(index: number, active: number, total: number) {
   const delta = index - active;
-  const wrapped =
-    delta > total / 2 ? delta - total : delta < -total / 2 ? delta + total : delta;
-  return wrapped;
+  return delta > total / 2 ? delta - total : delta < -total / 2 ? delta + total : delta;
 }
 
-/** Horizontal arc carousel — center card scales up with caption crossfade. */
+/** Arc path: edges sit lower on a convex curve; center is highest. */
+function arcPose(offset: number, reduce: boolean) {
+  const abs = Math.abs(offset);
+  const isCenter = offset === 0;
+  const x = offset * (reduce ? 72 : 92);
+  const y = abs * abs * (reduce ? 0 : 14);
+  const rotate = offset * (reduce ? 0 : 16);
+  const scale = isCenter ? 1.2 : abs === 1 ? 0.9 : 0.74;
+  const opacity = abs > 2 ? 0 : abs === 2 ? 0.4 : abs === 1 ? 0.68 : 1;
+  const blur = reduce || isCenter ? 0 : abs === 1 ? 1.5 : 3;
+  return { x, y, rotate, scale, opacity, blur, isCenter, abs };
+}
+
+/** Integrations arc carousel — curved path, center scale/opaque, edges rotate+blur. */
 export function ArcCarousel() {
   const [active, setActive] = useState(2);
   const reduce = useReducedMotion();
@@ -73,34 +84,33 @@ export function ArcCarousel() {
 
   return (
     <div className="mkt-arc" data-testid="mkt-arc-carousel">
+      <svg className="mkt-arc-path" viewBox="0 0 520 80" aria-hidden="true">
+        <path d="M 20 58 Q 260 8 500 58" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.12" />
+      </svg>
       <div className="mkt-arc-stage" role="listbox" aria-label="Source connectors">
         {SOURCES.map((s, i) => {
           const offset = arcOffset(i, active, SOURCES.length);
-          const abs = Math.abs(offset);
-          const isCenter = offset === 0;
-          const rotate = offset * (reduce ? 0 : 14);
-          const scale = isCenter ? 1.18 : abs === 1 ? 0.92 : 0.78;
-          const y = abs * (reduce ? 0 : 18);
-          const opacity = abs > 2 ? 0 : abs === 2 ? 0.45 : abs === 1 ? 0.72 : 1;
+          const pose = arcPose(offset, !!reduce);
 
           return (
             <motion.button
               key={s.id}
               type="button"
               role="option"
-              aria-selected={isCenter}
+              aria-selected={pose.isCenter}
               className="mkt-arc-card"
               onClick={() => setActive(i)}
               animate={{
-                x: offset * (reduce ? 72 : 88),
-                y,
-                rotate,
-                scale,
-                opacity,
-                zIndex: isCenter ? 3 : 2 - abs,
+                x: pose.x,
+                y: pose.y,
+                rotate: pose.rotate,
+                scale: pose.scale,
+                opacity: pose.opacity,
+                filter: `blur(${pose.blur}px)`,
+                zIndex: pose.isCenter ? 3 : 2 - pose.abs,
               }}
-              transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 280, damping: 28 }}
-              style={{ pointerEvents: abs > 2 ? "none" : "auto" }}
+              transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 260, damping: 26 }}
+              style={{ pointerEvents: pose.abs > 2 ? "none" : "auto" }}
             >
               <span className="mkt-arc-glyph" style={{ background: s.color }}>{s.glyph}</span>
             </motion.button>
@@ -112,10 +122,10 @@ export function ArcCarousel() {
         <AnimatePresence mode="wait">
           <motion.div
             key={item.id}
-            initial={reduce ? false : { opacity: 0, y: 8, filter: "blur(6px)" }}
+            initial={reduce ? false : { opacity: 0, y: 10, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={reduce ? undefined : { opacity: 0, y: -6, filter: "blur(4px)" }}
-            transition={{ duration: 0.28 }}
+            exit={reduce ? undefined : { opacity: 0, y: -8, filter: "blur(6px)" }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
           >
             <strong>{item.title}</strong>
             <p>{item.subtitle}</p>

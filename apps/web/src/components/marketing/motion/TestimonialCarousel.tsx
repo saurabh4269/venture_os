@@ -22,76 +22,78 @@ const QUOTES = [
   },
 ] as const;
 
-function arcOffset(index: number, active: number, total: number) {
-  const delta = index - active;
-  return delta > total / 2 ? delta - total : delta < -total / 2 ? delta + total : delta;
-}
+const slideVariants = {
+  enter: (dir: number) => ({
+    x: dir > 0 ? 96 : -96,
+    opacity: 0,
+    filter: dir > 0 ? "blur(0px)" : "blur(8px)",
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    filter: "blur(0px)",
+  },
+  exit: (dir: number) => ({
+    x: dir > 0 ? -96 : 96,
+    opacity: 0,
+    filter: dir > 0 ? "blur(8px)" : "blur(0px)",
+  }),
+};
 
-/** Testimonial carousel with Y-rotated side cards and center focus. */
+/** Testimonial carousel — exit left+blur, enter from right sharp. */
 export function TestimonialCarousel() {
-  const [active, setActive] = useState(1);
+  const [active, setActive] = useState(0);
+  const [direction, setDirection] = useState(1);
   const reduce = useReducedMotion();
   const quote = QUOTES[active];
 
-  const prev = useCallback(() => setActive((i) => (i - 1 + QUOTES.length) % QUOTES.length), []);
-  const next = useCallback(() => setActive((i) => (i + 1) % QUOTES.length), []);
+  const go = useCallback((next: number) => {
+    setDirection(next > active ? 1 : -1);
+    setActive(next);
+  }, [active]);
+
+  const prev = useCallback(() => {
+    go((active - 1 + QUOTES.length) % QUOTES.length);
+  }, [active, go]);
+
+  const next = useCallback(() => {
+    go((active + 1) % QUOTES.length);
+  }, [active, go]);
 
   useEffect(() => {
     if (reduce) return;
-    const id = window.setInterval(next, 6400);
+    const id = window.setInterval(() => {
+      setDirection(1);
+      setActive((i) => (i + 1) % QUOTES.length);
+    }, 6400);
     return () => window.clearInterval(id);
-  }, [reduce, next]);
+  }, [reduce]);
 
   return (
     <div className="mkt-testimonials" data-testid="mkt-testimonials">
       <div className="mkt-testimonial-stage">
-        {QUOTES.map((q, i) => {
-          const offset = arcOffset(i, active, QUOTES.length);
-          const isCenter = offset === 0;
-          const rotateY = reduce ? 0 : offset * 28;
-          const scale = isCenter ? 1 : 0.88;
-          const opacity = isCenter ? 1 : 0.55;
-          const blur = reduce || isCenter ? 0 : 3;
-
-          return (
-            <motion.article
-              key={q.id}
-              className="mkt-testimonial-card"
-              aria-hidden={!isCenter}
-              animate={{
-                x: offset * (reduce ? 0 : 108),
-                rotateY,
-                scale,
-                opacity,
-                filter: `blur(${blur}px)`,
-                zIndex: isCenter ? 2 : 1,
-              }}
-              transition={reduce ? { duration: 0.15 } : { type: "spring", stiffness: 240, damping: 26 }}
-              style={{ transformPerspective: 900 }}
-            >
-              <div className="mkt-testimonial-avatar" aria-hidden>
-                {q.role.slice(0, 1)}
-              </div>
-              <p className="mkt-testimonial-role">{q.role}</p>
-              <p className="mkt-testimonial-quote">&ldquo;{q.quote}&rdquo;</p>
-              <p className="mkt-testimonial-note">Methodology, not a customer score.</p>
-            </motion.article>
-          );
-        })}
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.article
+            key={quote.id}
+            className="mkt-testimonial-card mkt-testimonial-card-solo"
+            custom={direction}
+            variants={reduce ? undefined : slideVariants}
+            initial={reduce ? false : "enter"}
+            animate="center"
+            exit={reduce ? undefined : "exit"}
+            transition={reduce ? { duration: 0.15 } : { duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="mkt-testimonial-avatar" aria-hidden>
+              {quote.role.slice(0, 1)}
+            </div>
+            <p className="mkt-testimonial-role">{quote.role}</p>
+            <p className="mkt-testimonial-quote">&ldquo;{quote.quote}&rdquo;</p>
+            <p className="mkt-testimonial-note">Methodology, not a customer score.</p>
+          </motion.article>
+        </AnimatePresence>
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.p
-          key={quote.id}
-          className="mkt-testimonial-live"
-          aria-live="polite"
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={reduce ? undefined : { opacity: 0 }}
-        >
-          {quote.role}
-        </motion.p>
-      </AnimatePresence>
+      <p className="mkt-testimonial-live" aria-live="polite">{quote.role}</p>
 
       <div className="mkt-arc-controls">
         <button type="button" className="mkt-arc-btn" onClick={prev} aria-label="Previous quote">

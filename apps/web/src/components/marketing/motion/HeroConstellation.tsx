@@ -82,8 +82,20 @@ export function HeroConstellation() {
       <motion.div
         className="mkt-constellation-hub"
         initial={reduce ? false : { opacity: 0, scale: 0.82 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 22, delay: 0.05 }}
+        animate={
+          reduce
+            ? { opacity: 1, scale: 1, y: 0 }
+            : { opacity: 1, scale: 1, y: [0, -6, 0] }
+        }
+        transition={
+          reduce
+            ? { duration: 0 }
+            : {
+                opacity: { type: "spring", stiffness: 260, damping: 22, delay: 0.05 },
+                scale: { type: "spring", stiffness: 260, damping: 22, delay: 0.05 },
+                y: { duration: 3.6, repeat: Infinity, ease: "easeInOut" },
+              }
+        }
       >
         <HubIcon />
       </motion.div>
@@ -107,8 +119,12 @@ export function HeroConstellation() {
           }
         >
           <motion.div
-            animate={reduce ? undefined : { y: [0, -5, 0] }}
-            transition={reduce ? undefined : { duration: 4 + n.delay, repeat: Infinity, ease: "easeInOut" }}
+            animate={reduce ? undefined : { y: [0, -7, 0] }}
+            transition={
+              reduce
+                ? undefined
+                : { duration: 3.2 + n.delay * 2, repeat: Infinity, ease: "easeInOut", delay: n.delay }
+            }
           >
             <MiniIcon kind={n.id} />
             <span className="mkt-constellation-label">{n.label}</span>
