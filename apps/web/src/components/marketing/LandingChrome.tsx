@@ -17,6 +17,9 @@ export function LandingHeader() {
     <header className="mkt-header">
       <div className="mkt-header-inner">
         <Link href="/" className="mkt-logo">
+          <span className="mkt-logo-mark" aria-hidden>
+            V
+          </span>
           Venture OS
         </Link>
         <nav className="mkt-nav" aria-label="Marketing">
@@ -69,6 +72,9 @@ export function LandingFooter() {
     <footer className="mkt-footer">
       <div className="mkt-footer-inner">
         <Link href="/" className="mkt-logo">
+          <span className="mkt-logo-mark" aria-hidden>
+            V
+          </span>
           Venture OS
         </Link>
         <p className="mkt-copy">© 2026 Venture OS. Institutional portfolio management.</p>

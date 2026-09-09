@@ -24,7 +24,6 @@ test.describe("@smoke marketing landing", () => {
     await expect(page.getByRole("heading", { name: /three steps to a live row/i })).toBeVisible();
     await expect(page.getByText("1. Cite")).toBeVisible();
     await expect(page.getByRole("heading", { name: /ready for institutional clarity/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /built with design partner v3 ventures/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /no public price list/i })).toBeVisible();
     await expect(page.getByText("142")).toHaveCount(0);
     await expect(page.getByText(/sequoia|a16z|index ventures/i)).toHaveCount(0);
