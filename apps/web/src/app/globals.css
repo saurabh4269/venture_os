@@ -3943,6 +3943,12 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   --mkt-yellow: #f5c542;
   --mkt-blue: #38bdf8;
   --mkt-red: #ef4444;
+  --mkt-fade-a: #f4efe6;
+  --mkt-fade-b: #efe7ff;
+  --mkt-fade-c: #dbeafe;
+  --mkt-face-a: #f4efe6;
+  --mkt-face-b: #efe7ff;
+  --mkt-face-wash: rgba(243, 244, 246, 0.92);
   --mkt-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
   --mkt-shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.06);
   --paper: var(--mkt-bg);
@@ -3968,6 +3974,12 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   --mkt-well: #111111;
   --mkt-cta: #f5f5f5;
   --mkt-cta-ink: #0a0a0a;
+  --mkt-fade-a: #2a241c;
+  --mkt-fade-b: #1f1a2e;
+  --mkt-fade-c: #15202b;
+  --mkt-face-a: #2a241c;
+  --mkt-face-b: #241c33;
+  --mkt-face-wash: rgba(10, 10, 10, 0.72);
   --mkt-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   --mkt-shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
@@ -4216,10 +4228,10 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   position: absolute;
   inset: auto 0 0;
   height: 42%;
-  background: linear-gradient(transparent, rgba(243, 244, 246, 0.92));
+  background: linear-gradient(transparent, var(--mkt-face-wash));
 }
-.mkt-node-face-a { left: 24%; top: 38%; background: #f4efe6; animation-delay: 0.2s; }
-.mkt-node-face-b { right: 26%; top: 36%; background: #efe7ff; animation-delay: 0.45s; }
+.mkt-node-face-a { left: 24%; top: 38%; background: var(--mkt-face-a); animation-delay: 0.2s; }
+.mkt-node-face-b { right: 26%; top: 36%; background: var(--mkt-face-b); animation-delay: 0.45s; }
 .mkt-node-chip {
   width: 52px;
   height: 52px;
@@ -4469,9 +4481,9 @@ tbody tr[data-testid="flags-row"] { cursor: pointer; }
   -webkit-mask-image: linear-gradient(#000 42%, transparent);
   mask-image: linear-gradient(#000 42%, transparent);
 }
-.mkt-fade-a { left: 8%; background: linear-gradient(180deg, #f4efe6, var(--mkt-sheet)); animation-delay: 0.2s; }
-.mkt-fade-b { left: calc(50% - 36px); background: linear-gradient(180deg, #efe7ff, var(--mkt-sheet)); animation-delay: 0.55s; }
-.mkt-fade-c { right: 8%; background: linear-gradient(180deg, #dbeafe, var(--mkt-sheet)); animation-delay: 0.35s; }
+.mkt-fade-a { left: 8%; background: linear-gradient(180deg, var(--mkt-fade-a), var(--mkt-sheet)); animation-delay: 0.2s; }
+.mkt-fade-b { left: calc(50% - 36px); background: linear-gradient(180deg, var(--mkt-fade-b), var(--mkt-sheet)); animation-delay: 0.55s; }
+.mkt-fade-c { right: 8%; background: linear-gradient(180deg, var(--mkt-fade-c), var(--mkt-sheet)); animation-delay: 0.35s; }
 .mkt-sheet {
   max-width: 1080px;
   margin: 0 auto 28px;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { IconMoon, IconSun } from "@/components/Icons";
 
 export type ThemeName = "light" | "dark";
@@ -38,7 +38,7 @@ export function ThemeToggle({
 }) {
   const [theme, setTheme] = useState<ThemeName>("light");
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setTheme(readStoredTheme());
   }, []);
 

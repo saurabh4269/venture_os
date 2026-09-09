@@ -48,15 +48,30 @@ function pose(rel: number, bob: number) {
   };
 }
 
+function stylePose(p: ReturnType<typeof pose>, dist: number, reduce: boolean) {
+  return {
+    transform: `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px) rotate(${p.rotate.toFixed(1)}deg) scale(${p.scale.toFixed(2)})`,
+    opacity: p.opacity,
+    zIndex: p.z,
+    filter: reduce || dist < 0.28 ? "none" : `blur(${Math.min(dist, 2).toFixed(1)}px)`,
+  };
+}
+
 export function ConnectorArc() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [offset, setOffset] = useState(0);
   const [clock, setClock] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const offsetRef = useRef(0);
   const reduceRef = useRef(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     reduceRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceRef.current) {
       offsetRef.current = active;
@@ -74,7 +89,7 @@ export function ConnectorArc() {
     };
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [active]);
+  }, [active, mounted]);
 
   useEffect(() => {
     if (paused || reduceRef.current) return;
@@ -95,7 +110,7 @@ export function ConnectorArc() {
       <div className="mkt-tools" role="list" aria-label="Sources">
         {CONNECTORS.map((t, i) => {
           const rel = wrapRel(i - offset);
-          const bob = reduceRef.current ? 0 : Math.sin(clock / 540 + i * 1.2) * 4;
+          const bob = mounted && !reduceRef.current ? Math.sin(clock / 540 + i * 1.2) * 4 : 0;
           const p = pose(rel, bob);
           const dist = Math.abs(rel);
           const on = i === active;
@@ -109,12 +124,7 @@ export function ConnectorArc() {
               aria-hidden={p.opacity < 0.08}
               tabIndex={p.opacity < 0.08 ? -1 : 0}
               aria-label={`${t.name}: ${t.body}`}
-              style={{
-                transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rotate}deg) scale(${p.scale})`,
-                opacity: p.opacity,
-                zIndex: p.z,
-                filter: reduceRef.current || dist < 0.28 ? "none" : `blur(${Math.min(dist, 2) * 1.2}px)`,
-              }}
+              style={stylePose(p, dist, !mounted || reduceRef.current)}
               onClick={() => setActive(i)}
               onFocus={() => {
                 setActive(i);
