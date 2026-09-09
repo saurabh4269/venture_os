@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, IBM_Plex_Sans, Newsreader, Source_Serif_4 } from "next/font/google";
+import { IBM_Plex_Sans, Inter, Source_Serif_4 } from "next/font/google";
 import { RegisterPwa } from "@/components/RegisterPwa";
 import "./globals.css";
 
@@ -13,14 +13,10 @@ const serif = Source_Serif_4({
   weight: ["500", "600"],
   variable: "--font-serif",
 });
-const geist = Geist({
-  subsets: ["latin"],
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-mkt",
-});
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-mkt-display",
 });
 
 export const metadata: Metadata = {
@@ -43,7 +39,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f5f5" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
   width: "device-width",
@@ -54,7 +50,7 @@ const THEME_BOOT = `(function(){try{var t=localStorage.getItem("vos-theme");docu
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable} ${geist.variable} ${newsreader.variable}`} data-theme="light" suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${serif.variable} ${inter.variable}`} data-theme="light" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <RegisterPwa />

@@ -33,21 +33,24 @@ const FEATURE_CARDS = [
 export function LandingHeroSequence() {
   return (
     <div className="mkt-hero-pin is-static" data-testid="mkt-hero-sequence">
-      <section className="mkt-hero mkt-hero-stage">
-        <div className="mkt-hero-stage-card">
-          <HeroConstellation />
-          <div className="mkt-hero-copy">
-            <h1>The book for the investment team.</h1>
-            <p className="mkt-sub">Command, cite, and act on the truth of your portfolio.</p>
-            <div className="mkt-hero-ctas">
-              <MotionCta href="/signup" data-testid="landing-get-started">
-                Get started
-              </MotionCta>
-              <MotionCta href="/login" variant="ghost" data-testid="landing-log-in">
-                Log in
-              </MotionCta>
-            </div>
+      <section className="mkt-hero mkt-hero-centered mkt-hero-layer">
+        <HeroConstellation />
+        <div className="mkt-hero-copy">
+          <h1>The book for the investment team.</h1>
+          <p className="mkt-sub">Command, cite, and act on the truth of your portfolio.</p>
+          <div className="mkt-hero-ctas">
+            <MotionCta href="/signup" data-testid="landing-get-started">
+              Get started
+            </MotionCta>
+            <MotionCta href="/login" variant="ghost" data-testid="landing-log-in">
+              Log in
+            </MotionCta>
           </div>
+        </div>
+        <div className="mkt-hero-fade" aria-hidden>
+          <span className="mkt-fade-tile mkt-fade-a" />
+          <span className="mkt-fade-tile mkt-fade-b" />
+          <span className="mkt-fade-tile mkt-fade-c" />
         </div>
       </section>
 

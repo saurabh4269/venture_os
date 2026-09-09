@@ -26,30 +26,28 @@ Keyframe PNGs and the source MP4 live outside this repo; this doc is the **timin
 ## Stack
 
 - **motion/react** — springs, `AnimatePresence`, `useReducedMotion`, `useInView`
-- **GSAP + ScrollTrigger** — blur headline enters, scroll-rise elsewhere
+- **GSAP + ScrollTrigger** — hero morph timeline, blur headline enters, scroll-rise elsewhere
 
 ## Key files
 
 | File | Role |
 | --- | --- |
-| `motion/LandingHeroSequence.tsx` | Hero + rise section in document flow |
-| `HeroConstellation.tsx` | Semantic nodes on designed ellipse; spokes meet centers |
+| `motion/LandingHeroSequence.tsx` | Pinned scroll morph hero → rise section |
+| `HeroConstellation.tsx` | Hub + satellite float |
 | `motion/FeatureRiseCard.tsx` | Rise cards with inner micro-anims |
 | `ConnectorArc.tsx` | Sources arc carousel (real logos) |
 | `motion/TestimonialCarousel.tsx` | Methodology quote carousel |
 | `motion/BlurHeadline.tsx` | GSAP blur→sharp slide |
-| `motion/MotionCta.tsx` | 200ms hover lift on ink CTAs |
+| `motion/MotionCta.tsx` | 200ms hover lift on coral CTAs |
 | `LandingChrome.tsx` | Floating pill nav |
 | `MarketingLanding.tsx` | Section composition |
-| `HERO_TOOLS_CRAFT_BRIEF.md` | Vibe/craft SoT for hero + tools |
 
 ## Tokens
 
-- Background: paper `#FAFAFA`
-- Stage: `#FFFFFF`
-- Ink: `#09090B`
-- CTAs: solid ink
-- Typography: Newsreader display (`--font-mkt-display`) · Geist UI (`--font-mkt`)
+- Background: `#F3F4F6`
+- Ink: `#0A0A0A`
+- CTAs: coral `#ff5f4a` → `#ff7a6b`
+- Typography: Inter (`--font-mkt`)
 
 ## Reduced motion checklist
 

@@ -184,7 +184,7 @@ export function MarketingLanding() {
           </ol>
         </section>
 
-        <section className="mkt-sheet mkt-tools-sheet" id="trust" aria-label="Trust">
+        <section className="mkt-sheet" id="trust" aria-label="Trust">
           <div className="mkt-gear" aria-hidden>
             <IconGears />
           </div>
@@ -194,8 +194,6 @@ export function MarketingLanding() {
             until a health check.
           </p>
           <ConnectorArc />
-        </section>
-        <section className="mkt-section mkt-clarity-row" aria-label="Book honesty">
           <div className="mkt-clarity" data-testid="mkt-clarity">
             <article>
               <h3>Active companies</h3>

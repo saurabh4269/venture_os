@@ -3,53 +3,65 @@
 import { useEffect, useRef, useState } from "react";
 import {
   IconAffinity,
-  IconAsk,
-  IconBook,
+  IconBalloon,
+  IconBulb,
   IconCheck,
-  IconCite,
-  IconConfirm,
-  IconFlags,
+  IconEyes,
+  IconGranola,
+  IconOneDrive,
+  IconShield,
 } from "./MarketingIcons";
 
-const W = 800;
-const H = 360;
-const HUB = { x: 400, y: 168 };
+const HERO_PATHS = [
+  "M450 190 L220 90 L140 180",
+  "M450 190 L220 280 L360 310",
+  "M450 190 L680 80 L790 160",
+  "M450 190 L700 270 L540 320",
+  "M450 190 L300 70",
+  "M450 190 L600 70",
+  "M450 190 L130 240",
+] as const;
 
 const NODES = [
-  { id: "hub", x: HUB.x, y: HUB.y, tier: "hub" as const, depth: 0.12, delay: "0s", child: <IconCheck /> },
-  { id: "cite", x: 248, y: 72, tier: "near" as const, depth: 0.32, delay: "0.08s", child: <IconCite /> },
-  { id: "confirm", x: 548, y: 64, tier: "near" as const, depth: 0.34, delay: "0.14s", child: <IconConfirm /> },
-  { id: "book", x: 148, y: 188, tier: "far" as const, depth: 0.48, delay: "0.2s", child: <IconBook /> },
-  { id: "flags", x: 662, y: 176, tier: "far" as const, depth: 0.5, delay: "0.26s", child: <IconFlags /> },
-  { id: "ask", x: 318, y: 292, tier: "near" as const, depth: 0.28, delay: "0.32s", child: <IconAsk /> },
-  { id: "affinity", x: 538, y: 286, tier: "far" as const, depth: 0.46, delay: "0.38s", child: <IconAffinity size={22} /> },
+  { className: "mkt-node mkt-node-hub", depth: 0.18, child: <IconCheck /> },
+  { className: "mkt-node mkt-node-bulb", depth: 0.42, child: <IconBulb /> },
+  { className: "mkt-node mkt-node-balloon", depth: 0.55, child: <IconBalloon /> },
+  { className: "mkt-node mkt-node-shield", depth: 0.4, child: <IconShield /> },
+  { className: "mkt-node mkt-node-eyes", depth: 0.5, child: <IconEyes /> },
+  { className: "mkt-node mkt-node-face mkt-node-face-a", depth: 0.28, child: "V" },
+  { className: "mkt-node mkt-node-face mkt-node-face-b", depth: 0.32, child: "O" },
+  { className: "mkt-node mkt-node-chip mkt-node-od", depth: 0.62, child: <IconOneDrive size={28} /> },
+  { className: "mkt-node mkt-node-chip mkt-node-af", depth: 0.6, child: <IconAffinity size={28} /> },
+  { className: "mkt-node mkt-node-chip mkt-node-gr", depth: 0.58, child: <IconGranola size={28} /> },
 ] as const;
+
+function FlowDot({ path, dur, delay }: { path: string; dur: string; delay: string }) {
+  return (
+    <circle className="mkt-flow-dot" r="3.6" fill="var(--mkt-purple)" opacity="0.95">
+      <animateMotion dur={dur} begin={delay} repeatCount="indefinite" path={path} />
+    </circle>
+  );
+}
 
 export function HeroConstellation() {
   const root = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState({ x: 0, y: 0 });
-  const [mounted, setMounted] = useState(false);
   const target = useRef({ x: 0, y: 0 });
-  const reduceRef = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
-    reduceRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  }, []);
-
-  useEffect(() => {
-    if (!mounted || reduceRef.current) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq.matches) return;
     let raf = 0;
     const tick = () => {
       setShift((s) => ({
-        x: s.x + (target.current.x - s.x) * 0.1,
-        y: s.y + (target.current.y - s.y) * 0.1,
+        x: s.x + (target.current.x - s.x) * 0.08,
+        y: s.y + (target.current.y - s.y) * 0.08,
       }));
       raf = window.requestAnimationFrame(tick);
     };
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [mounted]);
+  }, []);
 
   return (
     <div
@@ -60,40 +72,39 @@ export function HeroConstellation() {
         const box = root.current?.getBoundingClientRect();
         if (!box) return;
         target.current = {
-          x: ((e.clientX - box.left) / box.width - 0.5) * 16,
-          y: ((e.clientY - box.top) / box.height - 0.5) * 12,
+          x: ((e.clientX - box.left) / box.width - 0.5) * 22,
+          y: ((e.clientY - box.top) / box.height - 0.5) * 16,
         };
       }}
       onMouseLeave={() => {
         target.current = { x: 0, y: 0 };
       }}
     >
-      <svg className="mkt-constellation-lines" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-        {NODES.filter((n) => n.id !== "hub").map((n) => (
-          <g key={n.id}>
-            <path d={`M${HUB.x} ${HUB.y} L${n.x} ${n.y}`} />
-            <circle cx={n.x} cy={n.y} r="3" />
-          </g>
+      <svg className="mkt-constellation-lines" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet">
+        {HERO_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        <circle cx="220" cy="90" r="4" />
+        <circle cx="140" cy="180" r="4" />
+        <circle cx="220" cy="280" r="4" />
+        <circle cx="680" cy="80" r="4" />
+        <circle cx="790" cy="160" r="4" />
+        <circle cx="700" cy="270" r="4" />
+        <circle cx="300" cy="70" r="4" />
+        <circle cx="600" cy="70" r="4" />
+        {HERO_PATHS.map((d, i) => (
+          <FlowDot key={`dot-${d}`} path={d} dur={`${3.2 + (i % 3) * 0.4}s`} delay={`${i * 0.35}s`} />
         ))}
       </svg>
-      {NODES.map((n) => {
-        const px = Math.max(-8, Math.min(8, shift.x * n.depth));
-        const py = Math.max(-8, Math.min(8, shift.y * n.depth));
-        return (
-          <div
-            key={n.id}
-            className={`mkt-node-shift mkt-node-tier-${n.tier}`}
-            style={{
-              left: `${((n.x / W) * 100).toFixed(2)}%`,
-              top: `${((n.y / H) * 100).toFixed(2)}%`,
-              transform: `translate(calc(-50% + ${px.toFixed(1)}px), calc(-50% + ${py.toFixed(1)}px))`,
-              ["--enter-delay" as string]: n.delay,
-            }}
-          >
-            <div className={`mkt-node mkt-node-${n.id}`}>{n.child}</div>
-          </div>
-        );
-      })}
+      {NODES.map((n) => (
+        <div
+          key={n.className}
+          className="mkt-node-shift"
+          style={{ transform: `translate(${shift.x * n.depth}px, ${shift.y * n.depth}px)` }}
+        >
+          <div className={n.className}>{n.child}</div>
+        </div>
+      ))}
     </div>
   );
 }
