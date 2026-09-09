@@ -2332,18 +2332,19 @@ button.kpi.kpi-btn {
 .rank-track-fill {
   height: 100%;
   border-radius: 99px;
-  background: var(--chart-1);
+  background: var(--chart-2);
   min-width: 4px;
 }
-.rank-track:nth-child(6n+1) .rank-track-fill { background: var(--chart-1); }
-.rank-track:nth-child(6n+2) .rank-track-fill { background: var(--chart-2); }
-.rank-track:nth-child(6n+3) .rank-track-fill { background: var(--chart-3); }
-.rank-track:nth-child(6n+4) .rank-track-fill { background: var(--chart-4); }
-.rank-track:nth-child(6n+5) .rank-track-fill { background: var(--chart-5); }
-.rank-track:nth-child(6n) .rank-track-fill { background: var(--chart-6); }
-.rank-track.is-down .rank-track-fill { background: var(--chart-danger); }
-.rank-track.is-warn .rank-track-fill { background: var(--chart-warn); }
+.rank-track.series-cash .rank-track-fill { background: var(--chart-2); }
+.rank-track.series-revenue .rank-track-fill { background: var(--chart-1); }
+.rank-track.series-burn .rank-track-fill { background: var(--chart-3); }
+.rank-track.series-nav .rank-track-fill { background: var(--chart-1); }
+.rank-track.series-runway .rank-track-fill { background: var(--chart-5); }
+.rank-track.series-metric .rank-track-fill { background: var(--chart-2); }
+.rank-track.is-down .rank-track-fill,
 .rank-track.is-danger .rank-track-fill { background: var(--chart-danger); }
+.rank-track.is-warn .rank-track-fill { background: var(--chart-warn); }
+.rank-track.is-up .rank-track-fill,
 .rank-track.is-ok .rank-track-fill { background: var(--chart-ok); }
 .rank-track-fill.is-anim {
   transform-origin: left center;

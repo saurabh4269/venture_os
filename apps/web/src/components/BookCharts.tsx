@@ -25,6 +25,8 @@ import {
   fmtChartNum,
   fmtChartPeriod,
   peerColor,
+  seriesColor,
+  type ChartSeries,
 } from "@/lib/chart-theme";
 import { CompanyMark } from "@/components/BookUI";
 import { IconDownload } from "@/components/Icons";
@@ -87,9 +89,11 @@ export type RankTrackRow = {
 export function RankTracks({
   rows,
   empty,
+  series = "metric",
 }: {
   rows: RankTrackRow[];
   empty: string;
+  series?: ChartSeries;
 }) {
   const reduce = useReduceMotion();
   if (rows.length === 0) return <ChartEmpty label={empty} />;
@@ -110,7 +114,7 @@ export function RankTracks({
           </span>
         );
         return (
-          <li key={r.id} className={`rank-track is-${r.tone ?? "neutral"}`}>
+          <li key={r.id} className={`rank-track series-${series} is-${r.tone ?? "neutral"}`}>
             {name}
             <div className="rank-track-bar" aria-hidden>
               <div
@@ -305,12 +309,11 @@ export function CashByCompanyChart({
   const options: ApexOptions = withChartId(
     {
       ...base,
-      colors: rows.map((_, i) => peerColor(i)),
+      colors: [seriesColor("cash")],
       plotOptions: {
-        bar: { horizontal: true, borderRadius: 6, barHeight: "68%", distributed: true },
+        bar: { horizontal: true, borderRadius: 6, barHeight: "68%" },
       },
       dataLabels: { enabled: false },
-      legend: { show: false },
       xaxis: {
         categories: rows.map((r) => (r.name.length > 16 ? `${r.name.slice(0, 14)}…` : r.name)),
         labels: {
@@ -753,10 +756,12 @@ export function ComparePeerBars({
   rows,
   metricLabel,
   unitHint,
+  series = "metric",
 }: {
   rows: { name: string; value: number; periodEnd?: string | null }[];
   metricLabel: string;
   unitHint?: string;
+  series?: ChartSeries;
 }) {
   const reduce = useReduceMotion();
   const chartId = useApexChartId();
@@ -772,17 +777,15 @@ export function ComparePeerBars({
   const options: ApexOptions = withChartId(
     {
       ...base,
-      colors: sorted.map((_, i) => peerColor(i)),
+      colors: [seriesColor(series)],
       plotOptions: {
         bar: {
           horizontal: true,
           borderRadius: 6,
           barHeight: "68%",
-          distributed: true,
           dataLabels: { position: "top" },
         },
       },
-      legend: { show: false },
       dataLabels: {
         enabled: true,
         offsetX: 28,
@@ -921,10 +924,12 @@ export function ComparePeerColumns({
   rows,
   metricLabel,
   unitHint,
+  series = "metric",
 }: {
   rows: { name: string; value: number; periodEnd?: string | null }[];
   metricLabel: string;
   unitHint?: string;
+  series?: ChartSeries;
 }) {
   const reduce = useReduceMotion();
   const chartId = useApexChartId();
@@ -938,16 +943,14 @@ export function ComparePeerColumns({
   const options: ApexOptions = withChartId(
     {
       ...base,
-      colors: sorted.map((_, i) => peerColor(i)),
+      colors: [seriesColor(series)],
       plotOptions: {
         bar: {
           borderRadius: 6,
           columnWidth: "55%",
-          distributed: true,
         },
       },
       dataLabels: { enabled: false },
-      legend: { show: false },
       xaxis: {
         categories: sorted.map((r) => (r.name.length > 12 ? `${r.name.slice(0, 10)}…` : r.name)),
         labels: { style: { colors: BOOK_CHART.muted, fontSize: "11px" } },

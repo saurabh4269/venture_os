@@ -462,7 +462,7 @@ export default function NavPage() {
               });
             const movement = (
               <Panel title="Value movement" kicker="Booked marks only">
-                <RankTracks empty="No mark movement vs prior." rows={movers} />
+                <RankTracks series="nav" empty="No mark movement vs prior." rows={movers} />
               </Panel>
             );
             if (priorTotal == null || data.rollup.nav.total == null) return movement;

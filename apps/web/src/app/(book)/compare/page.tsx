@@ -6,7 +6,7 @@ import useSWR from "swr";
 import { METRIC_CATALOG, metricByKey } from "@venture-os/core";
 import { ComparePeerRadar, ComparePeerScatter, RankTracks } from "@/components/BookCharts";
 import { CompanyMark, PageHead, Panel } from "@/components/BookUI";
-import { fmtChartNum } from "@/lib/chart-theme";
+import { fmtChartNum, seriesForMetric } from "@/lib/chart-theme";
 import { Fact } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
 import { bookFetcher } from "@/lib/book-data";
@@ -541,6 +541,7 @@ export default function ComparePage() {
             kicker={chartRows.length ? `${chartRows.length} booked` : undefined}
           >
             <RankTracks
+              series={seriesForMetric(chartMetric)}
               empty={`No booked ${metricLabel(chartMetric, data.labels).toLowerCase()} among selected peers.`}
               rows={[...chartRows]
                 .sort((a, b) => b.value - a.value)

@@ -280,6 +280,35 @@ export function peerColor(i: number) {
   return PEER_PALETTE[i % PEER_PALETTE.length]!;
 }
 
+/** One hue per meaning — same series stays the same color across screens. */
+export type ChartSeries = "cash" | "revenue" | "burn" | "runway" | "nav" | "metric";
+
+export function seriesColor(kind: ChartSeries): string {
+  switch (kind) {
+    case "cash":
+      return BOOK_CHART.azure;
+    case "revenue":
+      return BOOK_CHART.violet;
+    case "burn":
+      return BOOK_CHART.coral;
+    case "runway":
+      return BOOK_CHART.mint;
+    case "nav":
+      return BOOK_CHART.violet;
+    default:
+      return BOOK_CHART.azure;
+  }
+}
+
+export function seriesForMetric(metric: string): ChartSeries {
+  if (metric === "cash") return "cash";
+  if (metric === "burn") return "burn";
+  if (metric.includes("revenue")) return "revenue";
+  if (metric === "runway_months" || metric === "runway") return "runway";
+  if (metric === "nav" || metric === "moic" || metric === "irr") return "nav";
+  return "metric";
+}
+
 export function apexRadarBase(reduceMotion: boolean): ApexOptions {
   const c = chartChrome();
   return {
