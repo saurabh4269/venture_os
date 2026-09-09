@@ -20,7 +20,6 @@ const CONNECTORS = [
 ] as const;
 
 const N = CONNECTORS.length;
-const STEP = 0.5;
 
 function wrapRel(rel: number) {
   while (rel > N / 2) rel -= N;
@@ -35,16 +34,17 @@ function shortestToward(from: number, to: number) {
   return from + d;
 }
 
+/** Five visible seats on a CoreShift-style upward arc. */
 function pose(rel: number, bob: number) {
-  const a = rel * STEP;
+  const a = rel * 0.46;
   const dist = Math.abs(rel);
   return {
-    x: Math.sin(a) * 268,
-    y: (1 - Math.cos(a)) * 82 + bob,
-    rotate: a * 36,
-    scale: 1.26 - Math.min(dist, 2.2) * 0.15,
-    opacity: dist > 2.25 ? 0 : 1,
-    z: Math.round(24 - dist * 8),
+    x: Math.sin(a) * 248,
+    y: (1 - Math.cos(a)) * 128 + bob,
+    rotate: a * 40,
+    scale: dist < 0.28 ? 1.3 : 1 - Math.min(dist, 2) * 0.05,
+    opacity: dist > 2.2 ? 0 : 1,
+    z: Math.round(32 - dist * 8),
   };
 }
 
@@ -66,7 +66,7 @@ export function ConnectorArc() {
     let raf = 0;
     const tick = (t: number) => {
       const dest = shortestToward(offsetRef.current, active);
-      const next = offsetRef.current + (dest - offsetRef.current) * 0.11;
+      const next = offsetRef.current + (dest - offsetRef.current) * 0.1;
       offsetRef.current = next;
       setOffset(next);
       setClock(t);
@@ -95,7 +95,7 @@ export function ConnectorArc() {
       <div className="mkt-tools" role="list" aria-label="Sources">
         {CONNECTORS.map((t, i) => {
           const rel = wrapRel(i - offset);
-          const bob = reduceRef.current ? 0 : Math.sin(clock / 520 + i * 1.15) * 5;
+          const bob = reduceRef.current ? 0 : Math.sin(clock / 540 + i * 1.2) * 4;
           const p = pose(rel, bob);
           const on = i === active;
           return (
@@ -114,10 +114,13 @@ export function ConnectorArc() {
                 zIndex: p.z,
               }}
               onClick={() => setActive(i)}
-              onFocus={() => setActive(i)}
+              onFocus={() => {
+                setActive(i);
+                setPaused(true);
+              }}
             >
               <span className="mkt-tool-ico">
-                <t.Icon size={42} />
+                <t.Icon size={44} />
               </span>
             </button>
           );
@@ -127,6 +130,14 @@ export function ConnectorArc() {
         <strong>{current.name}</strong>
         <span>{current.body}</span>
       </p>
+      <button
+        type="button"
+        className="mkt-tools-pause"
+        aria-pressed={paused}
+        onClick={() => setPaused((v) => !v)}
+      >
+        {paused ? "Play" : "Pause"}
+      </button>
     </div>
   );
 }

@@ -85,24 +85,34 @@ export function MarketingLanding() {
           <div className="mkt-audience">
             <article>
               <div className="mkt-audience-art mkt-art-bars" aria-hidden>
-                <b />
-                <b />
-                <b />
-                <b />
+                <span className="mkt-art-chip">not zero</span>
+                <div className="mkt-art-bars-row">
+                  <b />
+                  <b />
+                  <b />
+                  <b />
+                </div>
               </div>
               <h3>For the investment team</h3>
               <p>One book. Coverage stays visible. Missing stays blank.</p>
             </article>
             <article>
               <div className="mkt-audience-art mkt-art-ring" aria-hidden>
-                <span>Cite or refuse</span>
+                <i />
+                <i />
+                <i />
+                <span className="mkt-art-pill">Cite or refuse</span>
               </div>
               <h3>For partners</h3>
               <p>Ask searches the book. No evidence returns a refusal, not an estimate.</p>
             </article>
             <article>
               <div className="mkt-audience-art mkt-art-shield" aria-hidden>
-                <IconShield />
+                <em />
+                <em />
+                <span className="mkt-shield-tile">
+                  <IconShield />
+                </span>
               </div>
               <h3>For operators</h3>
               <p>Confirm is the write-gate. Nothing auto-posts unless you set a threshold.</p>
@@ -115,6 +125,11 @@ export function MarketingLanding() {
               <EmptyKpis />
             </article>
             <article>
+              <div className="mkt-orbit" aria-hidden>
+                <span>V</span>
+                <span>O</span>
+                <span>S</span>
+              </div>
               <h3>Needs a look</h3>
               <p>No evidence, no flag. Catalog only.</p>
               <p className="mkt-wide-clear">Clear.</p>
