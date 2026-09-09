@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { ConnectorArc } from "./ConnectorArc";
+import { HeroConstellation } from "./HeroConstellation";
 import { LandingShell } from "./LandingChrome";
+import { IconGears, IconShield } from "./MarketingIcons";
 
 const FEATURES = [
   {
@@ -36,83 +39,6 @@ const PIPELINE = [
   { stage: 5, name: "Analysis", body: "Ask, reports, and compare. Book only." },
 ] as const;
 
-function IconBulb() {
-  return (
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M9 18h6M10 21h4" />
-      <path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.7h5.4c.1-.7.4-1.3.9-1.7A6 6 0 0 0 12 3z" />
-    </svg>
-  );
-}
-function IconBalloon() {
-  return (
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
-      <ellipse cx="12" cy="10" rx="6" ry="7.2" />
-      <path d="M12 17c0 2-1.2 4.5-1.2 5.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
-}
-function IconShield() {
-  return (
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M12 3 5 6v6c0 4.2 2.8 7 7 8.4C16.2 19 19 16.2 19 12V6l-7-3z" />
-      <path d="M12 8v5M10.2 14.2 12 16l3.2-3.4" />
-    </svg>
-  );
-}
-function IconEyes() {
-  return (
-    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
-      <ellipse cx="8" cy="12" rx="3.4" ry="4" />
-      <ellipse cx="16" cy="12" rx="3.4" ry="4" />
-      <circle cx="8.6" cy="12.4" r="1.2" fill="#111" />
-      <circle cx="16.6" cy="12.4" r="1.2" fill="#111" />
-    </svg>
-  );
-}
-function IconCheck() {
-  return (
-    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" strokeWidth="2.4">
-      <circle cx="12" cy="12" r="8.2" />
-      <path d="m8.4 12.2 2.4 2.4 4.8-5" />
-    </svg>
-  );
-}
-
-function HeroConstellation() {
-  return (
-    <div className="mkt-constellation" aria-hidden="true">
-      <svg className="mkt-constellation-lines" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet">
-        <path d="M450 190 L220 90 L140 180 L220 280 L360 310" />
-        <path d="M450 190 L680 80 L790 160 L700 270 L540 320" />
-        <circle cx="220" cy="90" r="4" />
-        <circle cx="140" cy="180" r="4" />
-        <circle cx="220" cy="280" r="4" />
-        <circle cx="680" cy="80" r="4" />
-        <circle cx="790" cy="160" r="4" />
-        <circle cx="700" cy="270" r="4" />
-      </svg>
-      <div className="mkt-node mkt-node-hub">
-        <IconCheck />
-      </div>
-      <div className="mkt-node mkt-node-bulb">
-        <IconBulb />
-      </div>
-      <div className="mkt-node mkt-node-balloon">
-        <IconBalloon />
-      </div>
-      <div className="mkt-node mkt-node-shield">
-        <IconShield />
-      </div>
-      <div className="mkt-node mkt-node-eyes">
-        <IconEyes />
-      </div>
-      <div className="mkt-node mkt-node-face mkt-node-face-a">V</div>
-      <div className="mkt-node mkt-node-face mkt-node-face-b">O</div>
-    </div>
-  );
-}
-
 function EmptyKpis() {
   return (
     <div className="mkt-mini-kpis" aria-hidden="true">
@@ -141,6 +67,11 @@ export function MarketingLanding() {
             <Link href="/login" className="btn ghost" data-testid="landing-log-in">
               Log in
             </Link>
+          </div>
+          <div className="mkt-hero-fade" aria-hidden>
+            <span className="mkt-fade-tile mkt-fade-a" />
+            <span className="mkt-fade-tile mkt-fade-b" />
+            <span className="mkt-fade-tile mkt-fade-c" />
           </div>
         </section>
 
@@ -246,25 +177,15 @@ export function MarketingLanding() {
         </section>
 
         <section className="mkt-sheet" id="trust" aria-label="Trust">
-          <div className="mkt-gear" aria-hidden />
-          <h2>Sources you already have.</h2>
-          <p className="mkt-lede">
-            Upload MIS, board packs, and transcripts. Live connectors stay not connected until a health check.
-          </p>
-          <div className="mkt-tools">
-            {[
-              { name: "XLSX", body: "MIS packs" },
-              { name: "CSV", body: "Exports" },
-              { name: "PDF", body: "Board decks" },
-              { name: "Confirm", body: "Write-gate" },
-              { name: "Ask", body: "Cite or refuse" },
-            ].map((t, i) => (
-              <div key={t.name} className={`mkt-tool mkt-tool-${i}`}>
-                <strong>{t.name}</strong>
-                <span>{t.body}</span>
-              </div>
-            ))}
+          <div className="mkt-gear" aria-hidden>
+            <IconGears />
           </div>
+          <h2>Connect the sources you already use in seconds.</h2>
+          <p className="mkt-lede">
+            OneDrive, Affinity, and Granola are wired. Upload remains the fallback. Live tiles stay not connected
+            until a health check.
+          </p>
+          <ConnectorArc />
           <div className="mkt-clarity" data-testid="mkt-clarity">
             <article>
               <h3>Active companies</h3>
