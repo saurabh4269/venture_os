@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export function IconBulb() {
   return (
     <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -34,15 +36,60 @@ export function IconEyes() {
 }
 export function IconCheck() {
   return (
-    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" strokeWidth="2.4">
+    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="2.2">
       <circle cx="12" cy="12" r="8.2" />
       <path d="m8.4 12.2 2.4 2.4 4.8-5" />
     </svg>
   );
 }
+function LucideMark({ children }: { children: ReactNode }) {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {children}
+    </svg>
+  );
+}
+export function IconCite() {
+  return (
+    <LucideMark>
+      <path d="M10 13a5 5 0 0 0 7.54.54l1.92-1.92a5 5 0 0 0-7.07-7.07L11 6" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54L4.54 12.4a5 5 0 0 0 7.07 7.07L13 18" />
+    </LucideMark>
+  );
+}
+export function IconConfirm() {
+  return (
+    <LucideMark>
+      <path d="M20 6 9 17l-5-5" />
+    </LucideMark>
+  );
+}
+export function IconBook() {
+  return (
+    <LucideMark>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </LucideMark>
+  );
+}
+export function IconFlags() {
+  return (
+    <LucideMark>
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+      <line x1="4" x2="4" y1="22" y2="15" />
+    </LucideMark>
+  );
+}
+export function IconAsk() {
+  return (
+    <LucideMark>
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+    </LucideMark>
+  );
+}
 export function IconGears() {
   return (
-    <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="#ff5f4a" strokeWidth="1.7" aria-hidden>
+    <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
       <circle cx="12.2" cy="13.6" r="3.8" />
       <path d="M12.2 7.2v1.8M12.2 18.2v1.8M6.4 13.6h1.8M16.2 13.6h1.8M8 9.4l1.3 1.3M15.1 16.5l1.3 1.3M8 17.8l1.3-1.3M15.1 10.7l1.3-1.3" />
       <circle cx="20.4" cy="19.4" r="3.1" />
@@ -112,7 +159,7 @@ export function IconZoho({ size = 36 }: { size?: number }) {
         y="29"
         textAnchor="middle"
         fill="#fff"
-        fontFamily="var(--font-mkt), Inter, ui-sans-serif, sans-serif"
+        fontFamily="var(--font-mkt), ui-sans-serif, sans-serif"
         fontSize="13"
         fontWeight="700"
         letterSpacing="-0.04em"
