@@ -14,6 +14,7 @@ import {
 import { KpiSparkline } from "@/components/BookCharts";
 import { Fact, useBookSession } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
+import { BOOK_CHART } from "@/lib/chart-theme";
 import { bookFetcher } from "@/lib/book-data";
 import { bookErrorMessage } from "@/lib/wake";
 
@@ -335,7 +336,7 @@ export default function CompaniesPage() {
                         </td>
                         <td className="companies-spark">
                           {runwaySpark.has(c.id) ? (
-                            <KpiSparkline values={runwaySpark.get(c.id)!} height={28} />
+                            <KpiSparkline color={BOOK_CHART.mint} values={runwaySpark.get(c.id)!} height={28} />
                           ) : null}
                         </td>
                         <td>

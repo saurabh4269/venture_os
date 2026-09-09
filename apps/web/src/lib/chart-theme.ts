@@ -1,7 +1,7 @@
 /**
  * Book chart theme — Chart.js + ApexCharts.
- * Visual inspiration: image-references/Screenshot_2026-09-07_10_21_51.png
- * (Vestberry-style KPI sparklines, side-legend doughnuts, lime/teal palette).
+ * Palette: Dribbble data-viz shots (Fitonist / CashFlix / Huthy / social analytics)
+ * — violet, azure, coral, amber, mint. Not forest/lime.
  *
  * Libraries: https://www.chartjs.org/ · https://apexcharts.com/
  * Future charts: import helpers from here — do not invent ad-hoc colors or tooltip chrome.
@@ -9,18 +9,25 @@
 import type { ApexOptions } from "apexcharts";
 import type { ChartOptions, TooltipItem } from "chart.js";
 
-/** Vestberry-adjacent book palette (lime accent + deep teal). */
+/** Colorful series palette. Legacy keys stay as aliases so existing charts remap. */
 export const BOOK_CHART = {
-  forest: "#0f2e28",
-  forestSoft: "#3d6b5c",
-  lime: "#c5f547",
-  limeDeep: "#9ccc2e",
-  slate: "#c8d4ce",
-  warn: "#8a6a1a",
-  danger: "#b42318",
-  muted: "#5a6b64",
-  rule: "#d0dbd5",
-  ink: "#10221c",
+  violet: "#7C5CFF",
+  azure: "#2F80ED",
+  coral: "#FF6B4A",
+  amber: "#F5B942",
+  mint: "#22C55E",
+  magenta: "#E879F9",
+  forest: "#7C5CFF",
+  forestSoft: "#A78BFA",
+  lime: "#F5B942",
+  limeDeep: "#2F80ED",
+  slate: "#C4B5FD",
+  warn: "#F59E0B",
+  danger: "#F43F5E",
+  ok: "#22C55E",
+  muted: "#6b6b6b",
+  rule: "#e2e2e2",
+  ink: "#111111",
   paper: "#ffffff",
 } as const;
 
@@ -242,7 +249,7 @@ export function apexBarToolbar(reduceMotion: boolean): ApexOptions {
       type: "bar",
       animations: { enabled: !reduceMotion, speed: 450 },
     },
-    colors: [BOOK_CHART.forest],
+    colors: [BOOK_CHART.violet],
     grid: {
       borderColor: c.rule,
       strokeDashArray: 4,
@@ -255,18 +262,18 @@ export function apexBarToolbar(reduceMotion: boolean): ApexOptions {
 
 /** Distinct peer colors for compare (Apex distributed / Chart.js datasets). */
 export const PEER_PALETTE = [
-  BOOK_CHART.forest,
-  BOOK_CHART.limeDeep,
-  BOOK_CHART.forestSoft,
-  "#2a6f97",
-  "#bc6c25",
-  "#6d597a",
-  "#0077b6",
-  "#9b2226",
-  "#52796f",
-  "#b08968",
-  "#4a4e69",
-  "#40916c",
+  BOOK_CHART.violet,
+  BOOK_CHART.azure,
+  BOOK_CHART.coral,
+  BOOK_CHART.amber,
+  BOOK_CHART.mint,
+  BOOK_CHART.magenta,
+  "#06B6D4",
+  "#F472B6",
+  "#8B5CF6",
+  "#FB7185",
+  "#14B8A6",
+  "#F97316",
 ] as const;
 
 export function peerColor(i: number) {
@@ -348,8 +355,8 @@ export function apexBubbleBase(reduceMotion: boolean): ApexOptions {
   };
 }
 
-/** Vestberry-style KPI sparkline (Apex sparkline + lime fill). */
-export function apexSparkline(reduceMotion: boolean, color: string = String(BOOK_CHART.limeDeep)): ApexOptions {
+/** KPI sparkline — smooth area in the assigned series color. */
+export function apexSparkline(reduceMotion: boolean, color: string = String(BOOK_CHART.violet)): ApexOptions {
   return {
     chart: {
       type: "area",

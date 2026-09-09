@@ -18,6 +18,7 @@ import { AnimatedNumber } from "@/components/motion/AnimatedNumber";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { Fact, useBookSession } from "@/components/Shell";
 import { sourcePathFor } from "@/lib/api";
+import { BOOK_CHART } from "@/lib/chart-theme";
 import { bookFetcher } from "@/lib/book-data";
 import { bookErrorMessage } from "@/lib/wake";
 
@@ -341,7 +342,7 @@ export default function CommandPage() {
           })()}
 
           <div className="cards cards-6">
-            <div className="kpi">
+            <div className="kpi accent-forest">
               <div className="k">Companies</div>
               <div className="v">
                 <AnimatedNumber value={data.pulse.companies} />
@@ -384,10 +385,10 @@ export default function CommandPage() {
                     {!data.pulse.nav.nav.complete ? `Incomplete · ${data.pulse.nav.nav.missing} unmarked` : "As booked"}
                   </div>
                 </div>
-                <KpiSparkline values={(data.charts?.portfolioSeries ?? []).map((r) => r.cashSum)} />
+                <KpiSparkline color={BOOK_CHART.violet} values={(data.charts?.portfolioSeries ?? []).map((r) => r.cashSum)} />
               </Link>
             </div>
-            <div className="kpi kpi-with-spark" title="Multiple on invested capital from booked cost and NAV">
+            <div className="kpi kpi-with-spark accent-azure" title="Multiple on invested capital from booked cost and NAV">
               <div className="kpi-body">
                 <div className="k">MOIC</div>
                 <div className="v">{data.pulse.moic == null ? "" : `${data.pulse.moic.toFixed(2)}x`}</div>
@@ -396,7 +397,7 @@ export default function CommandPage() {
                   {uncited != null && uncited > 0 ? ` · ${uncited} uncited` : ""}
                 </div>
               </div>
-              <KpiSparkline values={(data.charts?.portfolioSeries ?? []).map((r) => r.revenueSum)} />
+              <KpiSparkline color={BOOK_CHART.azure} values={(data.charts?.portfolioSeries ?? []).map((r) => r.revenueSum)} />
             </div>
           </div>
 

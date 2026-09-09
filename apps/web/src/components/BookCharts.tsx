@@ -190,7 +190,7 @@ function withChartId(options: ApexOptions, chartId: string): ApexOptions {
   };
 }
 
-/** Apex sparkline for KPI cards (lime area, no axes). */
+/** Apex sparkline for KPI cards (colored area, no axes). */
 export function KpiSparkline({
   values,
   color,
@@ -203,7 +203,7 @@ export function KpiSparkline({
   const reduce = useReduceMotion();
   const seriesData = values.filter((v): v is number => v != null && Number.isFinite(v));
   if (seriesData.length < 2) return null;
-  const options = apexSparkline(reduce, color ?? BOOK_CHART.limeDeep);
+  const options = apexSparkline(reduce, color ?? BOOK_CHART.violet);
   return (
     <div className="kpi-spark" aria-hidden>
       <ThemedApex type="area" height={height} width="100%" options={options} series={[{ data: seriesData }]} />
@@ -226,9 +226,9 @@ export function CoverageMixChart({
   const slices = useMemo(
     () =>
       [
-        { name: "Booked", value: booked, color: BOOK_CHART.forest },
-        { name: "Gap", value: gap, color: BOOK_CHART.danger },
-        { name: "Review", value: review, color: BOOK_CHART.limeDeep },
+        { name: "Booked", value: booked, color: BOOK_CHART.violet },
+        { name: "Gap", value: gap, color: BOOK_CHART.coral },
+        { name: "Review", value: review, color: BOOK_CHART.azure },
       ].filter((d) => d.value > 0),
     [booked, gap, review],
   );
@@ -305,10 +305,12 @@ export function CashByCompanyChart({
   const options: ApexOptions = withChartId(
     {
       ...base,
+      colors: rows.map((_, i) => peerColor(i)),
       plotOptions: {
-        bar: { horizontal: true, borderRadius: 6, barHeight: "68%" },
+        bar: { horizontal: true, borderRadius: 6, barHeight: "68%", distributed: true },
       },
       dataLabels: { enabled: false },
+      legend: { show: false },
       xaxis: {
         categories: rows.map((r) => (r.name.length > 16 ? `${r.name.slice(0, 14)}…` : r.name)),
         labels: {
@@ -351,8 +353,8 @@ export function CashByCompanyChart({
 function runwayBarColor(months: number) {
   if (months < 3) return BOOK_CHART.danger;
   if (months < 6) return BOOK_CHART.warn;
-  if (months < 12) return "#6b8f3a";
-  return BOOK_CHART.forest;
+  if (months < 12) return BOOK_CHART.amber;
+  return BOOK_CHART.mint;
 }
 
 function runwayBand(months: number): "critical" | "short" | "watch" | "ok" {
@@ -566,7 +568,7 @@ export function PortfolioSeriesChart({
     {
       ...base,
       chart: { ...base.chart, type: "area" },
-      colors: [BOOK_CHART.forest, BOOK_CHART.limeDeep, BOOK_CHART.warn],
+      colors: [BOOK_CHART.violet, BOOK_CHART.azure, BOOK_CHART.coral],
       stroke: { curve: "smooth", width: [2.5, 2.5, 2] },
       fill: {
         type: ["gradient", "gradient", "solid"],
@@ -644,7 +646,7 @@ export function CompanyMetricHistoryChart({
     {
       ...base,
       chart: { ...base.chart, type: "area" },
-      colors: [BOOK_CHART.forest, BOOK_CHART.limeDeep, BOOK_CHART.warn],
+      colors: [BOOK_CHART.violet, BOOK_CHART.azure, BOOK_CHART.coral],
       stroke: { curve: "smooth", width: [2.5, 2.5, 2], dashArray: [0, 0, 5] },
       fill: {
         type: ["gradient", "gradient", "solid"],
@@ -704,7 +706,7 @@ export function FundRollupBars({
     {
       ...base,
       chart: { ...base.chart, type: "bar" },
-      colors: [BOOK_CHART.forest, BOOK_CHART.limeDeep, BOOK_CHART.slate],
+      colors: [BOOK_CHART.violet, BOOK_CHART.azure, BOOK_CHART.magenta],
       plotOptions: {
         bar: { borderRadius: 4, columnWidth: "55%" },
       },
@@ -770,15 +772,17 @@ export function ComparePeerBars({
   const options: ApexOptions = withChartId(
     {
       ...base,
-      colors: [BOOK_CHART.forest],
+      colors: sorted.map((_, i) => peerColor(i)),
       plotOptions: {
         bar: {
           horizontal: true,
           borderRadius: 6,
           barHeight: "68%",
+          distributed: true,
           dataLabels: { position: "top" },
         },
       },
+      legend: { show: false },
       dataLabels: {
         enabled: true,
         offsetX: 28,
@@ -1102,7 +1106,7 @@ export function NavPeriodAreaChart({
     {
       ...apexBookBase(reduce),
       chart: { ...apexBookBase(reduce).chart, type: "area", toolbar: { show: false } },
-      colors: [BOOK_CHART.forest],
+      colors: [BOOK_CHART.violet],
       stroke: { curve: "straight", width: 2 },
       fill: {
         type: "gradient",
@@ -1193,7 +1197,7 @@ export function NavBridgeChart({
     {
       ...apexBarToolbar(reduce),
       chart: { ...apexBarToolbar(reduce).chart, stacked: true, toolbar: { show: false } },
-      colors: ["transparent", BOOK_CHART.forest, BOOK_CHART.muted],
+      colors: ["transparent", BOOK_CHART.violet, BOOK_CHART.azure],
       legend: { show: false },
       plotOptions: { bar: { columnWidth: "52%", borderRadius: 3 } },
       xaxis: {
