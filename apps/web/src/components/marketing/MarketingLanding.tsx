@@ -1,36 +1,11 @@
-import Link from "next/link";
 import { LandingShell } from "./LandingChrome";
-
-function CommandFrame() {
-  return (
-    <div className="mkt-frame" aria-hidden="true">
-      <div className="mkt-frame-head">
-        <span>Command</span>
-        <span>Q3 &apos;24</span>
-      </div>
-      <div className="mkt-frame-kpis">
-        <div>
-          <div className="k">Active Cos</div>
-          <div className="v">42</div>
-        </div>
-        <div>
-          <div className="k">Needs Look</div>
-          <div className="v">7</div>
-        </div>
-        <div>
-          <div className="k">Coverage</div>
-          <div className="v"></div>
-        </div>
-      </div>
-      <div className="mkt-frame-rows">
-        <i style={{ width: "92%" }} />
-        <i style={{ width: "74%" }} />
-        <i style={{ width: "83%" }} />
-        <i style={{ width: "58%" }} />
-      </div>
-    </div>
-  );
-}
+import { ArcCarousel } from "./motion/ArcCarousel";
+import { BlurHeadline } from "./motion/BlurHeadline";
+import { HeroConstellation } from "./motion/HeroConstellation";
+import { MotionCta } from "./motion/MotionCta";
+import { RiseOnScroll } from "./motion/RiseOnScroll";
+import { RotatingHeroHeadline } from "./motion/RotatingHeroHeadline";
+import { TestimonialCarousel } from "./motion/TestimonialCarousel";
 
 function IcoCompanies() {
   return (
@@ -90,26 +65,61 @@ const PIPELINE = [
   { stage: 5, name: "Analysis", body: "Ask, reports, and compare. Book only." },
 ] as const;
 
+const FEATURE_CARDS = [
+  {
+    title: "Attendance-style coverage",
+    body: "Schematic Command view. Labels show gaps; we do not invent portfolio KPIs.",
+    tag: "Schematic",
+  },
+  {
+    title: "Real-time book state",
+    body: "Command reads confirmed rows only. Incomplete NAV says how many values are missing.",
+    tag: "Book only",
+  },
+  {
+    title: "Access cited insights",
+    body: "Ask and reports cite locators. Insufficient evidence returns a refusal.",
+    tag: "Cite or refuse",
+  },
+] as const;
+
 export function MarketingLanding() {
   return (
     <LandingShell>
       <main id="main">
-        <section className="mkt-hero">
+        <section className="mkt-hero mkt-hero-centered">
+          <HeroConstellation />
           <div className="mkt-hero-copy">
-            <h1>The book for the investment team.</h1>
+            <BlurHeadline as="h1" className="mkt-hero-title">
+              The book for the investment team.
+            </BlurHeadline>
             <p className="mkt-sub">Command, cite, and act on the truth of your portfolio.</p>
             <div className="mkt-hero-ctas">
-              <Link href="/signup" className="btn" data-testid="landing-get-started">
+              <MotionCta href="/signup" data-testid="landing-get-started">
                 Get started
-              </Link>
-              <Link href="/login" className="btn ghost" data-testid="landing-log-in">
+              </MotionCta>
+              <MotionCta href="/login" variant="ghost" data-testid="landing-log-in">
                 Log in
-              </Link>
+              </MotionCta>
             </div>
           </div>
-          <div className="mkt-hero-visual">
-            <CommandFrame />
-            <p className="mkt-schematic">Schematic of Command, not a live book.</p>
+        </section>
+
+        <section className="mkt-rise-section" aria-label="Product motion">
+          <RotatingHeroHeadline className="mkt-rise-headline" />
+          <p className="mkt-rise-sub">
+            Investment teams use Venture OS to standardize packs, confirm facts, and run rituals from one book.
+          </p>
+          <div className="mkt-rise-grid">
+            {FEATURE_CARDS.map((card, i) => (
+              <RiseOnScroll key={card.title} className="mkt-rise-card-wrap" delay={i * 0.08}>
+                <article className="mkt-rise-card">
+                  <span className="mkt-rise-tag">{card.tag}</span>
+                  <h3>{card.title}</h3>
+                  <p>{card.body}</p>
+                </article>
+              </RiseOnScroll>
+            ))}
           </div>
         </section>
 
@@ -133,83 +143,96 @@ export function MarketingLanding() {
 
         <section className="mkt-section" id="product">
           <p className="mkt-kicker">Product</p>
-          <h2>Uncompromising Clarity</h2>
+          <BlurHeadline scrollTrigger className="mkt-section-title">
+            Uncompromising Clarity
+          </BlurHeadline>
           <p className="lede mkt-lede">
             Command, Confirm, Flags, NAV, Compare, Ask, and Reports read only from confirmed facts. The parser
             proposes. A human confirms. Nothing auto-posts.
           </p>
           <div className="mkt-clarity" data-testid="mkt-clarity">
-            <article>
-              <div className="mkt-clarity-top">
-                <span className="mkt-clarity-ico">
-                  <IcoCompanies />
-                </span>
-                <h3>Active companies</h3>
-                <div className="v"></div>
-              </div>
-              <div className="mkt-clarity-status">
-                <span>Empty until you confirm a row</span>
-                <span className="mark">not zero</span>
-              </div>
-            </article>
-            <article>
-              <div className="mkt-clarity-top">
-                <span className="mkt-clarity-ico">
-                  <IcoFlags />
-                </span>
-                <h3>Open flags</h3>
-                <div className="v"></div>
-              </div>
-              <div className="mkt-clarity-status">
-                <span>No evidence, no flag</span>
-                <span className="mark warn">catalog only</span>
-              </div>
-            </article>
-            <article>
-              <div className="mkt-clarity-top">
-                <span className="mkt-clarity-ico">
-                  <IcoCoverage />
-                </span>
-                <h3>Coverage</h3>
-                <div className="v"></div>
-              </div>
-              <div className="mkt-clarity-status">
-                <span>Missing stays missing</span>
-                <span className="mark gap">gap</span>
-              </div>
-            </article>
+            <RiseOnScroll delay={0}>
+              <article>
+                <div className="mkt-clarity-top">
+                  <span className="mkt-clarity-ico">
+                    <IcoCompanies />
+                  </span>
+                  <h3>Active companies</h3>
+                  <div className="v"></div>
+                </div>
+                <div className="mkt-clarity-status">
+                  <span>Empty until you confirm a row</span>
+                  <span className="mark">not zero</span>
+                </div>
+              </article>
+            </RiseOnScroll>
+            <RiseOnScroll delay={0.06}>
+              <article>
+                <div className="mkt-clarity-top">
+                  <span className="mkt-clarity-ico">
+                    <IcoFlags />
+                  </span>
+                  <h3>Open flags</h3>
+                  <div className="v"></div>
+                </div>
+                <div className="mkt-clarity-status">
+                  <span>No evidence, no flag</span>
+                  <span className="mark warn">catalog only</span>
+                </div>
+              </article>
+            </RiseOnScroll>
+            <RiseOnScroll delay={0.12}>
+              <article>
+                <div className="mkt-clarity-top">
+                  <span className="mkt-clarity-ico">
+                    <IcoCoverage />
+                  </span>
+                  <h3>Coverage</h3>
+                  <div className="v"></div>
+                </div>
+                <div className="mkt-clarity-status">
+                  <span>Missing stays missing</span>
+                  <span className="mark gap">gap</span>
+                </div>
+              </article>
+            </RiseOnScroll>
           </div>
           <div className="mkt-cards">
-            <article>
-              <h3>Command</h3>
-              <p>Fund pulse from booked names. Coverage gaps stay visible. Incomplete NAV says how many values are missing.</p>
-            </article>
-            <article>
-              <h3>Inbox</h3>
-              <p>Extracts wait here. Confirm, edit units, or reject. A row is not a fact until you say so.</p>
-            </article>
-            <article>
-              <h3>Cite or refuse</h3>
-              <p>Ask searches the book. Insufficient evidence returns a refusal, not an estimate.</p>
-            </article>
-            <article>
-              <h3>Dual commentary</h3>
-              <p>Objective from MIS. Subjective from calls and judgement. The lanes stay separate.</p>
-            </article>
-            <article>
-              <h3>Flags</h3>
-              <p>Catalog detectors with evidence. No evidence, no flag. Mute and snooze survive recompute.</p>
-            </article>
-            <article>
-              <h3>NAV</h3>
-              <p>Marks, roll-up, and period lock. Unofficial until locked. We do not invent an investment date.</p>
-            </article>
+            {[
+              ["Command", "Fund pulse from booked names. Coverage gaps stay visible. Incomplete NAV says how many values are missing."],
+              ["Inbox", "Extracts wait here. Confirm, edit units, or reject. A row is not a fact until you say so."],
+              ["Cite or refuse", "Ask searches the book. Insufficient evidence returns a refusal, not an estimate."],
+              ["Dual commentary", "Objective from MIS. Subjective from calls and judgement. The lanes stay separate."],
+              ["Flags", "Catalog detectors with evidence. No evidence, no flag. Mute and snooze survive recompute."],
+              ["NAV", "Marks, roll-up, and period lock. Unofficial until locked. We do not invent an investment date."],
+            ].map(([title, body], i) => (
+              <RiseOnScroll key={title} delay={i * 0.05}>
+                <article>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </article>
+              </RiseOnScroll>
+            ))}
           </div>
+        </section>
+
+        <section className="mkt-section mkt-sources-section" id="sources">
+          <p className="mkt-kicker">Sources</p>
+          <BlurHeadline scrollTrigger className="mkt-section-title">
+            Connect packs to the book
+          </BlurHeadline>
+          <p className="lede mkt-lede mkt-sources-lede">
+            Upload MIS today. Live Affinity, Graph, and Granola connectors stay honest until operator secrets and
+            health checks pass.
+          </p>
+          <ArcCarousel />
         </section>
 
         <section className="mkt-section" id="approach">
           <p className="mkt-kicker">Approach</p>
-          <h2>The Citation Engine</h2>
+          <BlurHeadline scrollTrigger className="mkt-section-title">
+            The Citation Engine
+          </BlurHeadline>
           <ol className="mkt-pipeline" aria-label="Book pipeline" data-testid="mkt-pipeline">
             {PIPELINE.map((s) => (
               <li key={s.stage} data-stage={s.stage}>
@@ -226,7 +249,9 @@ export function MarketingLanding() {
 
         <section className="mkt-section" id="how">
           <p className="mkt-kicker">How partners use it</p>
-          <h2>Three steps to a live row.</h2>
+          <BlurHeadline scrollTrigger className="mkt-section-title">
+            Three steps to a live row.
+          </BlurHeadline>
           <ol className="mkt-steps">
             <li>
               <span className="mkt-step-ico">
@@ -252,12 +277,22 @@ export function MarketingLanding() {
           </ol>
         </section>
 
+        <section className="mkt-section mkt-quotes-section" id="quotes" aria-label="Methodology quotes">
+          <p className="mkt-kicker">Methodology</p>
+          <BlurHeadline scrollTrigger className="mkt-section-title">
+            Words of clarity
+          </BlurHeadline>
+          <p className="lede mkt-lede">Principles from the book workflow. Not customer satisfaction scores.</p>
+          <TestimonialCarousel />
+        </section>
+
         <section className="mkt-section mkt-partner" id="partners">
-          <p className="mkt-kicker">Empty book</p>
-          <h2>A new organisation starts empty.</h2>
+          <p className="mkt-kicker">Design partner</p>
+          <h2>Built with design partner V3 Ventures</h2>
           <p className="lede mkt-lede">
-            We do not publish customer logos or invent portfolio figures for marketing. Command stays blank until
-            your firm confirms its first pack.
+            We co-build rituals and standardization with a design partner. We do not publish customer logos or invent
+            portfolio figures for marketing. A new organisation still starts with an empty book until your firm
+            confirms its first pack.
           </p>
         </section>
 
@@ -269,12 +304,8 @@ export function MarketingLanding() {
             will discuss whether the book fits your firm, with an empty book until you confirm facts.
           </p>
           <div className="mkt-hero-ctas">
-            <Link href="/signup" className="btn">
-              Get started
-            </Link>
-            <Link href="/login" className="btn ghost">
-              Log in
-            </Link>
+            <MotionCta href="/signup">Get started</MotionCta>
+            <MotionCta href="/login" variant="ghost">Log in</MotionCta>
           </div>
         </section>
 
@@ -283,12 +314,12 @@ export function MarketingLanding() {
             <h2>Ready for institutional clarity?</h2>
             <p>The organisation starts empty. We will not seed illustrative NAV.</p>
             <div className="mkt-hero-ctas">
-              <Link href="/signup" className="btn mkt-final-btn">
+              <MotionCta href="/signup" className="mkt-final-btn">
                 Get started
-              </Link>
-              <Link href="/login" className="btn mkt-final-ghost">
+              </MotionCta>
+              <MotionCta href="/login" variant="ghost" className="mkt-final-ghost">
                 Log in
-              </Link>
+              </MotionCta>
             </div>
           </div>
         </section>
