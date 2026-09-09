@@ -1826,7 +1826,7 @@ button { cursor: pointer; }
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 35%, var(--rule));
 }
-tr.parse-stalled td { background: color-mix(in srgb, var(--danger) 6%, transparent); }
+tr.parse-stalled td { background: transparent; }
 .lede { color: var(--muted); max-width: 52rem; margin: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -2386,15 +2386,9 @@ button.kpi.kpi-btn {
   margin: -4px 0 16px;
 }
 
-.table-hover tbody tr.row-gap {
-  background: color-mix(in srgb, var(--danger-soft) 55%, transparent);
-}
+.table-hover tbody tr.row-gap,
 .table-hover tbody tr.row-flag {
-  background: color-mix(in srgb, var(--warn-soft) 50%, transparent);
-}
-.table-hover tbody tr.row-gap:hover,
-.table-hover tbody tr.row-flag:hover {
-  background: color-mix(in srgb, var(--forest-soft) 45%, transparent);
+  background: transparent;
 }
 .cell-tint {
   display: inline;
@@ -2579,17 +2573,7 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .table-scroll td:first-child { background: var(--chip); }
 .table-scroll th:first-child { background: var(--paper-2); }
 .table-hover tbody tr:hover td:first-child {
-  background: color-mix(in srgb, var(--forest-soft) 55%, var(--chip));
-}
-.table-hover tbody tr.row-gap td:first-child {
-  background: color-mix(in srgb, var(--danger-soft) 55%, var(--chip));
-}
-.table-hover tbody tr.row-flag td:first-child {
-  background: color-mix(in srgb, var(--warn-soft) 50%, var(--chip));
-}
-.table-hover tbody tr.row-gap:hover td:first-child,
-.table-hover tbody tr.row-flag:hover td:first-child {
-  background: color-mix(in srgb, var(--forest-soft) 45%, var(--chip));
+  background: var(--paper-2);
 }
 th {
   text-align: left;
@@ -2603,7 +2587,7 @@ th {
   background: var(--paper-2);
 }
 td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-tbody tr:hover td { background: color-mix(in srgb, var(--forest-soft) 70%, transparent); }
+tbody tr:hover td { background: var(--paper-2); }
 tbody tr.is-on td { background: var(--paper-2); }
 tr:last-child td { border-bottom: 0; }
 td.miss, .miss { color: var(--danger); }
@@ -4908,7 +4892,7 @@ button.context-card-btn:focus-visible {
   transition: background 120ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 .table-hover tbody tr:hover {
-  background: color-mix(in srgb, var(--forest-soft) 55%, transparent);
+  background: var(--paper-2);
 }
 tbody tr.cite-row {
   cursor: pointer;
