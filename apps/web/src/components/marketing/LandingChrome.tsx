@@ -102,7 +102,7 @@ export function LandingFooter() {
           </div>
           <div>
             <strong>Resources</strong>
-            <a href="/#trust">Methodology</a>
+            <a href="/#trust">Trust</a>
             <Link href="/security">Security</Link>
             <Link href="/login">Log in</Link>
           </div>

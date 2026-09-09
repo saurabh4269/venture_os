@@ -1,8 +1,10 @@
-import Link from "next/link";
 import { ConnectorArc } from "./ConnectorArc";
-import { HeroConstellation } from "./HeroConstellation";
 import { LandingShell } from "./LandingChrome";
 import { IconGears, IconShield } from "./MarketingIcons";
+import { LandingHeroSequence } from "./motion/LandingHeroSequence";
+import { MotionCta } from "./motion/MotionCta";
+import { RiseOnScroll } from "./motion/RiseOnScroll";
+import { TestimonialCarousel } from "./motion/TestimonialCarousel";
 
 const FEATURES = [
   {
@@ -56,24 +58,7 @@ export function MarketingLanding() {
   return (
     <LandingShell>
       <main id="main">
-        <section className="mkt-hero">
-          <HeroConstellation />
-          <h1>The book for the investment team.</h1>
-          <p className="mkt-sub">Command, cite, and act on the truth of your portfolio.</p>
-          <div className="mkt-hero-ctas">
-            <Link href="/signup" className="btn mkt-coral" data-testid="landing-get-started">
-              Get started
-            </Link>
-            <Link href="/login" className="btn ghost" data-testid="landing-log-in">
-              Log in
-            </Link>
-          </div>
-          <div className="mkt-hero-fade" aria-hidden>
-            <span className="mkt-fade-tile mkt-fade-a" />
-            <span className="mkt-fade-tile mkt-fade-b" />
-            <span className="mkt-fade-tile mkt-fade-c" />
-          </div>
-        </section>
+        <LandingHeroSequence />
 
         <section className="mkt-sheet" id="product" aria-labelledby="product-heading">
           <p className="mkt-kicker">Product</p>
@@ -83,40 +68,46 @@ export function MarketingLanding() {
             proposes. A human confirms.
           </p>
           <div className="mkt-audience">
-            <article>
-              <div className="mkt-audience-art mkt-art-bars" aria-hidden>
-                <span className="mkt-art-chip">not zero</span>
-                <div className="mkt-art-bars-row">
-                  <b />
-                  <b />
-                  <b />
-                  <b />
+            <RiseOnScroll delay={0}>
+              <article>
+                <div className="mkt-audience-art mkt-art-bars" aria-hidden>
+                  <span className="mkt-art-chip">not zero</span>
+                  <div className="mkt-art-bars-row">
+                    <b />
+                    <b />
+                    <b />
+                    <b />
+                  </div>
                 </div>
-              </div>
-              <h3>For the investment team</h3>
-              <p>One book. Coverage stays visible. Missing stays blank.</p>
-            </article>
-            <article>
-              <div className="mkt-audience-art mkt-art-ring" aria-hidden>
-                <i />
-                <i />
-                <i />
-                <span className="mkt-art-pill">Cite or refuse</span>
-              </div>
-              <h3>For partners</h3>
-              <p>Ask searches the book. No evidence returns a refusal, not an estimate.</p>
-            </article>
-            <article>
-              <div className="mkt-audience-art mkt-art-shield" aria-hidden>
-                <em />
-                <em />
-                <span className="mkt-shield-tile">
-                  <IconShield />
-                </span>
-              </div>
-              <h3>For operators</h3>
-              <p>Confirm is the write-gate. Nothing auto-posts unless you set a threshold.</p>
-            </article>
+                <h3>For the investment team</h3>
+                <p>One book. Coverage stays visible. Missing stays blank.</p>
+              </article>
+            </RiseOnScroll>
+            <RiseOnScroll delay={0.06}>
+              <article>
+                <div className="mkt-audience-art mkt-art-ring" aria-hidden>
+                  <i />
+                  <i />
+                  <i />
+                  <span className="mkt-art-pill">Cite or refuse</span>
+                </div>
+                <h3>For partners</h3>
+                <p>Ask searches the book. No evidence returns a refusal, not an estimate.</p>
+              </article>
+            </RiseOnScroll>
+            <RiseOnScroll delay={0.12}>
+              <article>
+                <div className="mkt-audience-art mkt-art-shield" aria-hidden>
+                  <em />
+                  <em />
+                  <span className="mkt-shield-tile">
+                    <IconShield />
+                  </span>
+                </div>
+                <h3>For operators</h3>
+                <p>Confirm is the write-gate. Nothing auto-posts unless you set a threshold.</p>
+              </article>
+            </RiseOnScroll>
           </div>
           <div className="mkt-wide">
             <article>
@@ -142,11 +133,13 @@ export function MarketingLanding() {
           <h2>Built around the book.</h2>
           <div className="mkt-bento">
             {FEATURES.map((card, i) => (
-              <article key={card.name}>
-                <span className="mkt-feat-num">{String(i + 1).padStart(2, "0")}</span>
-                <h3>{card.name}</h3>
-                <p>{card.body}</p>
-              </article>
+              <RiseOnScroll key={card.name} delay={i * 0.04}>
+                <article>
+                  <span className="mkt-feat-num">{String(i + 1).padStart(2, "0")}</span>
+                  <h3>{card.name}</h3>
+                  <p>{card.body}</p>
+                </article>
+              </RiseOnScroll>
             ))}
           </div>
         </section>
@@ -229,6 +222,13 @@ export function MarketingLanding() {
           </div>
         </section>
 
+        <section className="mkt-section mkt-quotes-section" id="quotes" aria-label="Methodology quotes">
+          <p className="mkt-kicker">Methodology</p>
+          <h2>Words of clarity</h2>
+          <p className="mkt-lede">Principles from the book workflow. Not customer satisfaction scores.</p>
+          <TestimonialCarousel />
+        </section>
+
         <section className="mkt-section mkt-pricing" id="pricing">
           <p className="mkt-kicker">Pricing</p>
           <h2>Talk to us. No public price list.</h2>
@@ -237,12 +237,10 @@ export function MarketingLanding() {
             will discuss whether the book fits your firm.
           </p>
           <div className="mkt-hero-ctas">
-            <Link href="/signup" className="btn mkt-coral">
-              Get started
-            </Link>
-            <Link href="/login" className="btn ghost">
+            <MotionCta href="/signup">Get started</MotionCta>
+            <MotionCta href="/login" variant="ghost">
               Log in
-            </Link>
+            </MotionCta>
           </div>
         </section>
 
@@ -251,12 +249,10 @@ export function MarketingLanding() {
             <h2>Ready for institutional clarity?</h2>
             <p>The organisation starts empty. We will not seed illustrative NAV.</p>
             <div className="mkt-hero-ctas">
-              <Link href="/signup" className="btn mkt-coral">
-                Get started
-              </Link>
-              <Link href="/login" className="btn ghost">
+              <MotionCta href="/signup">Get started</MotionCta>
+              <MotionCta href="/login" variant="ghost">
                 Log in
-              </Link>
+              </MotionCta>
             </div>
           </div>
         </section>

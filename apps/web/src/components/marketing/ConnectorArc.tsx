@@ -97,6 +97,7 @@ export function ConnectorArc() {
           const rel = wrapRel(i - offset);
           const bob = reduceRef.current ? 0 : Math.sin(clock / 540 + i * 1.2) * 4;
           const p = pose(rel, bob);
+          const dist = Math.abs(rel);
           const on = i === active;
           return (
             <button
@@ -112,6 +113,7 @@ export function ConnectorArc() {
                 transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rotate}deg) scale(${p.scale})`,
                 opacity: p.opacity,
                 zIndex: p.z,
+                filter: reduceRef.current || dist < 0.28 ? "none" : `blur(${Math.min(dist, 2) * 1.2}px)`,
               }}
               onClick={() => setActive(i)}
               onFocus={() => {
