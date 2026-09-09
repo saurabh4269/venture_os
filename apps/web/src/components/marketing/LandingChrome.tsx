@@ -6,10 +6,21 @@ import { useState, type ReactNode } from "react";
 
 const NAV = [
   { href: "/#product", label: "Product" },
-  { href: "/#approach", label: "Approach" },
+  { href: "/#features", label: "Features" },
   { href: "/#pricing", label: "Pricing" },
-  { href: "/#partners", label: "Case Studies" },
+  { href: "/#approach", label: "Resources" },
 ] as const;
+
+function LogoMark() {
+  return (
+    <span className="mkt-logo-mark" aria-hidden>
+      <svg viewBox="0 0 24 24" width="18" height="18">
+        <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" strokeWidth="3.2" strokeDasharray="40 12" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+      </svg>
+    </span>
+  );
+}
 
 export function LandingHeader() {
   const [open, setOpen] = useState(false);
@@ -17,9 +28,7 @@ export function LandingHeader() {
     <header className="mkt-header">
       <div className="mkt-header-inner">
         <Link href="/" className="mkt-logo">
-          <span className="mkt-logo-mark" aria-hidden>
-            V
-          </span>
+          <LogoMark />
           Venture OS
         </Link>
         <nav className="mkt-nav" aria-label="Marketing">
@@ -70,11 +79,41 @@ export function LandingHeader() {
 export function LandingFooter() {
   return (
     <footer className="mkt-footer">
+      <div className="mkt-footer-sheet">
+        <div className="mkt-footer-grid">
+          <p className="mkt-footer-tag">
+            Venture OS is the book for the investment team — cite or refuse, all in one place.
+          </p>
+          <div>
+            <strong>Product</strong>
+            <a href="/#product">Command</a>
+            <a href="/#features">Confirm</a>
+            <a href="/#approach">Ask</a>
+          </div>
+          <div>
+            <strong>Features</strong>
+            <a href="/#features">Flags</a>
+            <a href="/#approach">Citation</a>
+            <a href="/#trust">Coverage</a>
+          </div>
+          <div>
+            <strong>Pricing</strong>
+            <a href="/#pricing">Talk to us</a>
+          </div>
+          <div>
+            <strong>Resources</strong>
+            <a href="/#trust">Methodology</a>
+            <Link href="/security">Security</Link>
+            <Link href="/login">Log in</Link>
+          </div>
+        </div>
+        <p className="mkt-footer-blur" aria-hidden>
+          Venture OS
+        </p>
+      </div>
       <div className="mkt-footer-inner">
         <Link href="/" className="mkt-logo">
-          <span className="mkt-logo-mark" aria-hidden>
-            V
-          </span>
+          <LogoMark />
           Venture OS
         </Link>
         <p className="mkt-copy">© 2026 Venture OS. Institutional portfolio management.</p>

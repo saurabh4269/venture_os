@@ -36,53 +36,92 @@ const PIPELINE = [
   { stage: 5, name: "Analysis", body: "Ask, reports, and compare. Book only." },
 ] as const;
 
-function CommandStage() {
+function IconBulb() {
   return (
-    <div className="mkt-dash" aria-hidden="true">
-      <aside className="mkt-dash-rail">
-        <span className="mkt-dash-logo">V</span>
-        <ul>
-          <li className="on">Command</li>
-          <li>Flags</li>
-          <li>NAV</li>
-          <li>Compare</li>
-        </ul>
-      </aside>
-      <div className="mkt-dash-main">
-        <div className="mkt-dash-top">
-          <span>Command</span>
-          <span>New organisation</span>
-        </div>
-        <div className="mkt-dash-kpis">
-          {["Active companies", "Open flags", "Coverage"].map((label) => (
-            <div key={label}>
-              <div className="k">{label}</div>
-              <div className="v" />
-            </div>
-          ))}
-        </div>
-        <div className="mkt-dash-panels">
-          <div className="mkt-dash-panel">
-            <div className="mkt-dash-lab">
-              <span>Runway</span>
-              <span>Missing</span>
-            </div>
-            <i className="mkt-dash-bar" style={{ width: "32%" }} />
-            <div className="mkt-dash-lab muted">
-              <span>Cash</span>
-              <span>Missing</span>
-            </div>
-            <i className="mkt-dash-bar faint" style={{ width: "54%" }} />
-          </div>
-          <aside className="mkt-dash-panel">
-            <div className="mkt-dash-lab">
-              <span>Needs a look</span>
-              <span className="ok">Clear</span>
-            </div>
-            <p>Clear.</p>
-          </aside>
-        </div>
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.7h5.4c.1-.7.4-1.3.9-1.7A6 6 0 0 0 12 3z" />
+    </svg>
+  );
+}
+function IconBalloon() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
+      <ellipse cx="12" cy="10" rx="6" ry="7.2" />
+      <path d="M12 17c0 2-1.2 4.5-1.2 5.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+function IconShield() {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M12 3 5 6v6c0 4.2 2.8 7 7 8.4C16.2 19 19 16.2 19 12V6l-7-3z" />
+      <path d="M12 8v5M10.2 14.2 12 16l3.2-3.4" />
+    </svg>
+  );
+}
+function IconEyes() {
+  return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+      <ellipse cx="8" cy="12" rx="3.4" ry="4" />
+      <ellipse cx="16" cy="12" rx="3.4" ry="4" />
+      <circle cx="8.6" cy="12.4" r="1.2" fill="#111" />
+      <circle cx="16.6" cy="12.4" r="1.2" fill="#111" />
+    </svg>
+  );
+}
+function IconCheck() {
+  return (
+    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#fff" strokeWidth="2.4">
+      <circle cx="12" cy="12" r="8.2" />
+      <path d="m8.4 12.2 2.4 2.4 4.8-5" />
+    </svg>
+  );
+}
+
+function HeroConstellation() {
+  return (
+    <div className="mkt-constellation" aria-hidden="true">
+      <svg className="mkt-constellation-lines" viewBox="0 0 900 420" preserveAspectRatio="xMidYMid meet">
+        <path d="M450 190 L220 90 L140 180 L220 280 L360 310" />
+        <path d="M450 190 L680 80 L790 160 L700 270 L540 320" />
+        <circle cx="220" cy="90" r="4" />
+        <circle cx="140" cy="180" r="4" />
+        <circle cx="220" cy="280" r="4" />
+        <circle cx="680" cy="80" r="4" />
+        <circle cx="790" cy="160" r="4" />
+        <circle cx="700" cy="270" r="4" />
+      </svg>
+      <div className="mkt-node mkt-node-hub">
+        <IconCheck />
       </div>
+      <div className="mkt-node mkt-node-bulb">
+        <IconBulb />
+      </div>
+      <div className="mkt-node mkt-node-balloon">
+        <IconBalloon />
+      </div>
+      <div className="mkt-node mkt-node-shield">
+        <IconShield />
+      </div>
+      <div className="mkt-node mkt-node-eyes">
+        <IconEyes />
+      </div>
+      <div className="mkt-node mkt-node-face mkt-node-face-a">V</div>
+      <div className="mkt-node mkt-node-face mkt-node-face-b">O</div>
+    </div>
+  );
+}
+
+function EmptyKpis() {
+  return (
+    <div className="mkt-mini-kpis" aria-hidden="true">
+      {["Active companies", "Open flags", "Coverage"].map((label) => (
+        <div key={label}>
+          <span>{label}</span>
+          <i />
+        </div>
+      ))}
     </div>
   );
 }
@@ -92,39 +131,140 @@ export function MarketingLanding() {
     <LandingShell>
       <main id="main">
         <section className="mkt-hero">
-          <p className="mkt-eyebrow">The portfolio operating system</p>
-          <h1>
-            The book for the <em>investment team.</em>
-          </h1>
+          <HeroConstellation />
+          <h1>The book for the investment team.</h1>
           <p className="mkt-sub">Command, cite, and act on the truth of your portfolio.</p>
           <div className="mkt-hero-ctas">
-            <Link href="/signup" className="btn" data-testid="landing-get-started">
+            <Link href="/signup" className="btn mkt-coral" data-testid="landing-get-started">
               Get started
             </Link>
             <Link href="/login" className="btn ghost" data-testid="landing-log-in">
               Log in
             </Link>
           </div>
-          <div className="mkt-trust-pills" aria-label="Principles">
-            <span>Cite or refuse</span>
-            <span>Missing stays blank</span>
-            <span>AES vault</span>
+        </section>
+
+        <section className="mkt-sheet" id="product" aria-labelledby="product-heading">
+          <p className="mkt-kicker">Product</p>
+          <h2 id="product-heading">Uncompromising Clarity</h2>
+          <p className="mkt-lede">
+            Command, Confirm, Flags, NAV, Compare, Ask, and Reports read only from confirmed facts. The parser
+            proposes. A human confirms.
+          </p>
+          <div className="mkt-audience">
+            <article>
+              <div className="mkt-audience-art mkt-art-bars" aria-hidden>
+                <b />
+                <b />
+                <b />
+                <b />
+              </div>
+              <h3>For the investment team</h3>
+              <p>One book. Coverage stays visible. Missing stays blank.</p>
+            </article>
+            <article>
+              <div className="mkt-audience-art mkt-art-ring" aria-hidden>
+                <span>Cite or refuse</span>
+              </div>
+              <h3>For partners</h3>
+              <p>Ask searches the book. No evidence returns a refusal, not an estimate.</p>
+            </article>
+            <article>
+              <div className="mkt-audience-art mkt-art-shield" aria-hidden>
+                <IconShield />
+              </div>
+              <h3>For operators</h3>
+              <p>Confirm is the write-gate. Nothing auto-posts unless you set a threshold.</p>
+            </article>
+          </div>
+          <div className="mkt-wide">
+            <article>
+              <h3>Active companies</h3>
+              <p>Empty until you confirm a row. Not zero.</p>
+              <EmptyKpis />
+            </article>
+            <article>
+              <h3>Needs a look</h3>
+              <p>No evidence, no flag. Catalog only.</p>
+              <p className="mkt-wide-clear">Clear.</p>
+            </article>
           </div>
         </section>
 
-        <section className="mkt-product-stage" id="product" aria-labelledby="product-heading">
-          <div className="mkt-stage-copy">
-            <p className="mkt-eyebrow">One source of truth</p>
-            <h2 id="product-heading">
-              Uncompromising <em>Clarity</em>
-            </h2>
+        <section className="mkt-section" id="features">
+          <p className="mkt-kicker">Features</p>
+          <h2>Built around the book.</h2>
+          <div className="mkt-bento">
+            {FEATURES.map((card, i) => (
+              <article key={card.name}>
+                <span className="mkt-feat-num">{String(i + 1).padStart(2, "0")}</span>
+                <h3>{card.name}</h3>
+                <p>{card.body}</p>
+              </article>
+            ))}
           </div>
-          <CommandStage />
-          <p className="mkt-schematic">Schematic of Command, not a live book.</p>
         </section>
 
-        <section className="mkt-section" id="trust" aria-label="Trust">
-          <p className="mkt-kicker">Trust</p>
+        <section className="mkt-section" id="approach">
+          <p className="mkt-kicker">Resources</p>
+          <h2>The Citation Engine</h2>
+          <ol className="mkt-pipeline" aria-label="Book pipeline" data-testid="mkt-pipeline">
+            {PIPELINE.map((s) => (
+              <li key={s.stage} data-stage={s.stage}>
+                <span className="mkt-pipe-dot" aria-hidden />
+                <div className="mkt-pipe-body">
+                  <span className="mkt-stage-num">{String(s.stage).padStart(2, "0")}</span>
+                  <span className="mkt-stage">Stage {s.stage}</span>
+                  <span className="mkt-stage-name">{s.name}</span>
+                  {s.body}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="mkt-section" id="how">
+          <p className="mkt-kicker">How it is used</p>
+          <h2>Three steps to a live row.</h2>
+          <ol className="mkt-steps">
+            <li>
+              <span className="mkt-step-num">01</span>
+              <strong>1. Cite</strong>
+              <p>Every figure needs a source document and locator. Missing stays blank.</p>
+            </li>
+            <li>
+              <span className="mkt-step-num">02</span>
+              <strong>2. Verify</strong>
+              <p>Confirm the queue. Resolve units. Check flags against evidence.</p>
+            </li>
+            <li>
+              <span className="mkt-step-num">03</span>
+              <strong>3. Report</strong>
+              <p>Command, Flags, NAV, Ask, and Reports use only what you confirmed.</p>
+            </li>
+          </ol>
+        </section>
+
+        <section className="mkt-sheet" id="trust" aria-label="Trust">
+          <div className="mkt-gear" aria-hidden />
+          <h2>Sources you already have.</h2>
+          <p className="mkt-lede">
+            Upload MIS, board packs, and transcripts. Live connectors stay not connected until a health check.
+          </p>
+          <div className="mkt-tools">
+            {[
+              { name: "XLSX", body: "MIS packs" },
+              { name: "CSV", body: "Exports" },
+              { name: "PDF", body: "Board decks" },
+              { name: "Confirm", body: "Write-gate" },
+              { name: "Ask", body: "Cite or refuse" },
+            ].map((t, i) => (
+              <div key={t.name} className={`mkt-tool mkt-tool-${i}`}>
+                <strong>{t.name}</strong>
+                <span>{t.body}</span>
+              </div>
+            ))}
+          </div>
           <div className="mkt-clarity" data-testid="mkt-clarity">
             <article>
               <h3>Active companies</h3>
@@ -151,77 +291,17 @@ export function MarketingLanding() {
               </div>
             </article>
           </div>
-          <div className="mkt-bento">
-            {FEATURES.map((card, i) => (
-              <article key={card.name} className={i === 0 || i === 5 ? "is-ink" : undefined}>
-                <span className="mkt-feat-num">{String(i + 1).padStart(2, "0")}</span>
-                <h3>{card.name}</h3>
-                <p>{card.body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="mkt-section" id="approach">
-          <p className="mkt-kicker">Approach</p>
-          <h2>
-            The Citation <em>Engine</em>
-          </h2>
-          <ol className="mkt-pipeline" aria-label="Book pipeline" data-testid="mkt-pipeline">
-            {PIPELINE.map((s) => (
-              <li key={s.stage} data-stage={s.stage}>
-                <span className="mkt-pipe-dot" aria-hidden />
-                <div className="mkt-pipe-body">
-                  <span className="mkt-stage-num">{String(s.stage).padStart(2, "0")}</span>
-                  <span className="mkt-stage">Stage {s.stage}</span>
-                  <span className="mkt-stage-name">{s.name}</span>
-                  {s.body}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="mkt-section" id="how">
-          <p className="mkt-kicker">How partners use it</p>
-          <h2>Three steps to a live row.</h2>
-          <ol className="mkt-steps">
-            <li>
-              <span className="mkt-step-num">01</span>
-              <strong>1. Cite</strong>
-              <p>Every figure needs a source document and locator. We extract and link the page or cell. Missing stays blank.</p>
-            </li>
-            <li>
-              <span className="mkt-step-num">02</span>
-              <strong>2. Verify</strong>
-              <p>Confirm the queue. Resolve units. Check flags against evidence. Corrections survive a re-parse.</p>
-            </li>
-            <li>
-              <span className="mkt-step-num">03</span>
-              <strong>3. Report</strong>
-              <p>Command, Flags, NAV, Ask, and Reports use only what you confirmed. Empty is empty.</p>
-            </li>
-          </ol>
-        </section>
-
-        <section className="mkt-section mkt-partner" id="partners">
-          <p className="mkt-kicker">Empty book</p>
-          <h2>A new organisation starts empty.</h2>
-          <p className="lede mkt-lede">
-            We do not publish customer logos or invent portfolio figures for marketing. Command stays blank until
-            your firm confirms its first pack.
-          </p>
         </section>
 
         <section className="mkt-section mkt-pricing" id="pricing">
           <p className="mkt-kicker">Pricing</p>
           <h2>Talk to us. No public price list.</h2>
-          <p className="lede mkt-lede">
+          <p className="mkt-lede">
             Venture OS is with design partners first. We will not invent a seat price here. Get started and we
-            will discuss whether the book fits your firm, with an empty book until you confirm facts.
+            will discuss whether the book fits your firm.
           </p>
           <div className="mkt-hero-ctas">
-            <Link href="/signup" className="btn">
+            <Link href="/signup" className="btn mkt-coral">
               Get started
             </Link>
             <Link href="/login" className="btn ghost">
@@ -235,10 +315,10 @@ export function MarketingLanding() {
             <h2>Ready for institutional clarity?</h2>
             <p>The organisation starts empty. We will not seed illustrative NAV.</p>
             <div className="mkt-hero-ctas">
-              <Link href="/signup" className="btn mkt-final-btn">
+              <Link href="/signup" className="btn mkt-coral">
                 Get started
               </Link>
-              <Link href="/login" className="btn mkt-final-ghost">
+              <Link href="/login" className="btn ghost">
                 Log in
               </Link>
             </div>

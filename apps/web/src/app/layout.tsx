@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
+import { IBM_Plex_Sans, Inter, Source_Serif_4 } from "next/font/google";
 import { RegisterPwa } from "@/components/RegisterPwa";
 import "./globals.css";
 
@@ -12,6 +12,11 @@ const serif = Source_Serif_4({
   subsets: ["latin", "latin-ext"],
   weight: ["500", "600"],
   variable: "--font-serif",
+});
+const inter = Inter({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-mkt",
 });
 
 export const metadata: Metadata = {
@@ -45,7 +50,7 @@ const THEME_BOOT = `(function(){try{var t=localStorage.getItem("vos-theme");docu
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable}`} data-theme="light" suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${serif.variable} ${inter.variable}`} data-theme="light" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <RegisterPwa />
