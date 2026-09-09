@@ -43,7 +43,8 @@ export function ThemeToggle({
   }, []);
 
   function toggle() {
-    const next = theme === "light" ? "dark" : "light";
+    const current = readStoredTheme();
+    const next = current === "light" ? "dark" : "light";
     setTheme(next);
     applyTheme(next);
   }

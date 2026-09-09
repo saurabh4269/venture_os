@@ -18,7 +18,7 @@ Keyframe PNGs and the source MP4 live outside this repo; this doc is the **timin
 | Time | Beat | Implementation |
 | --- | --- | --- |
 | **0:00** | Hero: constellation icons **bob on Y**; centered H1 + CTA | `HeroConstellation` + static H1 + `MotionCta` in `LandingHeroSequence` |
-| **0:01–0:03** | Hero **zoom / blur / fade**; next section **slides up**; cards **scale-in stagger** then **parallax spread** | GSAP `ScrollTrigger` scrub on `LandingHeroSequence` (`mkt-hero-pin`) — **reversible** on scroll back. Off on mobile and reduced motion. |
+| **0:01–0:03** | Next section **in flow** under the hero; cards rise when they enter view | `LandingHeroSequence` stacks (no pin) so theme and CTAs stay clickable after scroll |
 | **0:04–0:06** | Feature cards: **inner micro-anims** (bars grow, badge slide, list stagger) | `FeatureRiseCard` variants + `useInView` |
 | **0:07–0:10** | Integrations **arc carousel**: curved path, center scale+opaque, edges rotate+blur, caption crossfade | `ConnectorArc` |
 | **0:11–0:14** | Methodology quotes: **exit left + blur**, **enter from right sharp** | `TestimonialCarousel` + `AnimatePresence` |
@@ -51,7 +51,7 @@ Keyframe PNGs and the source MP4 live outside this repo; this doc is the **timin
 
 ## Reduced motion checklist
 
-- [x] No `ScrollTrigger` pin/scrub — hero and rise stack normally
+- [x] No `ScrollTrigger` pin/scrub — hero and rise stack in document flow
 - [x] Constellation Y-bob loops off
 - [x] Arc + quote autoplay off
 - [x] Carousels: instant state change, no blur filters
